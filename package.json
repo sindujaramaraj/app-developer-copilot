@@ -2,12 +2,36 @@
   "name": "app-developer-copilot",
   "displayName": "App Developer Copilot",
   "description": "Extension using Copilot to create apps",
+  "icon": "media/icon.jpeg",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sindujaramaraj/app-developer-copilot/issues"
+  },
+  "homepage": "https://github.com/sindujaramaraj/app-developer-copilot",
+  "license": "MIT",
+  "publisher": "sindujaramaraj",
+  "author": {
+    "name": "Sinduja Ramaraj",
+    "email": "sinduja.ramaraj87@gmail.com"
+  },
   "engines": {
     "vscode": "^1.95.0"
   },
   "categories": [
+    "AI",
+    "Chat",
     "Other"
+  ],
+  "keywords": [
+    "app",
+    "developer",
+    "copilot",
+    "expo",
+    "react-native"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -63,5 +87,9 @@
   "dependencies": {
     "joi": "^17.13.3",
     "joi-to-json": "^4.3.0"
-  }
+  },
+  "extensionDependencies": [
+    "GitHub.copilot",
+    "GitHub.copilot-chat"
+  ]
 }

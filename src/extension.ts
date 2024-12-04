@@ -15,15 +15,34 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
     _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken,
-  ) => {
+  ): Promise<vscode.ChatResult> => {
     if (request.command === 'create') {
       console.log('MobileBuilder: Create command called');
-      await handleCreateMobileApp(stream, request, token);
+      let error: any;
+      try {
+        await handleCreateMobileApp(stream, request, token);
+      } catch (error) {
+        error = error;
+      }
+
+      return {
+        errorDetails: error
+          ? {
+              message: error.message,
+            }
+          : undefined,
+        metadata: { command: 'create' },
+      };
     } else if (request.command === 'run') {
       const workspaceFolder = await FileParser.getWorkspaceFolder();
       if (!workspaceFolder) {
         stream.markdown('MobileBuilder: No workspace folder selected');
-        return;
+        return {
+          errorDetails: {
+            message: 'No workspace folder selected',
+          },
+          metadata: { command: 'run' },
+        };
       }
       await vscode.workspace
         .findFiles(`**/${APP_CONFIG_FILE}`)
@@ -38,6 +57,9 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
           stream.markdown(`MobileBuilder: Running app ${appName}`);
           runExpoProject(appName);
         });
+      return {
+        metadata: { command: 'run' },
+      };
     } else {
       console.log('MobileBuilder: No command found');
       const chatResponse = await request.model.sendRequest(
@@ -48,18 +70,38 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
       for await (const fragment of chatResponse.text) {
         stream.markdown(fragment);
       }
+      return {};
     }
-    return;
   };
 
-  const mobileBuilder = vscode.chat.createChatParticipant(
+  const mobileAppDeveloper = vscode.chat.createChatParticipant(
     'app-developer.mobile',
     mobileAppHanlder,
   );
-  mobileBuilder.iconPath = vscode.Uri.joinPath(
+  mobileAppDeveloper.iconPath = vscode.Uri.joinPath(
     context.extensionUri,
-    'builder.jpeg',
+    'media/icon.jpeg',
   );
+  mobileAppDeveloper.followupProvider = {
+    provideFollowups(
+      result: vscode.ChatResult,
+      _context: vscode.ChatContext,
+      _token: vscode.CancellationToken,
+    ) {
+      if (!result.metadata) {
+        return [];
+      }
+      if (result.metadata.command === 'create') {
+        return [
+          {
+            prompt: 'Run the app',
+            command: 'run',
+          } satisfies vscode.ChatFollowup,
+        ];
+      }
+      return [];
+    },
+  };
 }
 
 async function handleCreateMobileApp(
