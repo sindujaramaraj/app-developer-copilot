@@ -42,13 +42,16 @@ export class InitializeAppPrompt extends PromptBase<
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-    First think through the problem and design the app. You don't have to add authentication to the app.
+    First think through the problem and design the mobile app using react-native and expo. Use expo-router for navigation.
+    Assume the app is initialized using 'npx create-expo-app' and uses expo-router with typescript template.
+    You don't have to add authentication to the app.
     Use default theme for the app and do not configure or create any custom theme.
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
     Make sure there are no circular dependencies between components.
     Make sure the app uses expo-router for navigation and file path of the components are correct.
-    Assume the app is initialized using 'npx create-expo-app' and uses expo-router with typescript template.
+    Make sure that app/index.tsx is the entry point of the app.
+    
     Create app for: ${input.userMessage}.`;
     super(input, instructions, InitializeAppResponseSchema);
   }
