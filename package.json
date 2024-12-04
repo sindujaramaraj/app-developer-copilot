@@ -3,7 +3,8 @@
   "displayName": "App Developer Copilot",
   "description": "Extension using Copilot to create apps",
   "icon": "media/icon.jpeg",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "preview": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"
