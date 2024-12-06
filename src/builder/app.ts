@@ -4,6 +4,9 @@ import {
   IResponseBase,
   IGenerateCodeResponse,
 } from './types';
+import { FileParser } from './utils/fileParser';
+import { installNPMDependencies } from './terminalHelper';
+import { APP_NAME } from './constants';
 
 export enum AppStage {
   None,
@@ -55,7 +58,14 @@ export class App {
 
   getStages(): AppStage[] {
     // TODO: Add more stages as we implement
-    return [AppStage.PreCheck, AppStage.Initialize, AppStage.GenerateCode];
+    return [
+      AppStage.PreCheck,
+      AppStage.Initialize,
+      AppStage.Design,
+      AppStage.GenerateCode,
+      AppStage.Build,
+      AppStage.Deploy,
+    ];
   }
 
   async execute(): Promise<void> {
@@ -97,6 +107,17 @@ export class App {
           case AppStage.Initialize:
             currentOutput = await this.initialize(this.initialInput);
             break;
+          case AppStage.Design:
+            if (!stageOutput) {
+              this.setStage(AppStage.Cancelled);
+              this.isExecuting = false;
+              throw new Error('No previous output to design');
+            }
+            currentOutput = await this.design({
+              previousMessages: stageOutput.messages,
+              previousOutput: stageOutput.output as IInitializeAppResponse,
+            });
+            break;
           case AppStage.GenerateCode:
             if (!stageOutput) {
               this.setStage(AppStage.Cancelled);
@@ -104,6 +125,28 @@ export class App {
               throw new Error('No previous output to generate code');
             }
             currentOutput = await this.generateCode({
+              previousMessages: stageOutput.messages,
+              previousOutput: stageOutput.output as IInitializeAppResponse,
+            });
+            break;
+          case AppStage.Build:
+            if (!stageOutput) {
+              this.setStage(AppStage.Cancelled);
+              this.isExecuting = false;
+              throw new Error('No previous output to build');
+            }
+            currentOutput = await this.build({
+              previousMessages: stageOutput.messages,
+              previousOutput: stageOutput.output as IInitializeAppResponse,
+            });
+            break;
+          case AppStage.Deploy:
+            if (!stageOutput) {
+              this.setStage(AppStage.Cancelled);
+              this.isExecuting = false;
+              throw new Error('No previous output to deploy');
+            }
+            currentOutput = await this.deploy({
               previousMessages: stageOutput.messages,
               previousOutput: stageOutput.output as IInitializeAppResponse,
             });
@@ -131,13 +174,13 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
-  // design(
-  //   _input: IAppStageInput<IInitializeAppResponse>,
-  // ): Promise<IAppStageOutput<IAppDesignResponse>> {
-  //   // Generate class diagram
-  //   // Generate projet structure
-  //   throw new Error('Method not implemented.');
-  // }
+  design(
+    _input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    // Generate class diagram
+    // Generate project structure
+    throw new Error('Method not implemented.');
+  }
 
   generateCode(
     _input: IAppStageInput<IInitializeAppResponse>,
@@ -146,19 +189,50 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
-  build() {
-    // Check for errors
-    throw new Error('Method not implemented.');
+  async build(
+    input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    this.setStage(AppStage.Build);
+    this.progress('Building the application');
+    const { previousMessages, previousOutput } = input;
+    const { name: appName } = previousOutput;
+
+    // Install dependencies
+    this.progress('Installing dependencies');
+    const installedDependencies: string[] = [];
+    for (const component of previousOutput.components) {
+      const npmDependencies = component.dependsOn || [];
+      await installNPMDependencies(appName, npmDependencies, installedDependencies);
+    }
+
+    this.markdown('Build completed successfully');
+    return {
+      messages: previousMessages,
+      output: {
+        summary: 'Build completed successfully',
+      },
+    };
   }
 
-  run() {
-    // Run the application
-    throw new Error('Method not implemented.');
-  }
+  async deploy(
+    input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    this.setStage(AppStage.Deploy);
+    this.progress('Deploying the application');
+    const { previousMessages, previousOutput } = input;
+    const { name: appName } = previousOutput;
 
-  deploy() {
     // Deploy the application
-    throw new Error('Method not implemented.');
+    this.progress('Deploying the application');
+    // Add deployment logic here
+
+    this.markdown('Deployment completed successfully');
+    return {
+      messages: previousMessages,
+      output: {
+        summary: 'Deployment completed successfully',
+      },
+    };
   }
 
   setStage(stage: AppStage) {

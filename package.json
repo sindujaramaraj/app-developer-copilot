@@ -52,6 +52,18 @@
           {
             "name": "run",
             "description": "Run the app"
+          },
+          {
+            "name": "design",
+            "description": "Generate a detailed roadmap or build plan"
+          },
+          {
+            "name": "build",
+            "description": "Build the application"
+          },
+          {
+            "name": "deploy",
+            "description": "Deploy the application"
           }
         ]
       }

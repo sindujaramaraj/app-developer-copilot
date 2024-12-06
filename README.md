@@ -22,7 +22,10 @@ A VS Code extension that helps you create react-native mobile applications using
 3. Type "@app-developer-mobile" to start a chat with the extension
 4. Use "/create" command to create a new mobile application
 5. Use "/run" command to run the generated application
-6. The extension will:
+6. Use "/design" command to generate a detailed roadmap or build plan
+7. Use "/build" command to build the application
+8. Use "/deploy" command to deploy the application
+9. The extension will:
    - Generate app architecture diagram
    - Create an Expo project
    - Generate component code
@@ -43,6 +46,9 @@ This extension is still in development and may not work as expected. Please repo
 
 - `create` - Create a new mobile application
 - `run` - Run the generated application
+- `design` - Generate a detailed roadmap or build plan
+- `build` - Build the application
+- `deploy` - Deploy the application
 
 ## Extension Development
 

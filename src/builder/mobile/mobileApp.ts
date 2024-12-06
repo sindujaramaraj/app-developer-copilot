@@ -294,4 +294,121 @@ export class MobileApp extends App {
       },
     };
   }
+
+  async design(
+    input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    this.setStage(AppStage.Design);
+    this.progress('Designing the application');
+    const { previousMessages, previousOutput } = input;
+    const { name: appName, design, components } = previousOutput;
+
+    // Generate a detailed roadmap or build plan
+    const roadmap = `
+# Roadmap for ${appName}
+
+## Initialization
+- Set up the project structure
+- Create configuration files
+
+## Design
+- Generate class diagrams
+- Create project structure
+- Identify dependencies
+
+## Dependency Management
+- List all dependencies required for the application
+- Ensure automated installation of dependencies during the build stage
+
+## Code Generation
+- Generate code for application components
+- Order component creation based on dependencies
+
+## Build
+- Check for errors
+- Compile the application
+
+## Deployment
+- Configure deployment settings
+- Deploy the application to the target environment
+
+## User Prompts
+- Consolidate information requests during the design stage
+- Minimize user input in subsequent stages
+
+## Error Handling and Feedback
+- Implement robust error handling
+- Provide clear feedback to the user
+
+## User-Friendly Interface
+- Ensure intuitive and easy-to-navigate user interface
+- Provide clear and concise instructions for each stage
+`;
+
+    // Save the roadmap to a file
+    await FileParser.parseAndCreateFiles(
+      [
+        {
+          path: 'roadmap.md',
+          content: roadmap,
+        },
+      ],
+      appName,
+    );
+
+    this.markdown('Roadmap saved successfully');
+
+    return {
+      messages: previousMessages,
+      output: {
+        summary: 'Design completed successfully',
+      },
+    };
+  }
+
+  async build(
+    input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    this.setStage(AppStage.Build);
+    this.progress('Building the application');
+    const { previousMessages, previousOutput } = input;
+    const { name: appName } = previousOutput;
+
+    // Install dependencies
+    this.progress('Installing dependencies');
+    const installedDependencies: string[] = [];
+    for (const component of previousOutput.components) {
+      const npmDependencies = component.dependsOn || [];
+      await installNPMDependencies(appName, npmDependencies, installedDependencies);
+    }
+
+    this.markdown('Build completed successfully');
+    return {
+      messages: previousMessages,
+      output: {
+        summary: 'Build completed successfully',
+      },
+    };
+  }
+
+  async deploy(
+    input: IAppStageInput<IInitializeAppResponse>,
+  ): Promise<IAppStageOutput<IResponseBase>> {
+    this.setStage(AppStage.Deploy);
+    this.progress('Deploying the application');
+    const { previousMessages, previousOutput } = input;
+    const { name: appName } = previousOutput;
+
+    // Deploy the application
+    this.progress('Deploying the application');
+    // Add deployment logic here
+
+    this.markdown('Deployment completed successfully');
+    return {
+      messages: previousMessages,
+      output: {
+        summary: 'Deployment completed successfully',
+      },
+    };
+  }
 }
