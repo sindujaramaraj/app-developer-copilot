@@ -11,6 +11,7 @@ import {
   IGenerateCodeForComponentResponse,
   IGenerateCodeResponse,
   IInitializeAppResponse,
+  IResponseBase,
 } from '../types';
 import {
   createExpoApp,
