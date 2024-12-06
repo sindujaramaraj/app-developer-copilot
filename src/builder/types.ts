@@ -152,3 +152,29 @@ export interface IGenerateCodeResponse extends IResponseBase {
   components: ICodeComponent[];
   generatedCode: IGenerateCodeForComponentResponse[];
 }
+
+export interface IUser {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}
+
+export const UserSchema = Joi.object<IUser>({
+  id: Joi.string().required().description('User ID'),
+  name: Joi.string().required().description('User name'),
+  email: Joi.string().required().description('User email'),
+  password: Joi.string().required().description('User password'),
+});
+
+export interface IDatabaseModel {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const DatabaseModelSchema = Joi.object<IDatabaseModel>({
+  id: Joi.string().required().description('Model ID'),
+  createdAt: Joi.date().required().description('Creation date'),
+  updatedAt: Joi.date().required().description('Last update date'),
+});

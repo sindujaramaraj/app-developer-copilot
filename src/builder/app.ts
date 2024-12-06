@@ -7,6 +7,8 @@ import {
 import { FileParser } from './utils/fileParser';
 import { installNPMDependencies } from './terminalHelper';
 import { APP_NAME } from './constants';
+import { initializeDatabase, initializeAuth } from './utils/appconfigHelper';
+import { logError } from './utils/errorHandler';
 
 export enum AppStage {
   None,
@@ -167,10 +169,17 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
-  initialize(
-    _userMessage: string,
+  async initialize(
+    userMessage: string,
   ): Promise<IAppStageOutput<IInitializeAppResponse>> {
-    // Initialize the application
+    try {
+      // Initialize the application
+      await initializeDatabase();
+      await initializeAuth();
+    } catch (error) {
+      logError('Error initializing app:', error);
+      throw error;
+    }
     throw new Error('Method not implemented.');
   }
 
