@@ -4,6 +4,9 @@ import {
   IResponseBase,
   IGenerateCodeResponse,
 } from './types';
+import { checkNodeInstallation } from './utils/nodeUtil';
+import { validateUserInput } from './utils/validationUtil';
+import { logStage } from './utils/loggingUtil';
 
 export enum AppStage {
   None,
@@ -119,16 +122,54 @@ export class App {
     }
   }
 
-  precheck(): Promise<boolean> {
-    // Check for pre-requisites
-    throw new Error('Method not implemented.');
+  async precheck(): Promise<boolean> {
+    this.setStage(AppStage.PreCheck);
+    logStage(this.stage);
+
+    // Check if node is installed
+    const nodeCheck = await checkNodeInstallation();
+    if (!nodeCheck.installed) {
+      this.markdown(
+        'Node.js is not installed. Please install Node.js to proceed',
+      );
+      this.setStage(AppStage.Cancelled);
+      return false;
+    }
+    if (!nodeCheck.meetsMinimum) {
+      this.markdown(
+        `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
+      );
+      this.setStage(AppStage.Cancelled);
+      return false;
+    }
+
+    // Add more comprehensive pre-checks and validations here
+    // For example, check for npm installation, environment variables, etc.
+
+    return true;
   }
 
-  initialize(
-    _userMessage: string,
+  async initialize(
+    userMessage: string,
   ): Promise<IAppStageOutput<IInitializeAppResponse>> {
+    this.setStage(AppStage.Initialize);
+    logStage(this.stage);
+
+    // Validate user input
+    const validationResult = validateUserInput(userMessage);
+    if (!validationResult.isValid) {
+      this.markdown(validationResult.errorMessage);
+      this.setStage(AppStage.Cancelled);
+      throw new Error('Invalid input');
+    }
+
     // Initialize the application
-    throw new Error('Method not implemented.');
+    // Add your initialization logic here
+
+    return {
+      messages: [],
+      output: {} as IInitializeAppResponse,
+    };
   }
 
   // design(
@@ -139,11 +180,19 @@ export class App {
   //   throw new Error('Method not implemented.');
   // }
 
-  generateCode(
-    _input: IAppStageInput<IInitializeAppResponse>,
+  async generateCode(
+    input: IAppStageInput<IInitializeAppResponse>,
   ): Promise<IAppStageOutput<IGenerateCodeResponse>> {
+    this.setStage(AppStage.GenerateCode);
+    logStage(this.stage);
+
     // Generate code
-    throw new Error('Method not implemented.');
+    // Add your code generation logic here
+
+    return {
+      messages: input.previousMessages,
+      output: {} as IGenerateCodeResponse,
+    };
   }
 
   build() {
