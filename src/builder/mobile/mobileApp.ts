@@ -25,6 +25,9 @@ import {
 } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
+import { initializeDatabase, initializeAuth } from '../utils/appconfigHelper';
+import { logError } from '../utils/errorHandler';
+import { setupPushNotifications } from '../utils/notificationHelper';
 
 const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo.
 You create apps that uses local storage and doesn't require authentication.
@@ -147,6 +150,23 @@ export class MobileApp extends App {
       createAppResponseObj.name,
     );
     this.markdown('Design Diagram saved successfully');
+
+    // Initialize database and authentication
+    try {
+      await initializeDatabase();
+      await initializeAuth();
+    } catch (error) {
+      logError('Error initializing database or authentication:', error);
+      throw error;
+    }
+
+    // Setup push notifications
+    try {
+      await setupPushNotifications();
+    } catch (error) {
+      logError('Error setting up push notifications:', error);
+      throw error;
+    }
   }
 
   async generateCode({
