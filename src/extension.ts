@@ -4,6 +4,7 @@ import { FileParser } from './builder/utils/fileParser';
 import { APP_CONFIG_FILE } from './builder/constants';
 import { runExpoProject } from './builder/terminalHelper';
 import { readAppConfigFromFile } from './builder/utils/appconfigHelper';
+import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
   registerChatParticipants(context);
@@ -129,8 +130,8 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
     'app-developer.mobile',
     mobileAppHanlder,
   );
-  mobileAppDeveloper.iconPath = vscode.Uri.joinPath(
-    context.extensionUri,
+  mobileAppDeveloper.iconPath = path.join(
+    context.extensionUri.fsPath,
     'media/icon.jpeg',
   );
   mobileAppDeveloper.followupProvider = {
