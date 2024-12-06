@@ -27,6 +27,7 @@ A VS Code extension that helps you create react-native mobile applications using
    - Create an Expo project
    - Generate component code
    - Install required dependencies
+   - Perform comprehensive pre-checks and validations to ensure all necessary dependencies and configurations are in place before starting the app creation process
 
 Once the app is generated, you can run the app using the Expo Go app on your mobile device or an emulator.
 Please note: There might be issues after app generation. You can manually fix them by following the error messages in the terminal.
