@@ -24,6 +24,8 @@ export async function createAppConfig(app: AppConfig) {
     name: app.name,
     initialPrompt: app.initialPrompt,
     type: app.type,
+    hasDatabase: app.hasDatabase,
+    hasAuth: app.hasAuth,
   };
   const content = JSON.stringify(appManifest, null, 2);
   await FileParser.parseAndCreateFiles(
@@ -58,4 +60,14 @@ export async function readAppConfigFromFile(
 ): Promise<AppConfig> {
   const content = await FileParser.readFile(appConfigFilePath);
   return JSON.parse(content);
+}
+
+export async function initializeDatabase() {
+  // Add logic to initialize the database
+  console.log('Initializing database...');
+}
+
+export async function initializeAuth() {
+  // Add logic to initialize user authentication
+  console.log('Initializing user authentication...');
 }
