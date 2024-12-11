@@ -28,3 +28,8 @@ export function logInfo(message: string) {
 export function logWarning(message: string) {
   logger.warn(message);
 }
+
+export function handleError(error: any, message: string) {
+  logError(message, error);
+  // Additional error handling logic can be added here
+}
