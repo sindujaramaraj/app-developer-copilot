@@ -1,5 +1,12 @@
 import * as vscode from 'vscode';
 
+function getTerminal(): vscode.Terminal {
+  if (vscode.window.activeTerminal) {
+    return vscode.window.activeTerminal;
+  }
+  return vscode.window.createTerminal();
+}
+
 export async function installNPMDependencies(
   folderName: string,
   dependencies: string[],
@@ -32,15 +39,22 @@ function runCommandWithPromise(
   command: string,
   folder?: string,
 ): Promise<void> {
-  const terminal = vscode.window.createTerminal();
+  const terminal = getTerminal();
   terminal.show();
   if (folder) {
-    terminal.sendText(`cd ${folder}`);
+    // Check for current working directory
+    const cwd = terminal.shellIntegration?.cwd?.fsPath;
+    if (!cwd || !cwd.endsWith(folder)) {
+      terminal.sendText(`cd ${folder}`);
+    }
   }
   terminal.sendText(command);
   return new Promise((resolve) => {
     const disposable = vscode.window.onDidEndTerminalShellExecution((e) => {
-      if (e.exitCode === 0 && e.terminal.processId === terminal.processId) {
+      if (
+        (e.exitCode === 0 || e.exitCode === undefined) &&
+        e.terminal.processId === terminal.processId
+      ) {
         disposable.dispose();
         resolve();
       } else {

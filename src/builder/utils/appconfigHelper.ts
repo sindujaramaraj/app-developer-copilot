@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-import { APP_CONFIG_FILE } from '../constants';
+import { APP_CONFIG_FILE, APP_VERISON } from '../constants';
 import { FileParser } from './fileParser';
 
 export enum AppType {
@@ -12,18 +12,22 @@ export enum AppType {
 
 export interface AppConfig {
   name: string;
+  version: string;
   initialPrompt: string;
+  features?: string[];
+  components?: string;
   type: AppType;
   hasDatabase?: boolean;
   hasAuth?: boolean;
 }
 
-export async function createAppConfig(app: AppConfig) {
+export async function createAppConfig(
+  app: Omit<AppConfig, 'version'>,
+): Promise<void> {
   // create a file with the app manifest
   const appManifest: AppConfig = {
-    name: app.name,
-    initialPrompt: app.initialPrompt,
-    type: app.type,
+    ...app,
+    version: APP_VERISON,
   };
   const content = JSON.stringify(appManifest, null, 2);
   await FileParser.parseAndCreateFiles(
