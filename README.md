@@ -77,19 +77,19 @@ npm install
 
 ## Publishing Extension
 
-### Install vsce
+#### Install vsce
 
 ```bash
 npm install -g vsce
 ```
 
-### Package extension
+#### Package extension
 
 ```bash
 vsce package
 ```
 
-### Publish to marketplace
+#### Publish to marketplace
 
 ```bash
 vsce publish --pre-release
