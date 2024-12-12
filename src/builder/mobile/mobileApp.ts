@@ -76,7 +76,7 @@ export class MobileApp extends App {
 
     const initializeAppMessages = [
       vscode.LanguageModelChatMessage.Assistant(MOBILE_BUILDER_INSTRUCTION),
-      // Add the user's message
+      // Add user's message
       vscode.LanguageModelChatMessage.User(initializeAppPrompt.getPromptText()),
     ];
 
@@ -115,6 +115,8 @@ export class MobileApp extends App {
     await createAppConfig({
       name: createAppResponseObj.name,
       initialPrompt: userMessage,
+      components: JSON.stringify(createAppResponseObj.components),
+      features: createAppResponseObj.features,
       type: AppType.MOBILE,
     });
 
@@ -172,7 +174,7 @@ export class MobileApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
-      vscode.LanguageModelChatMessage.Assistant(
+      vscode.LanguageModelChatMessage.User(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
         Write the actual code that will be used in production.
@@ -180,6 +182,9 @@ export class MobileApp extends App {
         Wait for the code generation request.`,
       ),
     ];
+
+    const totalComponents = sortedComponents.length;
+    let componentIndex = 0;
 
     for (const component of sortedComponents) {
       const dependentComponents = component.dependsOn || [];
@@ -199,7 +204,7 @@ export class MobileApp extends App {
         dependencies: dependenciesWithContent,
         design,
         techStack:
-          'For navigation, we will use expo-router. For theming, we will use react-native-paper.  Use default theme for the app. For storage, we will use AsyncStorage.',
+          'For navigation, use expo-router. For theming, use react-native-paper.  Use default theme for the app. For storage, use AsyncStorage.',
       });
       const messages = [
         ...codeGenerationMessages,
@@ -210,7 +215,9 @@ export class MobileApp extends App {
 
       let codeGenerationResponse, codeGenerationResponseObj;
       try {
-        this.progress(`Generating code for component ${component.name}`);
+        this.progress(
+          `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
+        );
         [codeGenerationResponse, codeGenerationResponseObj] =
           await parseResponse<IGenerateCodeForComponentResponse>(
             this.model,
@@ -258,11 +265,11 @@ export class MobileApp extends App {
       }
 
       this.markdown(
-        `Successfully generated the code for component ${component.name}`,
+        `Successfully generated code for component ${component.name}`,
       );
-      this.progress(
-        `Writing the code to the file for component ${component.name}`,
-      );
+      this.progress(`Writing code to for component ${component.name}`);
+
+      componentIndex++;
 
       const files = [
         {

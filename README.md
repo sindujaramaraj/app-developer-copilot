@@ -2,6 +2,11 @@
 
 A VS Code extension that helps you create react-native mobile applications using Copilot. This is a preview version of the extension and works better with Claude models.
 
+## How it works
+
+The extension is developed to act like a real world application developer. Given a task, it will first anayse and design the app with features and components. It then through a series of prompts, generates code for the entire app.
+Advantage of this approach is, app generated will have lot more features and functionality at the first go instead of having to update the minimal app generated with lot of prompts.
+
 ## Features
 
 - Create mobile apps using React Native and Expo
@@ -39,6 +44,14 @@ This extension is still in development and may not work as expected. Please repo
 
 - Mobile App Developer(`@app-developer-mobile`)
 
+### Sample Prompts
+
+`@app-developer-mobile /create A simple notes app`
+
+`@app-developer-mobile /create Spelling bee app to generate words for kids K-5. Generate a service using anthropic client SDK to generate words based on grade selection`
+
+`@app-developer-mobile /create flappy bird game`
+
 ## Commands
 
 - `create` - Create a new mobile application
@@ -52,6 +65,35 @@ Built with:
 - VS Code Extension API
 - Webpack for bundling
 - Jest for testing
+
+## Development Setup
+
+1. Fork and clone the repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+## Publishing Extension
+
+### Install vsce
+
+```bash
+npm install -g vsce
+```
+
+### Package extension
+
+```bash
+vsce package
+```
+
+### Publish to marketplace
+
+```bash
+vsce publish --pre-release
+```
 
 ## Issues & Suggestions
 
