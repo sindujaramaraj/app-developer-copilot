@@ -1,9 +1,26 @@
 # Change Log
 
-All notable changes to the "app-developer-copilot" extension will be documented in this file.
+## [0.0.4] - 2024-12-12
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+### Changed
 
-## [Unreleased]
+- Updated appdev.json with generated features and components design
+- Updated progress texts during code generation
+
+### Fixed
+
+- Use a single terminal for all commands
+
+## [0.0.3] - 2024-12-04
+
+## [0.0.2] - 2024-12-04
+
+## [0.0.1] - 2024-12-04
 
 - Initial release
+- Chat participant `@app-developer-mobile` for mobile app development
+- `/create` command to generate new mobile applications
+- `/run` command to start the generated application
+- Support for Expo and React Native app generation
+- Integration with expo-router for navigation
+- Component-based code generation with dependencies
