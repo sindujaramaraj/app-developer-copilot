@@ -75,21 +75,27 @@ export class MobileApp extends App {
     });
 
     const initializeAppMessages = [
-      this.modelService.createAssistantMessage(MOBILE_BUILDER_INSTRUCTION),
+      this.languageModelService.createAssistantMessage(
+        MOBILE_BUILDER_INSTRUCTION,
+      ),
       // Add user's message
-      this.modelService.createUserMessage(initializeAppPrompt.getPromptText()),
+      this.languageModelService.createUserMessage(
+        initializeAppPrompt.getPromptText(),
+      ),
     ];
 
     // send the request
     this.progress('Analyzing app requirements');
     try {
       let { response: createAppResponse, object: createAppResponseObj } =
-        await this.modelService.generateObject<ZInitializeAppResponseType>({
-          messages: initializeAppMessages,
-          schema: ZInitializeAppResponseSchema,
-        });
+        await this.languageModelService.generateObject<ZInitializeAppResponseType>(
+          {
+            messages: initializeAppMessages,
+            schema: ZInitializeAppResponseSchema,
+          },
+        );
       initializeAppMessages.push(
-        this.modelService.createAssistantMessage(createAppResponse),
+        this.languageModelService.createAssistantMessage(createAppResponse),
       );
 
       this.markdown(`Let's call the app: ${createAppResponseObj.name}`);
@@ -170,7 +176,7 @@ export class MobileApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
-      this.modelService.createUserMessage(
+      this.languageModelService.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
         Write the actual code that will be used in production.
@@ -204,7 +210,7 @@ export class MobileApp extends App {
       });
       const messages = [
         ...codeGenerationMessages,
-        this.modelService.createUserMessage(
+        this.languageModelService.createUserMessage(
           codeGenerationPrompt.getPromptText(),
         ),
       ];
@@ -215,7 +221,7 @@ export class MobileApp extends App {
           `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
         );
         const { response, object } =
-          await this.modelService.generateObject<ZGenerateCodeForComponentResponseType>(
+          await this.languageModelService.generateObject<ZGenerateCodeForComponentResponseType>(
             {
               messages,
               schema: ZGenerateCodeForComponentResponseSchema,

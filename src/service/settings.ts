@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { LLMProvider } from './types';
+import { LLMCodeModel, LLMProvider } from './types';
 
 export interface AppSettings {
   useOwnModel: boolean;
   apiProvider: LLMProvider;
   apiKey: string;
-  model: string;
+  model: LLMCodeModel;
 }
 
 export class SettingsServie {
@@ -15,7 +15,7 @@ export class SettingsServie {
       useOwnModel: settings.get('useOwnModel') as boolean,
       apiProvider: settings.get('apiProvider') as LLMProvider,
       apiKey: settings.get('apiKey') as string,
-      model: settings.get('model') as string,
+      model: settings.get('model') as LLMCodeModel,
     };
   }
 }

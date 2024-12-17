@@ -18,7 +18,7 @@ interface IGenerateObjectRequest<T> {
   schema: z.ZodSchema<T>;
 }
 
-export class ModelService {
+export class LanguageModelService {
   private useOwnModel: boolean = false;
   private ownModel?: LanguageModel | undefined;
   private copilotModel?: vscode.LanguageModelChat;

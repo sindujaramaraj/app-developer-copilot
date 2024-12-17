@@ -4,8 +4,8 @@ import {
   ZGenerateCodeResponseType,
   ZCodeComponentType,
 } from './types';
-import { IModelMessage, ModelService } from '../service/model';
-import { StreamService } from '../service/stream';
+import { IModelMessage, LanguageModelService } from '../service/languageModel';
+import { StreamHandlerService } from '../service/streamHandler';
 
 export enum AppStage {
   None,
@@ -34,20 +34,20 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
  */
 
 export class App {
-  protected modelService: ModelService;
+  protected languageModelService: LanguageModelService;
 
-  protected streamService: StreamService;
+  protected streamService: StreamHandlerService;
 
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
 
   constructor(
-    modelService: ModelService,
-    streamService: StreamService,
+    languageModelService: LanguageModelService,
+    streamService: StreamHandlerService,
     initialInput: string,
   ) {
-    this.modelService = modelService;
+    this.languageModelService = languageModelService;
     this.streamService = streamService;
     this.initialInput = initialInput;
     this.stage = AppStage.None;
@@ -172,7 +172,7 @@ export class App {
   }
 
   markdown(message: string) {
-    this.streamService.markdown(message);
+    this.streamService.message(message);
   }
 
   sortComponentsByDependency(
