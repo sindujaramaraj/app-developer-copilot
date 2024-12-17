@@ -37,6 +37,56 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "App Developer Copilot",
+      "properties": {
+        "app-developer-copilot.useOwnModel": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use your own model"
+        },
+        "app-developer-copilot.apiProvider": {
+          "type": "string",
+          "enum": [
+            "Anthropic",
+            "OpenAI"
+          ],
+          "default": "Anthropic",
+          "description": "API Provider"
+        },
+        "app-developer-copilot.apiKey": {
+          "type": [
+            "securestring",
+            "null"
+          ],
+          "default": null,
+          "description": "Provider API Key"
+        },
+        "app-developer-copilot.model": {
+          "type": "string",
+          "enum": [
+            "claude-3-5-sonnet-v2@20241022",
+            "claude-3-5-sonnet@20240620",
+            "o1-preview",
+            "gpt-4o"
+          ],
+          "enumItemLabels": [
+            "Claude 3.5 Sonnet v2",
+            "Claude 3.5 Sonnet",
+            "O1 Preview",
+            "GPT-4o"
+          ],
+          "default": "claude-3-5-sonnet-v2@20241022",
+          "description": "Model"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "app-developer.mobile.create",
+        "title": "App Developer: Create a mobile app"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "app-developer.mobile",
@@ -81,13 +131,20 @@
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.4.1",
     "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
     "webpack": "^5.95.0",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.5",
+    "@ai-sdk/openai": "^1.0.8",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@openrouter/ai-sdk-provider": "^0.0.6",
+    "ai": "^4.0.18",
     "joi": "^17.13.3",
-    "joi-to-json": "^4.3.0"
+    "joi-to-json": "^4.3.0",
+    "openai": "^4.76.3"
   },
   "extensionDependencies": [
     "GitHub.copilot",

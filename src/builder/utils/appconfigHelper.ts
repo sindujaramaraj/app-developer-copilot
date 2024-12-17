@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { APP_CONFIG_FILE, APP_VERISON } from '../constants';

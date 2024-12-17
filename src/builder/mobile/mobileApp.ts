@@ -1,16 +1,16 @@
-import * as vscode from 'vscode';
 import { App, AppStage, IAppStageInput, IAppStageOutput } from '../app';
 import {
   convertToMermaidMarkdown,
   isMermaidMarkdown,
-  parseResponse,
-  sortComponentsByDependency,
 } from '../utils/contentUtil';
 import { GenerateCodeForComponentPrompt, InitializeAppPrompt } from '../prompt';
 import {
-  IGenerateCodeForComponentResponse,
-  IGenerateCodeResponse,
-  IInitializeAppResponse,
+  ComponetType,
+  ZGenerateCodeForComponentResponseSchema,
+  ZGenerateCodeForComponentResponseType,
+  ZGenerateCodeResponseType,
+  ZInitializeAppResponseSchema,
+  ZInitializeAppResponseType,
 } from '../types';
 import {
   createExpoApp,
@@ -59,7 +59,7 @@ export class MobileApp extends App {
 
   async initialize(
     userMessage?: string,
-  ): Promise<IAppStageOutput<IInitializeAppResponse>> {
+  ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
     if (!userMessage) {
       this.markdown(
         'Please provide a valid input to start building a mobile app',
@@ -75,58 +75,54 @@ export class MobileApp extends App {
     });
 
     const initializeAppMessages = [
-      vscode.LanguageModelChatMessage.Assistant(MOBILE_BUILDER_INSTRUCTION),
+      this.modelService.createAssistantMessage(MOBILE_BUILDER_INSTRUCTION),
       // Add user's message
-      vscode.LanguageModelChatMessage.User(initializeAppPrompt.getPromptText()),
+      this.modelService.createUserMessage(initializeAppPrompt.getPromptText()),
     ];
 
     // send the request
     this.progress('Analyzing app requirements');
-    let createAppResponse, createAppResponseObj;
     try {
-      [createAppResponse, createAppResponseObj] =
-        await parseResponse<IInitializeAppResponse>(
-          this.model,
-          initializeAppMessages,
-          this.token,
-          initializeAppPrompt,
-        );
+      let { response: createAppResponse, object: createAppResponseObj } =
+        await this.modelService.generateObject<ZInitializeAppResponseType>({
+          messages: initializeAppMessages,
+          schema: ZInitializeAppResponseSchema,
+        });
       initializeAppMessages.push(
-        vscode.LanguageModelChatMessage.Assistant(createAppResponse),
+        this.modelService.createAssistantMessage(createAppResponse),
       );
+
+      this.markdown(`Let's call the app: ${createAppResponseObj.name}`);
+      console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
+      this.progress(`Creating app ${createAppResponseObj.name}`);
+      const formattedAppName = createAppResponseObj.name
+        .replace(/\s/g, '-')
+        .toLowerCase();
+      // fix app name
+      createAppResponseObj.name = formattedAppName;
+
+      await this.postInitialize(createAppResponseObj);
+
+      // Create app config
+      await createAppConfig({
+        name: createAppResponseObj.name,
+        initialPrompt: userMessage,
+        components: JSON.stringify(createAppResponseObj.components),
+        features: createAppResponseObj.features,
+        type: AppType.MOBILE,
+      });
+
+      return {
+        messages: initializeAppMessages,
+        output: createAppResponseObj,
+      };
     } catch (error) {
       console.error('MobileBuilder: Error parsing response', error);
       throw error;
     }
-
-    this.markdown(`Let's call the app: ${createAppResponseObj.name}`);
-    console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
-
-    this.progress(`Creating app ${createAppResponseObj.name}`);
-    const formattedAppName = createAppResponseObj.name
-      .replace(/\s/g, '-')
-      .toLowerCase();
-    // fix app name
-    createAppResponseObj.name = formattedAppName;
-
-    await this.postInitialize(createAppResponseObj);
-
-    // Create app config
-    await createAppConfig({
-      name: createAppResponseObj.name,
-      initialPrompt: userMessage,
-      components: JSON.stringify(createAppResponseObj.components),
-      features: createAppResponseObj.features,
-      type: AppType.MOBILE,
-    });
-
-    return {
-      messages: initializeAppMessages,
-      output: createAppResponseObj,
-    };
   }
 
-  async postInitialize(createAppResponseObj: IInitializeAppResponse) {
+  async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
     // Create expo project
     await createExpoApp(createAppResponseObj.name);
     //reset expo project
@@ -153,8 +149,8 @@ export class MobileApp extends App {
   async generateCode({
     previousMessages,
     previousOutput,
-  }: IAppStageInput<IInitializeAppResponse>): Promise<
-    IAppStageOutput<IGenerateCodeResponse>
+  }: IAppStageInput<ZInitializeAppResponseType>): Promise<
+    IAppStageOutput<ZGenerateCodeResponseType>
   > {
     const { name: appName, features, components, design } = previousOutput;
     this.setStage(AppStage.GenerateCode);
@@ -162,19 +158,19 @@ export class MobileApp extends App {
     // Generate code for each component
     this.progress('Generating code for components');
     // Generate code for individual components first
-    const sortedComponents = sortComponentsByDependency(components);
+    const sortedComponents = this.sortComponentsByDependency(components);
 
     // Generate code for all components
     const generatedCodeByComponent: Map<
       string,
-      IGenerateCodeForComponentResponse
+      ZGenerateCodeForComponentResponseType
     > = new Map();
     let error = false;
     const installedDependencies: string[] = [];
 
     const codeGenerationMessages = [
       ...previousMessages,
-      vscode.LanguageModelChatMessage.User(
+      this.modelService.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
         Write the actual code that will be used in production.
@@ -199,7 +195,7 @@ export class MobileApp extends App {
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForComponentPrompt({
         name: component.name,
-        type: component.type,
+        type: component.type as ComponetType,
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
@@ -208,7 +204,7 @@ export class MobileApp extends App {
       });
       const messages = [
         ...codeGenerationMessages,
-        vscode.LanguageModelChatMessage.User(
+        this.modelService.createUserMessage(
           codeGenerationPrompt.getPromptText(),
         ),
       ];
@@ -218,13 +214,15 @@ export class MobileApp extends App {
         this.progress(
           `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
         );
-        [codeGenerationResponse, codeGenerationResponseObj] =
-          await parseResponse<IGenerateCodeForComponentResponse>(
-            this.model,
-            messages,
-            this.token,
-            codeGenerationPrompt,
+        const { response, object } =
+          await this.modelService.generateObject<ZGenerateCodeForComponentResponseType>(
+            {
+              messages,
+              schema: ZGenerateCodeForComponentResponseSchema,
+            },
           );
+        codeGenerationResponse = response;
+        codeGenerationResponseObj = object;
         generatedCodeByComponent.set(component.name, codeGenerationResponseObj);
         // codeGenerationMessages.push(
         //   vscode.LanguageModelChatMessage.Assistant(codeGenerationResponse),

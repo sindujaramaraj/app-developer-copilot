@@ -1,9 +1,17 @@
 import Joi from 'joi';
+import { z } from 'zod';
 
 export interface IResponseBase {
   summary: string;
   error?: string;
 }
+
+export const ZResponseBaseSchema = z.object({
+  summary: z.string().describe('Summary of the user message'),
+  error: z.string().optional().describe('Error message if any'),
+});
+
+export type ZResponseBaseType = z.infer<typeof ZResponseBaseSchema>;
 
 export const ResponseBaseSchema = Joi.object<IResponseBase>({
   summary: Joi.string().optional().description('Summary of the user message'),
@@ -35,6 +43,30 @@ export interface ICodeComponent {
   dependsOn?: string[];
 }
 
+export const ZCodeComponentSchema = z.object({
+  name: z.string().describe('Name of the component'),
+  type: z
+    .enum([
+      'util',
+      'factory',
+      'service',
+      'ui_component',
+      'screen',
+      'config',
+      'model',
+      'layout',
+      'media',
+    ])
+    .describe('Type of the component'),
+  purpose: z.string().describe('Purpose of the component'),
+  path: z.string().describe('Path of the component'),
+  dependsOn: z
+    .array(z.string())
+    .describe('List of components this component depends on'),
+});
+
+export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
+
 export const CodeComponentSchema = Joi.object<ICodeComponent>({
   name: Joi.string().required().description('Name of the component'),
   type: Joi.string()
@@ -59,6 +91,17 @@ export interface IInitializeAppResponse extends IResponseBase {
   design: string;
   components: ICodeComponent[];
 }
+
+export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
+  name: z.string().describe('Name of the app'),
+  features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
+  design: z.string().describe('Design of the app as a mermaid diagram'),
+  components: z.array(ZCodeComponentSchema).describe('Components of the app'),
+});
+
+export type ZInitializeAppResponseType = z.infer<
+  typeof ZInitializeAppResponseSchema
+>;
 
 export const InitializeAppResponseSchema = Joi.object<IInitializeAppResponse>({
   name: Joi.string().required().description('Name of the app'),
@@ -88,15 +131,50 @@ export interface ICodeFile {
   content: string;
 }
 
+export const ZCodeFileSchema = z.object({
+  componentName: z.string().describe('Name of the component'),
+  filePath: z.string().describe('File path of the component'),
+  content: z.string().describe('Code for the component'),
+});
+
+export type ZCodeFileType = z.infer<typeof ZCodeFileSchema>;
+
 export interface IGenerateCodeForComponentInput {
   name: string;
-  type: string;
+  type: ComponetType;
   purpose: string;
   dependencies: IGenerateCodeForComponentResponse[];
   projectStructure?: string;
   design: string;
   techStack: string;
 }
+
+export const ZGenerateCodeForComponentInputSchema = z.object({
+  name: z.string().describe('Name of the component'),
+  type: z
+    .enum([
+      'util',
+      'factory',
+      'service',
+      'ui_component',
+      'screen',
+      'config',
+      'model',
+      'layout',
+      'media',
+    ])
+    .describe('Type of the component'),
+  purpose: z.string().describe('Purpose of the component'),
+  dependencies: z
+    .array(ZCodeFileSchema)
+    .describe('Dependencies of the component'),
+  projectStructure: z
+    .string()
+    .optional()
+    .describe('Project structure for the app'),
+  design: z.string().describe('Design of the app as a mermaid diagram'),
+  techStack: z.string().describe('Tech stack to use in the app'),
+});
 
 export interface IGenerateCodeForComponentResponse extends IResponseBase {
   componentName: string;
@@ -105,6 +183,30 @@ export interface IGenerateCodeForComponentResponse extends IResponseBase {
   assets?: ICodeFile[];
   libraries: string[];
 }
+
+export const ZGenerateCodeForComponentResponseSchema =
+  ZResponseBaseSchema.extend({
+    componentName: z.string().describe('Name of the component'),
+    filePath: z.string().describe('File path of the component'),
+    content: z
+      .string()
+      .describe(
+        'Generated code for the component. Escape the string before sending.',
+      ),
+    assets: z
+      .array(ZCodeFileSchema)
+      .optional()
+      .describe(
+        'Any media asset like image, video or sound used in the component',
+      ),
+    libraries: z
+      .array(z.string())
+      .describe('List of external libraries used in the component'),
+  });
+
+export type ZGenerateCodeForComponentResponseType = z.infer<
+  typeof ZGenerateCodeForComponentResponseSchema
+>;
 
 export const GenerateCodeForComponentResponseSchema =
   Joi.object<IGenerateCodeForComponentResponse>({
@@ -152,3 +254,15 @@ export interface IGenerateCodeResponse extends IResponseBase {
   components: ICodeComponent[];
   generatedCode: IGenerateCodeForComponentResponse[];
 }
+
+export const ZGenerateCodeResponseSchema = ZResponseBaseSchema.extend({
+  appName: z.string(),
+  features: z.array(z.string()),
+  design: z.string(),
+  components: z.array(ZCodeComponentSchema),
+  generatedCode: z.array(ZGenerateCodeForComponentResponseSchema),
+});
+
+export type ZGenerateCodeResponseType = z.infer<
+  typeof ZGenerateCodeResponseSchema
+>;

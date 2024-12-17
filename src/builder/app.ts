@@ -1,9 +1,11 @@
-import * as vscode from 'vscode';
 import {
-  IInitializeAppResponse,
-  IResponseBase,
-  IGenerateCodeResponse,
+  ZInitializeAppResponseType,
+  ZResponseBaseType,
+  ZGenerateCodeResponseType,
+  ZCodeComponentType,
 } from './types';
+import { IModelMessage, ModelService } from '../service/model';
+import { StreamService } from '../service/stream';
 
 export enum AppStage {
   None,
@@ -17,13 +19,13 @@ export enum AppStage {
   Cancelled,
 }
 
-export interface IAppStageOutput<T extends IResponseBase> {
-  messages: vscode.LanguageModelChatMessage[];
+export interface IAppStageOutput<T extends ZResponseBaseType> {
+  messages: IModelMessage[];
   output: T;
 }
 
-export interface IAppStageInput<T extends IResponseBase> {
-  previousMessages: vscode.LanguageModelChatMessage[];
+export interface IAppStageInput<T extends ZResponseBaseType> {
+  previousMessages: IModelMessage[];
   previousOutput: T;
 }
 
@@ -32,22 +34,21 @@ export interface IAppStageInput<T extends IResponseBase> {
  */
 
 export class App {
+  protected modelService: ModelService;
+
+  protected streamService: StreamService;
+
   protected stage: AppStage;
-  protected model: vscode.LanguageModelChat;
-  protected stream: vscode.ChatResponseStream;
-  protected token: vscode.CancellationToken;
   private isExecuting: boolean;
   private initialInput: string;
 
   constructor(
-    model: vscode.LanguageModelChat,
-    stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken,
+    modelService: ModelService,
+    streamService: StreamService,
     initialInput: string,
   ) {
-    this.model = model;
-    this.stream = stream;
-    this.token = token;
+    this.modelService = modelService;
+    this.streamService = streamService;
     this.initialInput = initialInput;
     this.stage = AppStage.None;
     this.isExecuting = false;
@@ -86,7 +87,8 @@ export class App {
         return;
       }
 
-      let stageOutput: IAppStageOutput<IResponseBase> | undefined = undefined;
+      let stageOutput: IAppStageOutput<ZResponseBaseType> | undefined =
+        undefined;
 
       for (const stage of stages) {
         if (stage === this.stage) {
@@ -105,7 +107,7 @@ export class App {
             }
             currentOutput = await this.generateCode({
               previousMessages: stageOutput.messages,
-              previousOutput: stageOutput.output as IInitializeAppResponse,
+              previousOutput: stageOutput.output as ZInitializeAppResponseType,
             });
             break;
         }
@@ -126,7 +128,7 @@ export class App {
 
   initialize(
     _userMessage: string,
-  ): Promise<IAppStageOutput<IInitializeAppResponse>> {
+  ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
     // Initialize the application
     throw new Error('Method not implemented.');
   }
@@ -140,8 +142,8 @@ export class App {
   // }
 
   generateCode(
-    _input: IAppStageInput<IInitializeAppResponse>,
-  ): Promise<IAppStageOutput<IGenerateCodeResponse>> {
+    _input: IAppStageInput<ZInitializeAppResponseType>,
+  ): Promise<IAppStageOutput<ZGenerateCodeResponseType>> {
     // Generate code
     throw new Error('Method not implemented.');
   }
@@ -166,14 +168,54 @@ export class App {
   }
 
   progress(message: string) {
-    if (this.stream) {
-      this.stream.progress(message);
-    }
+    this.streamService.progress(message);
   }
 
   markdown(message: string) {
-    if (this.stream) {
-      this.stream.markdown(message);
+    this.streamService.markdown(message);
+  }
+
+  sortComponentsByDependency(
+    nodes: ZCodeComponentType[],
+  ): ZCodeComponentType[] {
+    const componentMap = new Map<string, ZCodeComponentType>();
+    nodes.forEach((node) => {
+      componentMap.set(node.name, node);
+    });
+
+    const sortedNodes: ZCodeComponentType[] = [];
+    while (nodes.length > sortedNodes.length) {
+      for (const node of nodes) {
+        // Check if the node is sorted
+        if (sortedNodes.find((sortedNode) => node.name === sortedNode.name)) {
+          continue;
+        }
+
+        const dependencies = node.dependsOn || [];
+        if (!dependencies || dependencies.length === 0) {
+          sortedNodes.push(node);
+          continue;
+        }
+        let dependeciesFound = true;
+        for (const dependency of dependencies) {
+          // check if the dependency is on one of the nodes
+          if (!componentMap.has(dependency)) {
+            continue; // External dependency. Skip checking in sorted nodes
+          }
+          // check if the dependency is already sorted
+          if (
+            sortedNodes.some((sortedNode) => sortedNode.name === dependency)
+          ) {
+            continue;
+          }
+          dependeciesFound = false;
+          break; // dependency not sorted yet
+        }
+        if (dependeciesFound) {
+          sortedNodes.push(node);
+        }
+      }
     }
+    return sortedNodes;
   }
 }
