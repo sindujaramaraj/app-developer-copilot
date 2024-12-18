@@ -11,6 +11,7 @@
 ### Changed
 
 - Updated appdev.json with model and model provider data
+- Switched to Zod for schema validation and removed dependency on Joi
 
 ## [0.0.4] - 2024-12-12
 

@@ -45,11 +45,13 @@
       "title": "App Developer Copilot",
       "properties": {
         "app-developer-copilot.useOwnModel": {
+          "order": 0,
           "type": "boolean",
           "default": false,
           "description": "Use your own model"
         },
         "app-developer-copilot.apiProvider": {
+          "order": 1,
           "type": "string",
           "enum": [
             "anthropic",
@@ -65,6 +67,7 @@
           "description": "API Provider"
         },
         "app-developer-copilot.apiKey": {
+          "order": 2,
           "type": [
             "securestring",
             "null"
@@ -73,6 +76,7 @@
           "description": "Provider API Key"
         },
         "app-developer-copilot.model": {
+          "order": 3,
           "type": "string",
           "enum": [
             "claude-3-5-sonnet-latest",
@@ -174,11 +178,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.5",
     "@ai-sdk/openai": "^1.0.8",
-    "@anthropic-ai/sdk": "^0.32.1",
     "@openrouter/ai-sdk-provider": "^0.0.6",
     "ai": "^4.0.18",
-    "joi": "^17.13.3",
-    "joi-to-json": "^4.3.0",
     "openai": "^4.76.3"
   },
   "extensionDependencies": [

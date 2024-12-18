@@ -1,11 +1,10 @@
 # App Developer Copilot
 
-A VS Code extension that helps you create react-native mobile applications using Copilot. This is a preview version of the extension and works better with Claude models.
+A VS Code extension that helps you create react-native mobile applications using Copilot or use your own model. This is a preview version of the extension and works better with Claude models.
 
 ## How it works
 
-The extension is developed to act like a real world application developer. Given a task, it will first anayse and design the app with features and components. It then through a series of prompts, generates code for the entire app.
-Advantage of this approach is, app generated will have lot more features and functionality at the first go instead of having to update the minimal app generated with lot of prompts.
+The extension is developed to act like a real world application developer. Given a task, it will first anayse and design the app with features and components. It then through a series of prompts, generates code for the entire app. Advantage of this approach is, app generated will have lot more features and functionality at the first go instead of having to update the minimal app generated with lot of prompts.
 
 ## Features
 
@@ -22,16 +21,29 @@ Advantage of this approach is, app generated will have lot more features and fun
 
 ## Usage
 
+### Using Copilot Chat
+
 1. Open copilot chat window
 2. Select Claude model
 3. Type "@app-developer-mobile" to start a chat with the extension
 4. Use "/create" command to create a new mobile application
 5. Use "/run" command to run the generated application
-6. The extension will:
-   - Generate app architecture diagram
-   - Create an Expo project
-   - Generate component code
-   - Install required dependencies
+
+### Using BYOK (Bring Your Own Key)
+
+1. Go to extension settings and check the "Use your own model" option
+2. Select API proider, model and add your key. ![Refer screenshot](media/screenshots/settings.png)
+3. Open the command palette by pressing `Ctrl+Shift+P` or `Cmd+Shift+P`
+4. Select `App Developer: Create a mobile app`
+5. Enter prompt for the app
+6. Check status bar and output console for status and logs
+
+The extension will:
+
+- Generate app architecture diagram
+- Create an Expo project
+- Generate component code
+- Install required dependencies
 
 Once the app is generated, you can run the app using the Expo Go app on your mobile device or an emulator.
 Please note: There might be issues after app generation. You can manually fix them by following the error messages in the terminal.
@@ -65,35 +77,6 @@ Built with:
 - VS Code Extension API
 - Webpack for bundling
 - Jest for testing
-
-## Development Setup
-
-1. Fork and clone the repository
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-## Publishing Extension
-
-#### Install vsce
-
-```bash
-npm install -g vsce
-```
-
-#### Package extension
-
-```bash
-vsce package
-```
-
-#### Publish to marketplace
-
-```bash
-vsce publish --pre-release
-```
 
 ## Issues & Suggestions
 

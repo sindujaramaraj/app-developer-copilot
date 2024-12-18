@@ -1,4 +1,3 @@
-import Joi from 'joi';
 import { z } from 'zod';
 
 export interface IResponseBase {
@@ -12,16 +11,6 @@ export const ZResponseBaseSchema = z.object({
 });
 
 export type ZResponseBaseType = z.infer<typeof ZResponseBaseSchema>;
-
-export const ResponseBaseSchema = Joi.object<IResponseBase>({
-  summary: Joi.string().optional().description('Summary of the user message'),
-  error: Joi.string()
-    .optional()
-    .description(
-      'Error message if any if not able to respond to message in the suggested format',
-    )
-    .allow(null),
-});
 
 export enum ComponetType {
   Util = 'util',
@@ -67,20 +56,6 @@ export const ZCodeComponentSchema = z.object({
 
 export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
-export const CodeComponentSchema = Joi.object<ICodeComponent>({
-  name: Joi.string().required().description('Name of the component'),
-  type: Joi.string()
-    .valid(...Object.values(ComponetType))
-    .required()
-    .description('Type of the component'),
-  purpose: Joi.string().required().description('Purpose of the component'),
-  path: Joi.string().required().description('Path of the component'),
-  dependsOn: Joi.array()
-    .items(Joi.string())
-    .optional()
-    .description('List of components this component depends on'),
-});
-
 export interface IInitializeAppInput {
   userMessage: string;
 }
@@ -102,28 +77,6 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
 export type ZInitializeAppResponseType = z.infer<
   typeof ZInitializeAppResponseSchema
 >;
-
-export const InitializeAppResponseSchema = Joi.object<IInitializeAppResponse>({
-  name: Joi.string().required().description('Name of the app'),
-  features: Joi.array()
-    .items(Joi.string())
-    .required()
-    .description('Minimum features of the app'), //TODO: Generate advanced features after the MVP
-  design: Joi.string()
-    .required()
-    .description('Design of the app as a mermaid diagram'),
-  components: Joi.array()
-    .items(CodeComponentSchema)
-    .required()
-    .description('Components of the app'),
-  summary: Joi.string().optional().description('Summary of the user message'),
-  error: Joi.string()
-    .optional()
-    .description(
-      'Error message if any if not able to respond to message in the suggested format',
-    )
-    .allow(null),
-});
 
 export interface ICodeFile {
   componentName: string;
@@ -207,45 +160,6 @@ export const ZGenerateCodeForComponentResponseSchema =
 export type ZGenerateCodeForComponentResponseType = z.infer<
   typeof ZGenerateCodeForComponentResponseSchema
 >;
-
-export const GenerateCodeForComponentResponseSchema =
-  Joi.object<IGenerateCodeForComponentResponse>({
-    componentName: Joi.string().required().description('Name of the component'),
-    filePath: Joi.string().required().description('File path of the component'),
-    content: Joi.string()
-      .required()
-      .description(
-        'Generated code for the component. Escape the string before sending.',
-      ),
-    assets: Joi.array()
-      .optional()
-      .items(
-        Joi.object<ICodeFile>({
-          componentName: Joi.string()
-            .required()
-            .description('Name of the asset'),
-          filePath: Joi.string()
-            .required()
-            .description('File path of the asset'),
-          content: Joi.string()
-            .required()
-            .description(
-              'Content of the asset. Escape the string before sending.',
-            ),
-        }),
-      ),
-    libraries: Joi.array()
-      .items(Joi.string())
-      .optional()
-      .description('List of external libraries used in the component'),
-    summary: Joi.string().optional().description('Summary of the component'),
-    error: Joi.string()
-      .optional()
-      .description(
-        'Error message if any if not able to respond to message in the suggested format',
-      )
-      .allow(null),
-  });
 
 export interface IGenerateCodeResponse extends IResponseBase {
   appName: string;
