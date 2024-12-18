@@ -41,14 +41,14 @@ export class MobileApp extends App {
     // Check if node is installed
     const nodeCheck = await checkNodeInstallation();
     if (!nodeCheck.installed) {
-      this.markdown(
+      this.logMessage(
         'Node.js is not installed. Please install Node.js to proceed',
       );
       this.setStage(AppStage.Cancelled);
       return false;
     }
     if (!nodeCheck.meetsMinimum) {
-      this.markdown(
+      this.logMessage(
         `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
       );
       this.setStage(AppStage.Cancelled);
@@ -61,46 +61,45 @@ export class MobileApp extends App {
     userMessage?: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
     if (!userMessage) {
-      this.markdown(
+      this.logMessage(
         'Please provide a valid input to start building a mobile app',
       );
       this.setStage(AppStage.Cancelled);
       throw new Error('Invalid input');
     }
     this.setStage(AppStage.Initialize);
-    this.markdown('Lets start building a mobile app');
+    this.logMessage('Lets start building a mobile app');
 
     const initializeAppPrompt = new InitializeAppPrompt({
       userMessage: userMessage,
     });
 
     const initializeAppMessages = [
-      this.languageModelService.createAssistantMessage(
-        MOBILE_BUILDER_INSTRUCTION,
-      ),
+      this.languageModelService.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
       // Add user's message
       this.languageModelService.createUserMessage(
-        initializeAppPrompt.getPromptText(),
+        initializeAppPrompt.getInstructionsPrompt(),
       ),
     ];
 
     // send the request
-    this.progress('Analyzing app requirements');
+    this.logProgress('Analyzing app requirements');
     try {
       let { response: createAppResponse, object: createAppResponseObj } =
         await this.languageModelService.generateObject<ZInitializeAppResponseType>(
           {
             messages: initializeAppMessages,
             schema: ZInitializeAppResponseSchema,
+            responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
           },
         );
       initializeAppMessages.push(
         this.languageModelService.createAssistantMessage(createAppResponse),
       );
 
-      this.markdown(`Let's call the app: ${createAppResponseObj.name}`);
+      this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
       console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
-      this.progress(`Creating app ${createAppResponseObj.name}`);
+      this.logProgress(`Creating app ${createAppResponseObj.name}`);
       const formattedAppName = createAppResponseObj.name
         .replace(/\s/g, '-')
         .toLowerCase();
@@ -110,12 +109,15 @@ export class MobileApp extends App {
       await this.postInitialize(createAppResponseObj);
 
       // Create app config
+      const modelConfig = this.languageModelService.getModelConfig();
       await createAppConfig({
         name: createAppResponseObj.name,
         initialPrompt: userMessage,
         components: JSON.stringify(createAppResponseObj.components),
         features: createAppResponseObj.features,
         type: AppType.MOBILE,
+        modelProvider: modelConfig.modelProvider,
+        languageModel: modelConfig.model,
       });
 
       return {
@@ -133,9 +135,9 @@ export class MobileApp extends App {
     await createExpoApp(createAppResponseObj.name);
     //reset expo project
     await resetExpoProject(createAppResponseObj.name);
-    this.markdown(`Created expo project: ${createAppResponseObj.name}`);
+    this.logMessage(`Created expo project: ${createAppResponseObj.name}`);
     // Design the app
-    this.progress('Writing the design diagram to the file');
+    this.logProgress('Writing the design diagram to the file');
     let designDiagram = createAppResponseObj.design;
     if (!isMermaidMarkdown(designDiagram)) {
       designDiagram = convertToMermaidMarkdown(designDiagram);
@@ -149,7 +151,7 @@ export class MobileApp extends App {
       ],
       createAppResponseObj.name,
     );
-    this.markdown('Design Diagram saved successfully');
+    this.logMessage('Design Diagram saved successfully');
   }
 
   async generateCode({
@@ -162,7 +164,7 @@ export class MobileApp extends App {
     this.setStage(AppStage.GenerateCode);
 
     // Generate code for each component
-    this.progress('Generating code for components');
+    this.logProgress('Generating code for components');
     // Generate code for individual components first
     const sortedComponents = this.sortComponentsByDependency(components);
 
@@ -211,13 +213,13 @@ export class MobileApp extends App {
       const messages = [
         ...codeGenerationMessages,
         this.languageModelService.createUserMessage(
-          codeGenerationPrompt.getPromptText(),
+          codeGenerationPrompt.getInstructionsPrompt(),
         ),
       ];
 
       let codeGenerationResponse, codeGenerationResponseObj;
       try {
-        this.progress(
+        this.logProgress(
           `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
         );
         const { response, object } =
@@ -225,6 +227,8 @@ export class MobileApp extends App {
             {
               messages,
               schema: ZGenerateCodeForComponentResponseSchema,
+              responseFormatPrompt:
+                codeGenerationPrompt.getResponseFormatPrompt(),
             },
           );
         codeGenerationResponse = response;
@@ -241,7 +245,7 @@ export class MobileApp extends App {
         ) {
           console.info(`Component ${component.name} has assets`);
           // Save assets
-          this.progress('Saving assets');
+          this.logProgress('Saving assets');
           const files = [];
           for (const asset of codeGenerationResponseObj.assets) {
             files.push({
@@ -250,7 +254,7 @@ export class MobileApp extends App {
             });
           }
           await FileParser.parseAndCreateFiles(files, appName);
-          this.markdown(
+          this.logMessage(
             'Assets saved successfully for component: ' + component.name,
           );
         }
@@ -264,14 +268,16 @@ export class MobileApp extends App {
           component.name,
           error,
         );
-        this.markdown(`Error generating code for component ${component.name}`);
+        this.logMessage(
+          `Error generating code for component ${component.name}`,
+        );
         throw error;
       }
 
-      this.markdown(
+      this.logMessage(
         `Successfully generated code for component ${component.name}`,
       );
-      this.progress(`Writing code to for component ${component.name}`);
+      this.logProgress(`Writing code to for component ${component.name}`);
 
       componentIndex++;
 
@@ -284,13 +290,13 @@ export class MobileApp extends App {
       await FileParser.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies
-      this.progress('Installing npm dependencies');
+      this.logProgress('Installing npm dependencies');
       const npmDependencies = codeGenerationResponseObj.libraries || [];
       installNPMDependencies(appName, npmDependencies, installedDependencies);
 
       // TODO: Check if there are any errors
     }
-    this.progress('Components created successfully');
+    this.logMessage('Components created successfully');
 
     return {
       messages: codeGenerationMessages,

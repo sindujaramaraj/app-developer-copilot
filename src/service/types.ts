@@ -1,4 +1,4 @@
-export type LLMProvider = 'openai' | 'anthropic' | 'openrouter';
+export type LLMProvider = 'openai' | 'anthropic' | 'openrouter' | 'copilot';
 export type LLMCodeModel =
   | 'claude-3-5-sonnet-latest'
   | 'claude-3-5-haiku-latest'
@@ -10,5 +10,10 @@ export type LLMCodeModel =
   | 'o1-preview'
   | 'openrouter/auto'
   | 'anthropic/claude-3.5-sonnet'
-  | 'google/gemini-flash-1.5'
-  | 'openai/gpt-4o-mini';
+  | 'anthropic/claude-3.5-haiku'
+  | 'anthropic/claude-3-opus'
+  | 'openai/gpt-4o'
+  | 'openai/gpt-4o-mini'
+  | 'openai/o1'
+  | 'openai/o1-mini'
+  | 'openai/o1-preview';

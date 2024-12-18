@@ -7,6 +7,8 @@ export class StreamHandlerService {
   // Use status bar for progress when invoked from command palette
   private statusBarItem: vscode.StatusBarItem | undefined;
 
+  private outputChannel: vscode.OutputChannel | undefined;
+
   constructor(useChatStream: boolean, chatStream?: vscode.ChatResponseStream) {
     this.useChatStream = useChatStream;
     this.chatStream = chatStream;
@@ -15,6 +17,7 @@ export class StreamHandlerService {
         vscode.StatusBarAlignment.Left,
         100,
       );
+      this.outputChannel = vscode.window.createOutputChannel('App Developer');
       this.statusBarItem.show();
     }
   }
@@ -24,6 +27,8 @@ export class StreamHandlerService {
       this.chatStream.progress(text);
     } else if (this.statusBarItem) {
       this.statusBarItem.text = text;
+      this.outputChannel?.show();
+      this.outputChannel?.appendLine(text);
     } else {
       console.trace(text);
     }
@@ -33,7 +38,9 @@ export class StreamHandlerService {
     if (this.useChatStream && this.chatStream) {
       this.chatStream.markdown(text);
     } else if (this.statusBarItem) {
-      this.statusBarItem.tooltip = text;
+      this.statusBarItem.text = text;
+      this.outputChannel?.show();
+      this.outputChannel?.appendLine(text);
     } else {
       console.log(text);
     }
@@ -53,6 +60,15 @@ export class StreamHandlerService {
       };
     } else {
       console.warn('Not able to run command:', command);
+    }
+  }
+
+  close(): void {
+    if (this.useChatStream && this.chatStream) {
+      // do nothing
+    } else if (this.statusBarItem) {
+      this.statusBarItem.dispose();
+      this.statusBarItem.hide();
     }
   }
 }

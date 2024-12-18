@@ -81,8 +81,13 @@
             "o1-preview",
             "openrouter/auto",
             "anthropic/claude-3.5-sonnet",
-            "google/gemini-flash-1.5",
-            "openai/gpt-4o-mini"
+            "anthropic/claude-3.5-haiku",
+            "anthropic/claude-3-opus",
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+            "openai/o1",
+            "openai/o1-mini",
+            "openai/o1-preview"
           ],
           "enumItemLabels": [
             "Anthropic - Claude 3.5 Sonnet Latest",
@@ -93,15 +98,16 @@
             "OpenAI - O1",
             "OpenAI - O1 Mini",
             "OpenAI - O1 Preview",
-            "Claude 3.5 Sonnet v2",
-            "Claude 3.5 Sonnet",
-            "O1 Preview",
             "OpenRouter - Auto",
             "OpenRouter - Claude 3.5 Sonnet",
-            "OpenRouter - Gemini Flash 1.5",
-            "OpenRouter - GPT-4o Mini"
+            "OpenRouter - Claude 3.5 Haiku",
+            "OpenRouter - Claude 3 Opus",
+            "OpenRouter - GPT-4o",
+            "OpenRouter - GPT-4o Mini",
+            "OpenRouter - o1",
+            "OpenRouter - o1 Mini",
+            "OpenRouter - o1 Preview"
           ],
-          "default": "claude-3-5-sonnet-v2@20241022",
           "description": "Model"
         }
       }

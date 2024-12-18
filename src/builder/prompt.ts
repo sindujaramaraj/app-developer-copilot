@@ -26,9 +26,13 @@ export class PromptBase<TInput, TOutput> {
     this.responseSchema = responseSchema;
   }
 
-  getPromptText(): string {
+  getInstructionsPrompt(): string {
+    return this.instructions;
+  }
+
+  getResponseFormatPrompt(): string {
     const responseSchema = zodResponseFormat(this.responseSchema, 'json');
-    return `${this.instructions} Response must be JSON using the following schema: ${JSON.stringify(responseSchema)}`;
+    return `Response must be JSON using the following schema: ${JSON.stringify(responseSchema)}`;
   }
 
   validateResponse(response: any): TOutput {

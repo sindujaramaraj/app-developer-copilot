@@ -113,10 +113,17 @@ export class App {
         }
         stageOutput = currentOutput;
       }
+      // Handle completion
       this.isExecuting = false;
-    } catch (error) {
+      this.streamService.message('App creation completed');
+      this.streamService.close();
+    } catch (error: any) {
       console.error('Error executing app:', error);
+      this.logMessage('Error creating app');
+      error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
+      this.isExecuting = false;
+      this.streamService.close();
       throw error;
     }
   }
@@ -167,11 +174,11 @@ export class App {
     this.stage = stage;
   }
 
-  progress(message: string) {
+  logProgress(message: string) {
     this.streamService.progress(message);
   }
 
-  markdown(message: string) {
+  logMessage(message: string) {
     this.streamService.message(message);
   }
 

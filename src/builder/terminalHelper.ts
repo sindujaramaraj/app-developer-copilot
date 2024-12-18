@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
-function getTerminal(): vscode.Terminal {
-  if (vscode.window.activeTerminal) {
+function getTerminal(useNewTerminal: boolean = false): vscode.Terminal {
+  if (!useNewTerminal && vscode.window.activeTerminal) {
     return vscode.window.activeTerminal;
   }
   return vscode.window.createTerminal();
@@ -24,7 +24,11 @@ export async function installNPMDependencies(
 }
 
 export async function createExpoApp(appName: string): Promise<void> {
-  return runCommandWithPromise(`npx create-expo-app ${appName}`);
+  return runCommandWithPromise(
+    `npx create-expo-app ${appName}`,
+    undefined,
+    true,
+  );
 }
 
 export async function resetExpoProject(folderName: string): Promise<void> {
@@ -38,8 +42,9 @@ export async function runExpoProject(folderName: string): Promise<void> {
 function runCommandWithPromise(
   command: string,
   folder?: string,
+  useNewTerminal = false,
 ): Promise<void> {
-  const terminal = getTerminal();
+  const terminal = getTerminal(useNewTerminal);
   terminal.show();
   if (folder) {
     // Check for current working directory

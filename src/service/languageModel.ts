@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { AppSettings, SettingsServie } from './settings';
 import { convertStringToJSON } from '../builder/utils/contentUtil';
 import { MAX_RETRY_COUNT } from '../builder/constants';
+import { LLMCodeModel, LLMProvider } from './types';
 
 export interface IModelMessage {
   content: string;
@@ -16,6 +17,7 @@ export interface IModelMessage {
 interface IGenerateObjectRequest<T> {
   messages: IModelMessage[];
   schema: z.ZodSchema<T>;
+  responseFormatPrompt?: string;
 }
 
 export class LanguageModelService {
@@ -23,6 +25,8 @@ export class LanguageModelService {
   private ownModel?: LanguageModel | undefined;
   private copilotModel?: vscode.LanguageModelChat;
   private token?: vscode.CancellationToken;
+  private modelProvider: LLMProvider = 'copilot';
+  private modelName: LLMCodeModel = 'claude-3-5-sonnet-latest';
 
   constructor(
     chatModel?: vscode.LanguageModelChat,
@@ -33,9 +37,16 @@ export class LanguageModelService {
     if (this.copilotModel && !this.token) {
       throw new Error('Token is required for chat model');
     }
+    if (this.copilotModel) {
+      this.useOwnModel = false;
+      this.modelProvider = 'copilot';
+      this.modelName = this.copilotModel.id as LLMCodeModel;
+    }
     if (!this.copilotModel) {
       const appSettings = SettingsServie.getAppSettings();
       this.useOwnModel = appSettings.useOwnModel;
+      this.modelProvider = appSettings.apiProvider;
+      this.modelName = appSettings.model;
       if (appSettings.useOwnModel) {
         this.ownModel = getModel(appSettings);
       } else {
@@ -107,6 +118,11 @@ export class LanguageModelService {
       };
     } else if (this.copilotModel) {
       const messages = convertToCopilotMessages(options.messages);
+      if (options.responseFormatPrompt) {
+        messages.push(
+          vscode.LanguageModelChatMessage.User(options.responseFormatPrompt),
+        );
+      }
       const response = await handleCopilotRequest(
         this.copilotModel,
         messages,
@@ -124,6 +140,13 @@ export class LanguageModelService {
 
   getModel(): vscode.LanguageModelChat | LanguageModel | undefined {
     return this.useOwnModel ? this.ownModel : this.copilotModel;
+  }
+
+  getModelConfig(): { modelProvider: LLMProvider; model: LLMCodeModel } {
+    return {
+      modelProvider: this.modelProvider,
+      model: this.modelName,
+    };
   }
 }
 
