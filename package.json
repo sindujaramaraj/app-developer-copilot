@@ -20,11 +20,12 @@
     "email": "sinduja.ramaraj87@gmail.com"
   },
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.93.1"
   },
   "categories": [
     "AI",
     "Chat",
+    "Programming Languages",
     "Other"
   ],
   "keywords": [
@@ -33,10 +34,12 @@
     "copilot",
     "expo",
     "react-native",
+    "mobile",
     "Claude",
     "OpenRouter",
     "Anthropic",
-    "code"
+    "code",
+    "agent"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
