@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.0.6] - 2024-12-18
+
+### Changed
+
+- Downgraded vscode version to 1.93.1 to support cursor
+
 ## [0.0.5] - 2024-12-18
 
 ### Added

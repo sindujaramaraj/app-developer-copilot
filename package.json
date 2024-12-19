@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "Extension using Copilot to create apps",
   "icon": "media/icon.jpeg",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "preview": true,
   "repository": {
     "type": "git",
