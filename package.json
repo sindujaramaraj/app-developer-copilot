@@ -181,9 +181,5 @@
     "@openrouter/ai-sdk-provider": "^0.0.6",
     "ai": "^4.0.18",
     "openai": "^4.76.3"
-  },
-  "extensionDependencies": [
-    "GitHub.copilot",
-    "GitHub.copilot-chat"
-  ]
+  }
 }
