@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.0.5] - 2024-12-18
+
+### Added
+
+- Added support for BYOK(Bring Your Own Key)
+- Using Vercel AI SDK to support Anthropic, OpenAI and OpenRouter models
+- Ability to configure the model and API key for the AI models through settings
+
+### Changed
+
+- Updated appdev.json with model and model provider data
+- Switched to Zod for schema validation and removed dependency on Joi
+
 ## [0.0.4] - 2024-12-12
 
 ### Changed

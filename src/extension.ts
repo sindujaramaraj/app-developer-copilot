@@ -4,9 +4,31 @@ import { FileParser } from './builder/utils/fileParser';
 import { APP_CONFIG_FILE } from './builder/constants';
 import { runExpoProject } from './builder/terminalHelper';
 import { readAppConfigFromFile } from './builder/utils/appconfigHelper';
+import { LanguageModelService } from './service/languageModel';
+import { StreamHandlerService } from './service/streamHandler';
 
 export function activate(context: vscode.ExtensionContext) {
   registerChatParticipants(context);
+  registerCommands(context);
+}
+
+function registerCommands(_context: vscode.ExtensionContext) {
+  vscode.commands.registerCommand('app-developer.mobile.create', () => {
+    vscode.window
+      .showInputBox({
+        prompt: 'What would you like to create?',
+        placeHolder: 'A notes app',
+      })
+      .then((userInput) => {
+        if (!userInput) {
+          return;
+        }
+        const modelService = new LanguageModelService();
+        const streamService = new StreamHandlerService(false);
+        const app = new MobileApp(modelService, streamService, userInput);
+        app.execute();
+      });
+  });
 }
 
 function registerChatParticipants(context: vscode.ExtensionContext) {
@@ -110,7 +132,9 @@ async function handleCreateMobileApp(
   token: vscode.CancellationToken,
 ) {
   console.log('MobileBuilder: Create command called');
-  const app = new MobileApp(request.model, stream, token, request.prompt);
+  const modelService = new LanguageModelService(request.model, token);
+  const streamService = new StreamHandlerService(true, stream);
+  const app = new MobileApp(modelService, streamService, request.prompt);
   await app.execute();
 }
 

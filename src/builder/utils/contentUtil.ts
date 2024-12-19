@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-import { PromptBase } from '../prompt';
 import { ICodeComponent } from '../types';
 
 const MAX_RETRY_COUNT = 1;
@@ -64,94 +62,21 @@ export function convertToMermaidMarkdown(diagram: string): string {
   return mermaidMarkdown;
 }
 
-export async function parseResponse<T>(
-  model: vscode.LanguageModelChat,
-  messages: vscode.LanguageModelChatMessage[],
-  token: vscode.CancellationToken,
-  prompt: PromptBase<{}, T>,
-  retryCount: number = 0,
-): Promise<[string, T]> {
-  if (retryCount > MAX_RETRY_COUNT) {
-    throw new Error('Failed to parse response after multiple attempts');
-  }
-  // make request to the LM
-  const response = await model.sendRequest(messages, {}, token);
-
-  let responseContent = '';
-  for await (const fragment of response.text) {
-    responseContent += fragment;
-  }
-
+export function convertStringToJSON(content: string): any {
   // Check if the response is in Markdown format
-  let jsonResponse: any = null;
+  let jsonObject: any = null;
   try {
-    jsonResponse = JSON.parse(responseContent);
+    jsonObject = JSON.parse(content);
+    return jsonObject;
   } catch (error) {
-    console.warn('Failed to parse code response as JSON:', error);
-    console.info('Checking if response is in Markdown format...');
-    if (isMarkdown(responseContent)) {
-      jsonResponse = extractJsonFromMarkdown(responseContent);
+    console.warn('Failed to parse content as JSON:', error);
+    console.info('Checking if content is in Markdown format...');
+    if (isMarkdown(content)) {
+      jsonObject = extractJsonFromMarkdown(content);
+      return jsonObject;
     } else {
-      console.error(
-        'Response is not in JSON markdown format. Attempting retry',
-        responseContent,
-      );
-      // TODO: try adding a fix message here
-      return parseResponse(model, messages, token, prompt, retryCount + 1);
+      console.error('Content is not in JSON markdown format');
+      throw new Error('Content is not a JSON string or JSON markdown');
     }
   }
-
-  // check if response is valid schema
-  const validationResult = prompt.validateResponse(jsonResponse);
-  if (validationResult.error) {
-    console.error('Invalid response schema:', validationResult.error.message);
-    // Continue with the response even if it's not a valid schema
-    //throw new Error('Invalid response schema');
-    console.error(responseContent);
-  }
-
-  const parsedResponse = validationResult.value as T;
-  return [responseContent, parsedResponse];
-}
-
-export function sortComponentsByDependency(
-  nodes: ICodeComponent[],
-): ICodeComponent[] {
-  const componentMap = new Map<string, ICodeComponent>();
-  nodes.forEach((node) => {
-    componentMap.set(node.name, node);
-  });
-
-  const sortedNodes: ICodeComponent[] = [];
-  while (nodes.length > sortedNodes.length) {
-    for (const node of nodes) {
-      // Check if the node is sorted
-      if (sortedNodes.find((sortedNode) => node.name === sortedNode.name)) {
-        continue;
-      }
-
-      const dependencies = node.dependsOn || [];
-      if (!dependencies || dependencies.length === 0) {
-        sortedNodes.push(node);
-        continue;
-      }
-      let dependeciesFound = true;
-      for (const dependency of dependencies) {
-        // check if the dependency is on one of the nodes
-        if (!componentMap.has(dependency)) {
-          continue; // External dependency. Skip checking in sorted nodes
-        }
-        // check if the dependency is already sorted
-        if (sortedNodes.some((sortedNode) => sortedNode.name === dependency)) {
-          continue;
-        }
-        dependeciesFound = false;
-        break; // dependency not sorted yet
-      }
-      if (dependeciesFound) {
-        sortedNodes.push(node);
-      }
-    }
-  }
-  return sortedNodes;
 }

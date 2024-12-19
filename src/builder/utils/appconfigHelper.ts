@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { APP_CONFIG_FILE, APP_VERISON } from '../constants';
 import { FileParser } from './fileParser';
+import { LLMCodeModel, LLMProvider } from '../../service/types';
 
 export enum AppType {
   MOBILE = 'mobile',
@@ -14,6 +14,8 @@ export interface AppConfig {
   name: string;
   version: string;
   initialPrompt: string;
+  modelProvider: LLMProvider;
+  languageModel: LLMCodeModel;
   features?: string[];
   components?: string;
   type: AppType;

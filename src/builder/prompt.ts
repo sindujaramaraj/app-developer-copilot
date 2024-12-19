@@ -1,12 +1,12 @@
-import Joi from 'joi';
-import parse from 'joi-to-json';
+import { z } from 'zod';
+import { zodResponseFormat } from 'openai/helpers/zod';
 import {
-  IInitializeAppResponse,
-  InitializeAppResponseSchema,
   IInitializeAppInput,
   IGenerateCodeForComponentInput,
-  IGenerateCodeForComponentResponse,
-  GenerateCodeForComponentResponseSchema,
+  ZInitializeAppResponseType,
+  ZInitializeAppResponseSchema,
+  ZGenerateCodeForComponentResponseSchema,
+  ZGenerateCodeForComponentResponseType,
 } from './types';
 
 export class PromptBase<TInput, TOutput> {
@@ -14,31 +14,35 @@ export class PromptBase<TInput, TOutput> {
   /* User message to the LM */
   protected instructions: string;
   /* Format for the LM response */
-  protected responseSchema: Joi.Schema<TOutput>;
+  protected responseSchema: z.ZodSchema<TOutput>;
 
   constructor(
     input: TInput,
     instructions: string,
-    responseSchema: Joi.Schema<TOutput>,
+    responseSchema: z.ZodSchema<TOutput>,
   ) {
     this.input = input;
     this.instructions = instructions;
     this.responseSchema = responseSchema;
   }
 
-  getPromptText(): string {
-    const responseSchema = parse(this.responseSchema);
-    return `${this.instructions} Response must be JSON using the following schema: ${JSON.stringify(responseSchema)}`;
+  getInstructionsPrompt(): string {
+    return this.instructions;
   }
 
-  validateResponse(response: any): Joi.ValidationResult<TOutput> {
-    return this.responseSchema.validate(response);
+  getResponseFormatPrompt(): string {
+    const responseSchema = zodResponseFormat(this.responseSchema, 'json');
+    return `Response must be JSON using the following schema: ${JSON.stringify(responseSchema)}`;
+  }
+
+  validateResponse(response: any): TOutput {
+    return this.responseSchema.parse(response);
   }
 }
 
 export class InitializeAppPrompt extends PromptBase<
   IInitializeAppInput,
-  IInitializeAppResponse
+  ZInitializeAppResponseType
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
@@ -53,13 +57,13 @@ export class InitializeAppPrompt extends PromptBase<
     Make sure that app/index.tsx is the entry point of the app.
     
     Create app for: ${input.userMessage}.`;
-    super(input, instructions, InitializeAppResponseSchema);
+    super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
 
 export class GenerateCodeForComponentPrompt extends PromptBase<
   IGenerateCodeForComponentInput,
-  IGenerateCodeForComponentResponse
+  ZGenerateCodeForComponentResponseType
 > {
   constructor(input: IGenerateCodeForComponentInput) {
     const instructions = `Request: Generate code for component ${input.name}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
@@ -69,6 +73,6 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
     Reuse code from dependencies if possible.
     Component Dependencies: ${JSON.stringify(input.dependencies)}.
     Tech stack: ${input.techStack}.`;
-    super(input, instructions, GenerateCodeForComponentResponseSchema);
+    super(input, instructions, ZGenerateCodeForComponentResponseSchema);
   }
 }

@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "Extension using Copilot to create apps",
   "icon": "media/icon.jpeg",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "preview": true,
   "repository": {
     "type": "git",
@@ -32,11 +32,100 @@
     "developer",
     "copilot",
     "expo",
-    "react-native"
+    "react-native",
+    "Claude",
+    "OpenRouter",
+    "Anthropic",
+    "code"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "App Developer Copilot",
+      "properties": {
+        "app-developer-copilot.useOwnModel": {
+          "order": 0,
+          "type": "boolean",
+          "default": false,
+          "description": "Use your own model"
+        },
+        "app-developer-copilot.apiProvider": {
+          "order": 1,
+          "type": "string",
+          "enum": [
+            "anthropic",
+            "openai",
+            "openrouter"
+          ],
+          "enumItemLabels": [
+            "Anthropic",
+            "OpenAI",
+            "OpenRouter"
+          ],
+          "default": "Anthropic",
+          "description": "API Provider"
+        },
+        "app-developer-copilot.apiKey": {
+          "order": 2,
+          "type": [
+            "securestring",
+            "null"
+          ],
+          "default": null,
+          "description": "Provider API Key"
+        },
+        "app-developer-copilot.model": {
+          "order": 3,
+          "type": "string",
+          "enum": [
+            "claude-3-5-sonnet-latest",
+            "claude-3-5-haiku-latest",
+            "claude-3-opus-latest",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "o1",
+            "o1-mini",
+            "o1-preview",
+            "openrouter/auto",
+            "anthropic/claude-3.5-sonnet",
+            "anthropic/claude-3.5-haiku",
+            "anthropic/claude-3-opus",
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+            "openai/o1",
+            "openai/o1-mini",
+            "openai/o1-preview"
+          ],
+          "enumItemLabels": [
+            "Anthropic - Claude 3.5 Sonnet Latest",
+            "Anthropic - Claude 3.5 Haiku Latest",
+            "Anthropic - Claude 3 Opus Latest",
+            "OpenAI - GPT-4o",
+            "OpenAI - GPT-4o Mini",
+            "OpenAI - O1",
+            "OpenAI - O1 Mini",
+            "OpenAI - O1 Preview",
+            "OpenRouter - Auto",
+            "OpenRouter - Claude 3.5 Sonnet",
+            "OpenRouter - Claude 3.5 Haiku",
+            "OpenRouter - Claude 3 Opus",
+            "OpenRouter - GPT-4o",
+            "OpenRouter - GPT-4o Mini",
+            "OpenRouter - o1",
+            "OpenRouter - o1 Mini",
+            "OpenRouter - o1 Preview"
+          ],
+          "description": "Model"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "app-developer.mobile.create",
+        "title": "App Developer: Create a mobile app"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "app-developer.mobile",
@@ -81,16 +170,16 @@
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.4.1",
     "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
     "webpack": "^5.95.0",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "joi": "^17.13.3",
-    "joi-to-json": "^4.3.0"
-  },
-  "extensionDependencies": [
-    "GitHub.copilot",
-    "GitHub.copilot-chat"
-  ]
+    "@ai-sdk/anthropic": "^1.0.5",
+    "@ai-sdk/openai": "^1.0.8",
+    "@openrouter/ai-sdk-provider": "^0.0.6",
+    "ai": "^4.0.18",
+    "openai": "^4.76.3"
+  }
 }
