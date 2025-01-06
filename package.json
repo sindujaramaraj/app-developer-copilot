@@ -3,8 +3,8 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for building mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "0.0.6",
-  "preview": true,
+  "version": "1.0.0",
+  "preview": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"

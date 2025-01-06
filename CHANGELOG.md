@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.0.0] - 2025-01-06
+
+### Added
+
+- Added support for telemetry
+
+### Changed
+
+- Moving to public beta
+
 ## [0.0.6] - 2024-12-18
 
 ### Changed
