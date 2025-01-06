@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 
+interface IStreamHanlderServiceInput {
+  useChatStream: boolean;
+  chatStream?: vscode.ChatResponseStream;
+  outputChannel?: vscode.OutputChannel;
+}
+
 export class StreamHandlerService {
   private useChatStream: boolean = false;
   // Use chat stream when used copilot chat
@@ -9,15 +15,19 @@ export class StreamHandlerService {
 
   private outputChannel: vscode.OutputChannel | undefined;
 
-  constructor(useChatStream: boolean, chatStream?: vscode.ChatResponseStream) {
+  constructor({
+    useChatStream,
+    chatStream,
+    outputChannel,
+  }: IStreamHanlderServiceInput) {
     this.useChatStream = useChatStream;
     this.chatStream = chatStream;
+    this.outputChannel = outputChannel;
     if (!this.useChatStream) {
       this.statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Left,
         100,
       );
-      this.outputChannel = vscode.window.createOutputChannel('App Developer');
       this.statusBarItem.show();
     }
   }

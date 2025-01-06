@@ -41,6 +41,8 @@ export class App {
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
+  private componentsCount: number = 0;
+  private generatedFilesCount: number = 0;
 
   constructor(
     languageModelService: LanguageModelService,
@@ -98,6 +100,7 @@ export class App {
         switch (stage) {
           case AppStage.Initialize:
             currentOutput = await this.initialize(this.initialInput);
+            this.componentsCount = currentOutput.output.components.length;
             break;
           case AppStage.GenerateCode:
             if (!stageOutput) {
@@ -109,6 +112,9 @@ export class App {
               previousMessages: stageOutput.messages,
               previousOutput: stageOutput.output as ZInitializeAppResponseType,
             });
+            this.generatedFilesCount =
+              currentOutput.output.generatedCode.length;
+            this.componentsCount = currentOutput.output.components.length;
             break;
         }
         stageOutput = currentOutput;
@@ -224,5 +230,17 @@ export class App {
       }
     }
     return sortedNodes;
+  }
+
+  getComponentsCount(): number {
+    return this.componentsCount;
+  }
+
+  incrementGeneratedFilesCount() {
+    this.generatedFilesCount++;
+  }
+
+  getGeneratedFilesCount(): number {
+    return this.generatedFilesCount;
   }
 }
