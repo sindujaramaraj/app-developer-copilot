@@ -86,6 +86,11 @@ export class LanguageModelService {
       const { text } = await generateText({
         model: this.ownModel,
         messages: options,
+        headers: {
+          'HTTP-Referer':
+            'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
+          'X-Title': 'app-developer-copilot', // Optional. Shows in rankings on openrouter.ai.
+        },
       });
       return text;
     } else if (this.copilotModel) {

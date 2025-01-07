@@ -1,6 +1,6 @@
 # App Developer Copilot
 
-A VS Code extension that helps you create react-native mobile applications using Copilot or use your own model. This is a preview version of the extension and works better with Claude models.
+A VS Code extension that helps you create react-native mobile applications using Copilot or use your own model.
 
 ## How it works
 
@@ -47,10 +47,6 @@ The extension will:
 
 Once the app is generated, you can run the app using the Expo Go app on your mobile device or an emulator.
 Please note: There might be issues after app generation. You can manually fix them by following the error messages in the terminal.
-
-## Disclaimer
-
-This extension is still in development and may not work as expected. Please report any issues or suggestions on [Github](https://github.com/sindujaramaraj/app-developer-copilot).
 
 ## Chat Participants
 

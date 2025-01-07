@@ -254,6 +254,8 @@ export class MobileApp extends App {
             });
           }
           await FileParser.parseAndCreateFiles(files, appName);
+          // Update generated files count
+          this.incrementGeneratedFilesCount();
           this.logMessage(
             'Assets saved successfully for component: ' + component.name,
           );

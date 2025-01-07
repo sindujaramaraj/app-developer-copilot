@@ -1,10 +1,10 @@
 {
   "name": "app-developer-copilot",
   "displayName": "App Developer Copilot",
-  "description": "Extension using Copilot to create apps",
+  "description": "App developer agent for building mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "0.0.6",
-  "preview": true,
+  "version": "1.0.0",
+  "preview": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"
@@ -182,6 +182,7 @@
     "@ai-sdk/anthropic": "^1.0.5",
     "@ai-sdk/openai": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^0.0.6",
+    "@vscode/extension-telemetry": "^0.9.8",
     "ai": "^4.0.18",
     "openai": "^4.76.3"
   }

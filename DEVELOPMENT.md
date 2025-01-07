@@ -24,5 +24,5 @@ vsce package
 #### Publish to marketplace
 
 ```bash
-vsce publish --pre-release
+vsce publish
 ```
