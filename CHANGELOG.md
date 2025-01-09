@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.0.1] - 2025-01-09
+
+### Added
+
+- Help command and redirection to commands on generic flow
+
+### Changed
+
+- Few telemetry fixes
+
 ## [1.0.0] - 2025-01-06
 
 ### Added
