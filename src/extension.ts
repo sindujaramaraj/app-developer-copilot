@@ -103,30 +103,19 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
     } else if (request.command === 'run') {
       return await handleRunMobileApp(stream, telemetry);
     } else {
-      console.log('MobileBuilder: No command found');
-      telemetry.trackChatInteraction('mobile.general', {
-        input: request.prompt,
-      });
-
-      try {
-        const chatResponse = await request.model.sendRequest(
-          [vscode.LanguageModelChatMessage.User(request.prompt)],
-          {},
-          token,
-        );
-        for await (const fragment of chatResponse.text) {
-          stream.markdown(fragment);
-        }
-
-        return {};
-      } catch (error) {
-        telemetry.trackError('mobile.general', 'chat', error as Error);
-        return {
-          errorDetails: {
-            message: (error as Error).message,
-          },
-        };
+      if (request.command === 'help') {
+        telemetry.trackChatInteraction('mobile.help', {});
+      } else {
+        telemetry.trackChatInteraction('mobile.general', {
+          input: request.prompt,
+        });
       }
+      stream.markdown(
+        `${APP_DISPLAY_NAME} is deigned to create mobile apps. To create a mobile app, type \`@app-developer-mobile /create\` and follow the prompts. To run the app, type \`@app-developer-mobile /run.\``,
+      );
+      return {
+        metadata: { command: 'help' },
+      };
     }
   };
 
@@ -151,6 +140,19 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
         return [
           {
             prompt: 'Run the app',
+            command: 'run',
+          } satisfies vscode.ChatFollowup,
+        ];
+      } else if (result.metadata.command === 'help') {
+        return [
+          {
+            prompt: 'Create a notes app',
+            label: 'Try a sample to create a notes app',
+            command: 'create',
+          } satisfies vscode.ChatFollowup,
+          {
+            label: 'If you have already created an app, run it',
+            prompt: 'Run app',
             command: 'run',
           } satisfies vscode.ChatFollowup,
         ];
@@ -226,15 +228,15 @@ async function handleRunMobileApp(
   stream: vscode.ChatResponseStream,
   telemetry: TelemetryService,
 ) {
-  telemetry.trackCommandPanelInteraction('mobile.run');
+  telemetry.trackChatInteraction('mobile.run');
   const startTime = Date.now();
 
   try {
     const workspaceFolder = await FileParser.getWorkspaceFolder();
     if (!workspaceFolder) {
-      stream.markdown('MobileBuilder: No workspace folder selected');
+      stream.markdown('No workspace folder selected');
       telemetry.trackError(
-        'mobbile.run',
+        'mobile.run',
         'chat',
         undefined,
         {
@@ -254,7 +256,7 @@ async function handleRunMobileApp(
 
     const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
     if (files.length === 0) {
-      stream.markdown('MobileBuilder: No app.json found');
+      stream.markdown('Not able to locate a appdev.json file');
       telemetry.trackError(
         'mobile.run',
         'chat',
@@ -277,10 +279,11 @@ async function handleRunMobileApp(
     const appJsonPath = files[0].fsPath;
     const appJson = await readAppConfigFromFile(appJsonPath);
     const appName = appJson.name;
-    stream.markdown(`MobileBuilder: Running app ${appName}`);
+    stream.markdown(`Running app ${appName}`);
     runExpoProject(appName);
 
     telemetry.trackChatInteraction('mobile.run', {
+      success: String(true),
       duration: String(Date.now() - startTime),
     });
 
