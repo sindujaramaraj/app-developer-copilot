@@ -144,6 +144,10 @@
           {
             "name": "run",
             "description": "Run the app"
+          },
+          {
+            "name": "help",
+            "description": "Get help with using the extension"
           }
         ]
       }
