@@ -18,10 +18,7 @@ import {
   resetExpoProject,
 } from '../terminalHelper';
 import { FileParser } from '../utils/fileParser';
-import {
-  APP_ARCHITECTURE_DIAGRAM_FILE,
-  CLASS_DIAGRAM_FILE,
-} from '../constants';
+import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 
@@ -203,6 +200,7 @@ export class MobileApp extends App {
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForComponentPrompt({
         name: component.name,
+        path: component.path,
         type: component.type as ComponetType,
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
@@ -282,6 +280,12 @@ export class MobileApp extends App {
       this.logProgress(`Writing code to for component ${component.name}`);
 
       componentIndex++;
+
+      if (codeGenerationResponseObj.filePath !== component.path) {
+        console.error(
+          `Component path mismatch for component ${component.name}. Expected: ${component.path}, Received: ${codeGenerationResponseObj.filePath}`,
+        );
+      }
 
       const files = [
         {

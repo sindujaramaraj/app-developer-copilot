@@ -7,6 +7,7 @@ import {
   ZInitializeAppResponseSchema,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
+  IGenerateCodeForComponentResponse,
 } from './types';
 
 export class PromptBase<TInput, TOutput> {
@@ -53,10 +54,10 @@ export class InitializeAppPrompt extends PromptBase<
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
     Make sure there are no circular dependencies between components.
-    Make sure the app uses expo-router for navigation and file path of the components are correct.
+    Make sure the app uses expo-router for navigation and file path of the components are consistent.
     Make sure that app/index.tsx is the entry point of the app.
     
-    Create app for: ${input.userMessage}.`;
+    Create app for: ${input.userMessage}. Do not create too many componnets. Keep it simple and functional.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
@@ -66,13 +67,28 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
   ZGenerateCodeForComponentResponseType
 > {
   constructor(input: IGenerateCodeForComponentInput) {
-    const instructions = `Request: Generate code for component ${input.name}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
+    const instructions = `Request: Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image, sound etc.. include the media as assets in the code.
-    This component is part of an expo app. Design of the expo app: ${input.design}.
+    This component is part of an react native expo app. Design of the app: ${input.design}.
+    Tech stack: ${input.techStack}.
     Reuse code from dependencies if possible.
-    Component Dependencies: ${JSON.stringify(input.dependencies)}.
-    Tech stack: ${input.techStack}.`;
+    Code for dependent components: ${getPromptForDependentCode(input.dependencies)}.
+    Make sure to import the dependencies correctly based on path when using code from dependencies.`;
     super(input, instructions, ZGenerateCodeForComponentResponseSchema);
   }
+}
+
+function getPromptForDependentCode(
+  dependencies: IGenerateCodeForComponentResponse[],
+): string {
+  return dependencies
+    .map(
+      (dependency) =>
+        `Code for ${dependency.componentName} is located at path ${dependency.filePath}
+      <!------------------------------CODE START------------------------------------------->
+      ${dependency.content}
+      <!------------------------------CODE END------------------------------------------->`,
+    )
+    .join('\n');
 }

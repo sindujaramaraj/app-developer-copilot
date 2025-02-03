@@ -94,6 +94,7 @@ export type ZCodeFileType = z.infer<typeof ZCodeFileSchema>;
 
 export interface IGenerateCodeForComponentInput {
   name: string;
+  path: string;
   type: ComponetType;
   purpose: string;
   dependencies: IGenerateCodeForComponentResponse[];
