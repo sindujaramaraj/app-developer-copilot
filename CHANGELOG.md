@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.0.2] - 2025-02-02
+
+### Changed
+
+- Updated prompts for dependency components to fix bugs in imports
+- Benchmark - can generate simple notes and voice notes app wtihout any issues
+
 ## [1.0.1] - 2025-01-09
 
 ### Added
