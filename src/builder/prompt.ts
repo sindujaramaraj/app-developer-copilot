@@ -74,7 +74,8 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
     Tech stack: ${input.techStack}.
     Reuse code from dependencies if possible.
     Code for dependent components: ${getPromptForDependentCode(input.dependencies)}.
-    Make sure to import the dependencies correctly based on path when using code from dependencies.`;
+    Make sure to import the dependencies correctly based on path when using code from dependencies.
+    Make sure to use only available code from dependencies and if code is not available, generate code for the dependency first and then reuse. Make sure to send the updated dependencies back in the response.`;
     super(input, instructions, ZGenerateCodeForComponentResponseSchema);
   }
 }

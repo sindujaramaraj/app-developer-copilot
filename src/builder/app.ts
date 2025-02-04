@@ -3,9 +3,11 @@ import {
   ZResponseBaseType,
   ZGenerateCodeResponseType,
   ZCodeComponentType,
+  ZGenerateCodeForComponentResponseType,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
+import { FileParser } from './utils/fileParser';
 
 export enum AppStage {
   None,
@@ -186,6 +188,34 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  async handleAssets(
+    codeGenerationResponseObj: ZGenerateCodeForComponentResponseType,
+    component: ZCodeComponentType,
+    appName: string,
+  ) {
+    if (
+      codeGenerationResponseObj.assets &&
+      codeGenerationResponseObj.assets.length > 0
+    ) {
+      console.info(`Component ${component.name} has assets`);
+      // Save assets
+      this.logProgress(`Saving assets for component: ${component.name}`);
+      const files = [];
+      for (const asset of codeGenerationResponseObj.assets) {
+        files.push({
+          path: asset.filePath,
+          content: asset.content,
+        });
+        this.logMessage(
+          `Component ${component.name} uses asset: ${asset.filePath}. We are not able to ensure asset generation right now. Please make sure to fix the asset before running the app.`,
+        );
+      }
+      await FileParser.parseAndCreateFiles(files, appName, true);
+      // Update generated files count
+      this.incrementGeneratedFilesCount();
+    }
   }
 
   sortComponentsByDependency(

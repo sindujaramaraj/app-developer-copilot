@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { extractCodeFromMarkdown, isCodeBlock } from './contentUtil';
+import {
+  extractCodeFromMarkdown,
+  isCodeBlock,
+  processMediaFile,
+} from './contentUtil';
 
 interface ParsedFile {
   path: string;
@@ -22,6 +26,7 @@ export class FileParser {
   static async parseAndCreateFiles(
     files: IFile[],
     pathPrefix: string,
+    isMedia?: boolean,
     baseDir?: string,
   ): Promise<void> {
     // Get workspace directory if not provided
@@ -41,7 +46,7 @@ export class FileParser {
         console.info(`Converting ${file.path} to ${newPath}`);
         file.path = newPath;
       }
-      await FileParser.createFile(baseDir, file);
+      await FileParser.createFile(baseDir, file, isMedia);
     }
   }
 
@@ -76,6 +81,7 @@ export class FileParser {
   private static async createFile(
     baseDir: string,
     file: ParsedFile,
+    isMedia?: boolean,
   ): Promise<void> {
     const fullPath = path.join(baseDir, file.path);
 
@@ -86,31 +92,47 @@ export class FileParser {
 
     // Create file
     const uri = vscode.Uri.file(fullPath);
-    // check if the file content is a markdown
-    let fileContent = file.content;
-    if (isCodeBlock(file.content)) {
-      fileContent = extractCodeFromMarkdown(file.content);
-    }
-    if (!fileContent) {
-      console.error(`No content found for file: ${file.path}`);
-    }
-    const content = new TextEncoder().encode(file.content);
 
-    await vscode.workspace.fs.writeFile(uri, content);
+    if (isMedia) {
+      try {
+        const content = processMediaFile(file.content);
+        // Write the file
+        await vscode.workspace.fs.writeFile(uri, content);
+      } catch (error) {
+        console.error(`Failed to create media file: ${file.path}`);
+        console.error(error);
+        console.info('Creating empty file instead');
+        // creating a empty file
+        await vscode.workspace.fs.writeFile(uri, new Uint8Array());
+      }
+    } else {
+      // check if the file content is a markdown
+      let fileContent = file.content;
+      if (isCodeBlock(file.content)) {
+        fileContent = extractCodeFromMarkdown(file.content);
+      }
+      if (!fileContent) {
+        console.error(`No content found for file: ${file.path}`);
+      }
+      const content = new TextEncoder().encode(file.content);
 
-    // Open the file
-    const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc, { preview: false });
+      await vscode.workspace.fs.writeFile(uri, content);
 
-    // Format document if possible
-    try {
-      await vscode.commands.executeCommand('editor.action.formatDocument');
-    } catch (error) {
-      // Ignore formatting errors
-    } finally {
-      // Save file
-      await doc.save();
+      // Open the file
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, { preview: false });
+
+      // Format document if possible
+      try {
+        await vscode.commands.executeCommand('editor.action.formatDocument');
+      } catch (error) {
+        // Ignore formatting errors
+      } finally {
+        // Save file
+        await doc.save();
+      }
     }
+
     console.info(`Created file: ${fullPath}`);
   }
 

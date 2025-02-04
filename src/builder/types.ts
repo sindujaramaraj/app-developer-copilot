@@ -156,6 +156,10 @@ export const ZGenerateCodeForComponentResponseSchema =
     libraries: z
       .array(z.string())
       .describe('List of external libraries used in the component'),
+    updatedDependencies: z
+      .array(ZCodeFileSchema)
+      .optional()
+      .describe('Updated dependencies of the component'),
   });
 
 export type ZGenerateCodeForComponentResponseType = z.infer<

@@ -236,32 +236,6 @@ export class MobileApp extends App {
         //   vscode.LanguageModelChatMessage.Assistant(codeGenerationResponse),
         // );
         console.info(`Received code for component ${component.name}`);
-        // Handle assets
-        if (
-          codeGenerationResponseObj.assets &&
-          codeGenerationResponseObj.assets.length > 0
-        ) {
-          console.info(`Component ${component.name} has assets`);
-          // Save assets
-          this.logProgress('Saving assets');
-          const files = [];
-          for (const asset of codeGenerationResponseObj.assets) {
-            files.push({
-              path: asset.filePath,
-              content: asset.content,
-            });
-          }
-          await FileParser.parseAndCreateFiles(files, appName);
-          // Update generated files count
-          this.incrementGeneratedFilesCount();
-          this.logMessage(
-            'Assets saved successfully for component: ' + component.name,
-          );
-        }
-        console.info(
-          `Component path: ${component.path} \n Received path: ${codeGenerationResponseObj.filePath}`,
-        );
-        //console.info(codeGenerationResponse);
       } catch (error) {
         console.error(
           'MobileBuilder: Error parsing code generation response for component',
@@ -287,12 +261,29 @@ export class MobileApp extends App {
         );
       }
 
+      // Handle assets
+      this.handleAssets(codeGenerationResponseObj, component, appName);
+
       const files = [
         {
           path: codeGenerationResponseObj.filePath,
           content: codeGenerationResponseObj.content,
         },
       ];
+      // Check for updated dependencies
+      if (
+        codeGenerationResponseObj.updatedDependencies &&
+        codeGenerationResponseObj.updatedDependencies.length > 0
+      ) {
+        console.warn('*** Updated dependencies found ***');
+        for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
+          files.push({
+            path: updatedDependency.filePath,
+            content: updatedDependency.content,
+          });
+        }
+      }
+      // Create files
       await FileParser.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies
