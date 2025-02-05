@@ -110,6 +110,8 @@ export class MobileApp extends App {
         .toLowerCase();
       // fix app name
       createAppResponseObj.name = formattedAppName;
+      // set app name
+      this.setAppName(formattedAppName);
 
       await this.postInitialize(createAppResponseObj);
 
