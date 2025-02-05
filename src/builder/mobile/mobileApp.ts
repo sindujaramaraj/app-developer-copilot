@@ -82,11 +82,9 @@ export class MobileApp extends App {
     });
 
     const initializeAppMessages = [
-      this.languageModelService.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
+      this.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
       // Add user's message
-      this.languageModelService.createUserMessage(
-        initializeAppPrompt.getInstructionsPrompt(),
-      ),
+      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
     ];
 
     // send the request
@@ -101,7 +99,7 @@ export class MobileApp extends App {
           },
         );
       initializeAppMessages.push(
-        this.languageModelService.createAssistantMessage(createAppResponse),
+        this.createAssistantMessage(createAppResponse),
       );
 
       this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
@@ -186,7 +184,7 @@ export class MobileApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
-      this.languageModelService.createUserMessage(
+      this.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
         Write the actual code that will be used in production.
@@ -220,9 +218,7 @@ export class MobileApp extends App {
       });
       const messages = [
         ...codeGenerationMessages,
-        this.languageModelService.createUserMessage(
-          codeGenerationPrompt.getInstructionsPrompt(),
-        ),
+        this.createUserMessage(codeGenerationPrompt.getInstructionsPrompt()),
       ];
 
       let codeGenerationResponse, codeGenerationResponseObj;

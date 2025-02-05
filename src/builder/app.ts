@@ -8,6 +8,7 @@ import {
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileParser } from './utils/fileParser';
+import { APP_CONVERSATION_FILE } from './constants';
 
 export enum AppStage {
   None,
@@ -36,15 +37,15 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
  */
 
 export class App {
+  protected appName: string = '';
   protected languageModelService: LanguageModelService;
-
   protected streamService: StreamHandlerService;
-
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
   private componentsCount: number = 0;
   private generatedFilesCount: number = 0;
+  private conversations: IModelMessage[] = [];
 
   constructor(
     languageModelService: LanguageModelService,
@@ -122,17 +123,27 @@ export class App {
         stageOutput = currentOutput;
       }
       // Handle completion
-      this.isExecuting = false;
       this.streamService.message('App creation completed');
-      this.streamService.close();
     } catch (error: any) {
       console.error('Error executing app:', error);
       this.logMessage('Error creating app');
       error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
+      throw error;
+    } finally {
       this.isExecuting = false;
       this.streamService.close();
-      throw error;
+      // store conversations in a file
+      await FileParser.parseAndCreateFiles(
+        [
+          {
+            content: JSON.stringify(this.conversations, null, 2),
+            path: APP_CONVERSATION_FILE,
+          },
+        ],
+        this.getAppName(),
+        false,
+      );
     }
   }
 
@@ -178,6 +189,14 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
+  setAppName(appName: string) {
+    this.appName = appName;
+  }
+
+  getAppName(): string {
+    return this.appName;
+  }
+
   setStage(stage: AppStage) {
     this.stage = stage;
   }
@@ -188,6 +207,28 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  createUserMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createUserMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  createAssistantMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createAssistantMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  createSystemMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createSystemMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  logConversation(message: IModelMessage) {
+    this.conversations.push(message);
   }
 
   async handleAssets(
