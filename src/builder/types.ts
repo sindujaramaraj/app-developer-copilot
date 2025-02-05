@@ -58,6 +58,7 @@ export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
 export interface IInitializeAppInput {
   userMessage: string;
+  techStack: string;
 }
 
 export interface IInitializeAppResponse extends IResponseBase {

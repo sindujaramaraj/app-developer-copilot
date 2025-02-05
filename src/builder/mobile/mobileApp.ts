@@ -21,12 +21,21 @@ import { FileParser } from '../utils/fileParser';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
+import {
+  DataFetching,
+  getDefaultStack,
+  getPromptForStack,
+  Navigation,
+  StateManagement,
+  Storage,
+  Testing,
+  UILibrary,
+} from './mobileTechStack';
 
-const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo.
-You create apps that uses local storage and doesn't require authentication.
+const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
 You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Use expo-router for navigation.
-Do not respond until you receive the request. User will first request design and then code generation.
+Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
+User will first request app design and then code generation.
 If the user asks a non-programming question, politely decline to respond.`;
 
 /**
@@ -69,6 +78,7 @@ export class MobileApp extends App {
 
     const initializeAppPrompt = new InitializeAppPrompt({
       userMessage: userMessage,
+      techStack: getPromptForStack(this.getTechStack()),
     });
 
     const initializeAppMessages = [
@@ -110,8 +120,9 @@ export class MobileApp extends App {
       await createAppConfig({
         name: createAppResponseObj.name,
         initialPrompt: userMessage,
-        components: JSON.stringify(createAppResponseObj.components),
+        components: createAppResponseObj.components,
         features: createAppResponseObj.features,
+        tectStack: getPromptForStack(this.getTechStack()),
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -205,8 +216,7 @@ export class MobileApp extends App {
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
-        techStack:
-          'For navigation, use expo-router. For theming, use react-native-paper.  Use default theme for the app. For storage, use AsyncStorage.',
+        techStack: getPromptForStack(this.getTechStack()),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -306,6 +316,17 @@ export class MobileApp extends App {
         error: error ? 'Error generating code for components' : undefined,
         summary: 'Successfully generated code for all components',
       },
+    };
+  }
+
+  getTechStack() {
+    return {
+      stateManagement: StateManagement.ZUSTAND,
+      uiLibrary: UILibrary.TAMAGUI,
+      navigation: Navigation.EXPO_ROUTER,
+      dataFetching: DataFetching.APOLLO,
+      storage: Storage.ASYNC_STORAGE,
+      testing: [Testing.DETOX],
     };
   }
 }
