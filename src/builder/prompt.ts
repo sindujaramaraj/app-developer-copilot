@@ -73,7 +73,7 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
     This component is part of an react native app. Design of the app as a mermaid diagram: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image, sound etc.. include the media as assets in the code.
+    If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
     If the code uses any external libraries, include the libraries in the response.
     Reuse code from dependencies if possible.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
