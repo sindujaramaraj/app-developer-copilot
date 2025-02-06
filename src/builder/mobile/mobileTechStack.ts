@@ -66,6 +66,70 @@ export const getDefaultStack = (): TechStackOptions => {
   return DEFAULT_STACK;
 };
 
+export const getLibsToInstallForStack = (stack: TechStackOptions): string[] => {
+  const libs = [];
+  switch (stack.stateManagement) {
+    case StateManagement.REDUX:
+      libs.push('redux', 'react-redux');
+      break;
+    case StateManagement.ZUSTAND:
+      libs.push('zustand');
+      break;
+    case StateManagement.MOBX:
+      libs.push('mobx', 'mobx-react-lite');
+      break;
+    case StateManagement.RECOIL:
+      libs.push('recoil');
+      break;
+    case StateManagement.JOTAI:
+      libs.push('jotai');
+      break;
+  }
+
+  switch (stack.uiLibrary) {
+    case UILibrary.REACT_NATIVE_PAPER:
+      libs.push('react-native-paper');
+      break;
+    case UILibrary.NATIVE_BASE:
+      libs.push('native-base');
+      libs.push('normalize-css-color');
+      break;
+    case UILibrary.TAMAGUI:
+      libs.push('tamagui');
+      libs.push('@tamagui/themes');
+      break;
+    case UILibrary.RESTYLE:
+      libs.push('@shopify/restyle');
+      break;
+  }
+
+  switch (stack.navigation) {
+    case Navigation.EXPO_ROUTER:
+      libs.push('expo-router');
+      break;
+    case Navigation.REACT_NAVIGATION:
+      libs.push('@react-navigation/native');
+      break;
+  }
+
+  switch (stack.dataFetching) {
+    case DataFetching.REACT_QUERY:
+      libs.push('@tanstack/react-query');
+      break;
+    case DataFetching.APOLLO:
+      libs.push('@apollo/client');
+      break;
+    case DataFetching.RTK_QUERY:
+      libs.push('@reduxjs/toolkit/query');
+      break;
+    case DataFetching.SWR:
+      libs.push('swr');
+      break;
+  }
+
+  return libs;
+};
+
 export const getPromptForStackComplete = (stack: TechStackOptions): string => {
   return `Use ${stack.stateManagement} for state management,
   ${stack.uiLibrary} for UI, ${stack.navigation} for navigation,

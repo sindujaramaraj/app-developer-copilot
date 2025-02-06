@@ -24,6 +24,7 @@ import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   DataFetching,
   getDefaultStack,
+  getLibsToInstallForStack,
   getPromptForStack,
   Navigation,
   StateManagement,
@@ -183,6 +184,9 @@ export class MobileApp extends App {
     > = new Map();
     let error = false;
     const installedDependencies: string[] = [];
+    // Install default dependencies for the tech stack
+    const libsForStack = getLibsToInstallForStack(this.getTechStack());
+    installNPMDependencies(appName, libsForStack, installedDependencies);
 
     const codeGenerationMessages = [
       ...previousMessages,
@@ -320,7 +324,7 @@ export class MobileApp extends App {
   getTechStack() {
     return {
       stateManagement: StateManagement.ZUSTAND,
-      uiLibrary: UILibrary.TAMAGUI,
+      uiLibrary: UILibrary.NATIVE_BASE,
       navigation: Navigation.EXPO_ROUTER,
       dataFetching: DataFetching.APOLLO,
       storage: Storage.ASYNC_STORAGE,
