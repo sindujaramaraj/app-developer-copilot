@@ -9,6 +9,7 @@ import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileParser } from './utils/fileParser';
 import { APP_CONVERSATION_FILE } from './constants';
+import { TechStackOptions } from './mobile/mobileTechStack';
 
 export enum AppStage {
   None,
@@ -43,6 +44,7 @@ export class App {
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
+  private techStackOptions: TechStackOptions;
   private componentsCount: number = 0;
   private generatedFilesCount: number = 0;
   private conversations: IModelMessage[] = [];
@@ -51,10 +53,12 @@ export class App {
     languageModelService: LanguageModelService,
     streamService: StreamHandlerService,
     initialInput: string,
+    techStackOptions: TechStackOptions,
   ) {
     this.languageModelService = languageModelService;
     this.streamService = streamService;
     this.initialInput = initialInput;
+    this.techStackOptions = techStackOptions;
     this.stage = AppStage.None;
     this.isExecuting = false;
   }
@@ -199,6 +203,10 @@ export class App {
 
   setStage(stage: AppStage) {
     this.stage = stage;
+  }
+
+  getTechStackOptions(): TechStackOptions {
+    return this.techStackOptions;
   }
 
   logProgress(message: string) {

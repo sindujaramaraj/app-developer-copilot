@@ -7,6 +7,11 @@ import { readAppConfigFromFile } from './builder/utils/appconfigHelper';
 import { LanguageModelService } from './service/languageModel';
 import { StreamHandlerService } from './service/streamHandler';
 import { TelemetryService } from './service/telemetry/telemetry';
+import { TechStackWebviewProvider } from './webview/techStackWebview';
+import {
+  getDefaultStack,
+  TechStackOptions,
+} from './builder/mobile/mobileTechStack';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -24,7 +29,21 @@ export function activate(context: vscode.ExtensionContext) {
   // Register extension commands and participants
   registerChatParticipants(context);
   registerCommands(context);
+  //registerWebview(context);
 }
+
+// function registerWebview(context: vscode.ExtensionContext) {
+//   // Add to registerCommands function:
+
+//   const provider = new TechStackWebviewProvider(context.extensionUri);
+
+//   context.subscriptions.push(
+//     vscode.window.registerWebviewViewProvider(
+//       TechStackWebviewProvider.viewType,
+//       provider,
+//     ),
+//   );
+// }
 
 function registerCommands(context: vscode.ExtensionContext) {
   const telemetry = TelemetryService.getInstance(context);
@@ -37,18 +56,22 @@ function registerCommands(context: vscode.ExtensionContext) {
         prompt: 'What would you like to create?',
         placeHolder: 'A notes app',
       })
-      .then((userInput) => {
+      .then(async (userInput) => {
         if (!userInput) {
           vscode.window.showErrorMessage('Enter a valid prompt');
           return;
         }
+        const tectStackOptions = await TechStackWebviewProvider.createOrShow();
         const startTime = Date.now();
         const modelService = new LanguageModelService();
         const streamService = new StreamHandlerService({
           useChatStream: false,
           outputChannel,
         });
-        const app = new MobileApp(modelService, streamService, userInput);
+        const app = new MobileApp(modelService, streamService, userInput, {
+          ...getDefaultStack(),
+          ...tectStackOptions,
+        });
         app
           .execute()
           .then(() => {
@@ -99,7 +122,11 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
     if (request.command === 'create') {
-      return await handleCreateMobileApp(stream, request, token, telemetry);
+      const techStackOptions = await TechStackWebviewProvider.createOrShow();
+      return await handleCreateMobileApp(stream, request, token, telemetry, {
+        ...getDefaultStack(),
+        ...techStackOptions,
+      });
     } else if (request.command === 'run') {
       return await handleRunMobileApp(stream, telemetry);
     } else {
@@ -167,6 +194,7 @@ async function handleCreateMobileApp(
   request: vscode.ChatRequest,
   token: vscode.CancellationToken,
   telemetry: TelemetryService,
+  techStackOptions: TechStackOptions,
 ) {
   telemetry.trackChatInteraction('mobile.create', {});
   console.log('MobileBuilder: Create command called');
@@ -180,7 +208,12 @@ async function handleCreateMobileApp(
   });
 
   try {
-    app = new MobileApp(modelService, streamService, request.prompt);
+    app = new MobileApp(
+      modelService,
+      streamService,
+      request.prompt,
+      techStackOptions,
+    );
     await app.execute();
     telemetry.trackAppCreation(
       {

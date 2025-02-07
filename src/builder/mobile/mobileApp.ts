@@ -79,7 +79,7 @@ export class MobileApp extends App {
 
     const initializeAppPrompt = new InitializeAppPrompt({
       userMessage: userMessage,
-      techStack: getPromptForStack(this.getTechStack()),
+      techStack: getPromptForStack(this.getTechStackOptions()),
     });
 
     const initializeAppMessages = [
@@ -123,7 +123,7 @@ export class MobileApp extends App {
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
-        tectStack: getPromptForStack(this.getTechStack()),
+        tectStack: getPromptForStack(this.getTechStackOptions()),
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -185,8 +185,8 @@ export class MobileApp extends App {
     let error = false;
     const installedDependencies: string[] = [];
     // Install default dependencies for the tech stack
-    const libsForStack = getLibsToInstallForStack(this.getTechStack());
-    installNPMDependencies(appName, libsForStack, installedDependencies);
+    const libsForStack = getLibsToInstallForStack(this.getTechStackOptions());
+    await installNPMDependencies(appName, libsForStack, installedDependencies);
 
     const codeGenerationMessages = [
       ...previousMessages,
@@ -220,7 +220,7 @@ export class MobileApp extends App {
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
-        techStack: getPromptForStack(this.getTechStack()),
+        techStack: getPromptForStack(this.getTechStackOptions()),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -318,17 +318,6 @@ export class MobileApp extends App {
         error: error ? 'Error generating code for components' : undefined,
         summary: 'Successfully generated code for all components',
       },
-    };
-  }
-
-  getTechStack() {
-    return {
-      stateManagement: StateManagement.ZUSTAND,
-      uiLibrary: UILibrary.NATIVE_BASE,
-      navigation: Navigation.EXPO_ROUTER,
-      dataFetching: DataFetching.APOLLO,
-      storage: Storage.ASYNC_STORAGE,
-      testing: [Testing.DETOX],
     };
   }
 }
