@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.0.3] - 2025-02-07
+
+### Added
+
+- Option to choose tech stack
+- Save prompts in conversation.json
+
+### Changed
+
+- Updated prompts for dependency components and asset creation
+- Updated appdev.json with tech stack data and improved readability
+
 ## [1.0.2] - 2025-02-02
 
 ### Changed
