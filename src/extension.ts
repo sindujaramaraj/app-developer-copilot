@@ -61,13 +61,20 @@ function registerCommands(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage('Enter a valid prompt');
           return;
         }
-        const tectStackOptions = await TechStackWebviewProvider.createOrShow();
+
         const startTime = Date.now();
         const modelService = new LanguageModelService();
         const streamService = new StreamHandlerService({
           useChatStream: false,
           outputChannel,
         });
+        streamService.progress('Waiting for tech stack options input');
+        const tectStackOptions = await TechStackWebviewProvider.createOrShow();
+        streamService.progress('Tech stack options received');
+        streamService.message(
+          'Chosen tech stack options: ' + JSON.stringify(tectStackOptions),
+        );
+        // Initialize the app builder
         const app = new MobileApp(modelService, streamService, userInput, {
           ...getDefaultStack(),
           ...tectStackOptions,
@@ -122,11 +129,7 @@ function registerChatParticipants(context: vscode.ExtensionContext) {
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
     if (request.command === 'create') {
-      const techStackOptions = await TechStackWebviewProvider.createOrShow();
-      return await handleCreateMobileApp(stream, request, token, telemetry, {
-        ...getDefaultStack(),
-        ...techStackOptions,
-      });
+      return await handleCreateMobileApp(stream, request, token, telemetry);
     } else if (request.command === 'run') {
       return await handleRunMobileApp(stream, telemetry);
     } else {
@@ -194,7 +197,6 @@ async function handleCreateMobileApp(
   request: vscode.ChatRequest,
   token: vscode.CancellationToken,
   telemetry: TelemetryService,
-  techStackOptions: TechStackOptions,
 ) {
   telemetry.trackChatInteraction('mobile.create', {});
   console.log('MobileBuilder: Create command called');
@@ -206,6 +208,13 @@ async function handleCreateMobileApp(
     useChatStream: true,
     chatStream: stream,
   });
+  // Get tech stack options
+  streamService.progress('Waiting for tech stack options input');
+  const techStackOptions = await TechStackWebviewProvider.createOrShow();
+  streamService.progress('Tech stack options received');
+  streamService.message(
+    'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+  );
 
   try {
     app = new MobileApp(

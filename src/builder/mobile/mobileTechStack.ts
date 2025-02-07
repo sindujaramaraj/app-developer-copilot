@@ -38,6 +38,7 @@ export enum Storage {
 }
 
 export enum Authentication {
+  None = 'none',
   EXPO_AUTH = 'expo-auth-session',
   FIREBASE = '@react-native-firebase/auth',
   CLERK = '@clerk/clerk-expo',
@@ -51,7 +52,7 @@ export interface TechStackOptions {
   dataFetching?: DataFetching;
   testing: Testing[];
   storage: Storage;
-  authentication?: Authentication;
+  authentication: Authentication;
 }
 
 export const DEFAULT_STACK: TechStackOptions = {
@@ -60,6 +61,7 @@ export const DEFAULT_STACK: TechStackOptions = {
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
+  authentication: Authentication.None,
 };
 
 export const getDefaultStack = (): TechStackOptions => {
@@ -127,20 +129,16 @@ export const getLibsToInstallForStack = (stack: TechStackOptions): string[] => {
       break;
   }
 
+  // TODO: Add testing libraries and authentication libraries
+
   return libs;
 };
 
-export const getPromptForStackComplete = (stack: TechStackOptions): string => {
-  return `Use ${stack.stateManagement} for state management,
-  ${stack.uiLibrary} for UI, ${stack.navigation} for navigation,
-  ${stack.dataFetching} for data fetching,
-  ${stack.testing} for testing,
-  ${stack.storage} for storage,
-  and ${stack.authentication} for authentication.`;
-};
-
 export const getPromptForStack = (stack: TechStackOptions): string => {
-  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI, ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, and ${stack.storage} for storage.`;
+  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI, \
+   ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
+   and ${stack.storage} for storage. \
+   ${stack.authentication !== Authentication.None ? ` Use ${stack.authentication} for authentication.` : 'Do not add authentication.'}`;
 };
 
 export class MobileTechStack {
@@ -150,7 +148,7 @@ export class MobileTechStack {
   private dataFetching?: DataFetching;
   private testing: Testing[];
   private storage: Storage;
-  private authentication?: Authentication;
+  private authentication: Authentication;
 
   constructor(options: TechStackOptions) {
     this.stateManagement = options.stateManagement;

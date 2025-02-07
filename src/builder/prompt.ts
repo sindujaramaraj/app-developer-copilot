@@ -51,7 +51,6 @@ export class InitializeAppPrompt extends PromptBase<
     First think through the problem and design the mobile app. Use expo-router for navigation.
     Assume the app is initialized using 'npx create-expo-app' and uses expo-router with typescript template.
     Tech stack: ${input.techStack}
-    You don't have to add authentication to the app.
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
     Make sure there are no circular dependencies between components.

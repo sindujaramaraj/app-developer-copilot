@@ -21,17 +21,7 @@ import { FileParser } from '../utils/fileParser';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
-import {
-  DataFetching,
-  getDefaultStack,
-  getLibsToInstallForStack,
-  getPromptForStack,
-  Navigation,
-  StateManagement,
-  Storage,
-  Testing,
-  UILibrary,
-} from './mobileTechStack';
+import { getLibsToInstallForStack, getPromptForStack } from './mobileTechStack';
 
 const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
 You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
@@ -142,8 +132,8 @@ export class MobileApp extends App {
   async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
     // Create expo project
     await createExpoApp(createAppResponseObj.name);
-    //reset expo project
-    await resetExpoProject(createAppResponseObj.name);
+    // Reset expo project
+    // await resetExpoProject(createAppResponseObj.name);
     this.logMessage(`Created expo project: ${createAppResponseObj.name}`);
     // Design the app
     this.logProgress('Writing the design diagram to the file');
@@ -190,6 +180,7 @@ export class MobileApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
+      // TODO: Try switching to a system message with coder role with design generated with architect role
       this.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.

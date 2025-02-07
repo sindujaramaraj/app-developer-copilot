@@ -4,9 +4,10 @@ import {
   StateManagement,
   UILibrary,
   Navigation,
-  DataFetching,
   Storage,
+  Authentication,
 } from '../builder/mobile/mobileTechStack';
+import { ENABLE_AUTHENTICATION } from '../builder/constants';
 
 export class TechStackWebviewProvider {
   public static viewType = 'techStack.webview';
@@ -104,6 +105,18 @@ export class TechStackWebviewProvider {
               .map((value) => `<option value="${value}">${value}</option>`)
               .join('')}
           </select>
+              
+          ${
+            ENABLE_AUTHENTICATION
+              ? `
+          <label>Authentication:</label>
+          <select id="authentication">
+            ${Object.values(Authentication)
+              .map((value) => `<option value="${value}">${value}</option>`)
+              .join('')}
+          </select>`
+              : ''
+          }
 
           <button id="techstack-button-submit">Done</button>
 
@@ -116,10 +129,12 @@ export class TechStackWebviewProvider {
             });
 
             function submit() {
+              const authentication = document.getElementById('authentication');
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
-                storage: document.getElementById('storage').value
+                storage: document.getElementById('storage').value,
+                authentication: authentication ? authentication.value : 'none',
               };
               vscode.postMessage({ type: 'submit', options });
             }
