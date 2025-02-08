@@ -7,6 +7,11 @@ import { readAppConfigFromFile } from './builder/utils/appconfigHelper';
 import { LanguageModelService } from './service/languageModel';
 import { StreamHandlerService } from './service/streamHandler';
 import { TelemetryService } from './service/telemetry/telemetry';
+import { TechStackWebviewProvider } from './webview/techStackWebview';
+import {
+  getDefaultStack,
+  TechStackOptions,
+} from './builder/mobile/mobileTechStack';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -24,7 +29,21 @@ export function activate(context: vscode.ExtensionContext) {
   // Register extension commands and participants
   registerChatParticipants(context);
   registerCommands(context);
+  //registerWebview(context);
 }
+
+// function registerWebview(context: vscode.ExtensionContext) {
+//   // Add to registerCommands function:
+
+//   const provider = new TechStackWebviewProvider(context.extensionUri);
+
+//   context.subscriptions.push(
+//     vscode.window.registerWebviewViewProvider(
+//       TechStackWebviewProvider.viewType,
+//       provider,
+//     ),
+//   );
+// }
 
 function registerCommands(context: vscode.ExtensionContext) {
   const telemetry = TelemetryService.getInstance(context);
@@ -37,18 +56,43 @@ function registerCommands(context: vscode.ExtensionContext) {
         prompt: 'What would you like to create?',
         placeHolder: 'A notes app',
       })
-      .then((userInput) => {
+      .then(async (userInput) => {
         if (!userInput) {
           vscode.window.showErrorMessage('Enter a valid prompt');
           return;
         }
+
         const startTime = Date.now();
         const modelService = new LanguageModelService();
         const streamService = new StreamHandlerService({
           useChatStream: false,
           outputChannel,
         });
-        const app = new MobileApp(modelService, streamService, userInput);
+        streamService.progress('Waiting for tech stack options input');
+        let tectStackOptions = await TechStackWebviewProvider.createOrShow();
+        if (!tectStackOptions) {
+          streamService.message(
+            'Using default tech stack options: ' +
+              JSON.stringify(getDefaultStack()),
+          );
+        } else {
+          streamService.message(
+            'Chosen tech stack options: ' + JSON.stringify(tectStackOptions),
+          );
+          // Merge with default stack options
+          tectStackOptions = {
+            ...getDefaultStack(),
+            ...tectStackOptions,
+          };
+        }
+
+        // Initialize the app builder
+        const app = new MobileApp(
+          modelService,
+          streamService,
+          userInput,
+          tectStackOptions,
+        );
         app
           .execute()
           .then(() => {
@@ -178,9 +222,32 @@ async function handleCreateMobileApp(
     useChatStream: true,
     chatStream: stream,
   });
+  // Get tech stack options
+  streamService.progress('Waiting for tech stack options input');
+  let techStackOptions = await TechStackWebviewProvider.createOrShow();
+  if (!techStackOptions) {
+    techStackOptions = getDefaultStack();
+    streamService.message(
+      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
+    );
+  } else {
+    streamService.message(
+      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+    );
+    // Merge with default stack options
+    techStackOptions = {
+      ...getDefaultStack(),
+      ...techStackOptions,
+    };
+  }
 
   try {
-    app = new MobileApp(modelService, streamService, request.prompt);
+    app = new MobileApp(
+      modelService,
+      streamService,
+      request.prompt,
+      techStackOptions,
+    );
     await app.execute();
     telemetry.trackAppCreation(
       {

@@ -6,6 +6,7 @@ import {
   ITelemetryEventCommonProperties,
   TelemetryEvent,
 } from './types';
+import { ENABLE_TELEMETRY } from '../../builder/constants';
 
 const APP_INSIGHTS_TEST_KEY = '1c73a331-30ac-45bc-8288-7e318d3c391c';
 const APP_INSIGHTS_TEST_CONNECTION_STRING =
@@ -17,6 +18,16 @@ export class TelemetryService {
 
   private constructor(context: vscode.ExtensionContext) {
     this.reporter = new TelemetryReporter(APP_INSIGHTS_TEST_CONNECTION_STRING);
+
+    if (!ENABLE_TELEMETRY) {
+      // Disable telemetry
+      this.reporter.sendTelemetryErrorEvent = () => {
+        console.log('Telemetry is disabled');
+      };
+      this.reporter.sendTelemetryEvent = () => {
+        console.log('Telemetry error log is disabled');
+      };
+    }
 
     // Register cleanup on extension deactivation
     context.subscriptions.push(this.reporter);

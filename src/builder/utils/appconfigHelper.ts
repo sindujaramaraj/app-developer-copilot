@@ -16,8 +16,9 @@ export interface AppConfig {
   initialPrompt: string;
   modelProvider: LLMProvider;
   languageModel: LLMCodeModel;
-  features?: string[];
-  components?: string;
+  features: string[];
+  components: Object;
+  tectStack: string;
   type: AppType;
   hasDatabase?: boolean;
   hasAuth?: boolean;

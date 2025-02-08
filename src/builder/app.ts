@@ -3,9 +3,13 @@ import {
   ZResponseBaseType,
   ZGenerateCodeResponseType,
   ZCodeComponentType,
+  ZGenerateCodeForComponentResponseType,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
+import { FileParser } from './utils/fileParser';
+import { APP_CONVERSATION_FILE } from './constants';
+import { TechStackOptions } from './mobile/mobileTechStack';
 
 export enum AppStage {
   None,
@@ -34,24 +38,27 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
  */
 
 export class App {
+  protected appName: string = '';
   protected languageModelService: LanguageModelService;
-
   protected streamService: StreamHandlerService;
-
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
+  private techStackOptions: TechStackOptions;
   private componentsCount: number = 0;
   private generatedFilesCount: number = 0;
+  private conversations: IModelMessage[] = [];
 
   constructor(
     languageModelService: LanguageModelService,
     streamService: StreamHandlerService,
     initialInput: string,
+    techStackOptions: TechStackOptions,
   ) {
     this.languageModelService = languageModelService;
     this.streamService = streamService;
     this.initialInput = initialInput;
+    this.techStackOptions = techStackOptions;
     this.stage = AppStage.None;
     this.isExecuting = false;
   }
@@ -120,17 +127,27 @@ export class App {
         stageOutput = currentOutput;
       }
       // Handle completion
-      this.isExecuting = false;
       this.streamService.message('App creation completed');
-      this.streamService.close();
     } catch (error: any) {
       console.error('Error executing app:', error);
       this.logMessage('Error creating app');
       error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
+      throw error;
+    } finally {
       this.isExecuting = false;
       this.streamService.close();
-      throw error;
+      // store conversations in a file
+      await FileParser.parseAndCreateFiles(
+        [
+          {
+            content: JSON.stringify(this.conversations, null, 2),
+            path: APP_CONVERSATION_FILE,
+          },
+        ],
+        this.getAppName(),
+        false,
+      );
     }
   }
 
@@ -176,8 +193,20 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
+  setAppName(appName: string) {
+    this.appName = appName;
+  }
+
+  getAppName(): string {
+    return this.appName;
+  }
+
   setStage(stage: AppStage) {
     this.stage = stage;
+  }
+
+  getTechStackOptions(): TechStackOptions {
+    return this.techStackOptions;
   }
 
   logProgress(message: string) {
@@ -186,6 +215,56 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  createUserMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createUserMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  createAssistantMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createAssistantMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  createSystemMessage(content: string): IModelMessage {
+    const message = this.languageModelService.createSystemMessage(content);
+    this.logConversation(message);
+    return message;
+  }
+
+  logConversation(message: IModelMessage) {
+    this.conversations.push(message);
+  }
+
+  async handleAssets(
+    codeGenerationResponseObj: ZGenerateCodeForComponentResponseType,
+    component: ZCodeComponentType,
+    appName: string,
+  ) {
+    if (
+      codeGenerationResponseObj.assets &&
+      codeGenerationResponseObj.assets.length > 0
+    ) {
+      console.info(`Component ${component.name} has assets`);
+      // Save assets
+      this.logProgress(`Saving assets for component: ${component.name}`);
+      const files = [];
+      for (const asset of codeGenerationResponseObj.assets) {
+        files.push({
+          path: asset.filePath,
+          content: asset.content,
+        });
+        this.logMessage(
+          `Component ${component.name} uses asset: ${asset.filePath}. We are not able to ensure asset generation right now. Please make sure to fix the asset before running the app.`,
+        );
+      }
+      await FileParser.parseAndCreateFiles(files, appName, true);
+      // Update generated files count
+      this.incrementGeneratedFilesCount();
+    }
   }
 
   sortComponentsByDependency(

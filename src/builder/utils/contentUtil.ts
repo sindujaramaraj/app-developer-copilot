@@ -80,3 +80,37 @@ export function convertStringToJSON(content: string): any {
     }
   }
 }
+
+export function processMediaFile(content: string): Uint8Array {
+  if (isBase64(content)) {
+    // Convert base64 string to binary
+    const base64Image = content.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Image, 'base64');
+    const uint8Array = new Uint8Array(buffer);
+    return uint8Array;
+  }
+
+  throw new Error('Asset is not a valid base64 string');
+}
+
+export function isBase64(content: string): boolean {
+  // Base64 pattern: only valid base64 characters
+  const base64Pattern =
+    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+  // Data URL pattern
+  const dataUrlPattern = /^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/;
+
+  try {
+    // Check if it's a data URL
+    if (dataUrlPattern.test(content)) {
+      const base64Data = content.split(',')[1];
+      return base64Pattern.test(base64Data);
+    }
+
+    // Check if it's raw base64
+    return base64Pattern.test(content);
+  } catch (error) {
+    return false;
+  }
+}

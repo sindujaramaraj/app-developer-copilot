@@ -12,21 +12,17 @@ import {
   ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
 } from '../types';
-import {
-  createExpoApp,
-  installNPMDependencies,
-  resetExpoProject,
-} from '../terminalHelper';
+import { createExpoApp, installNPMDependencies } from '../terminalHelper';
 import { FileParser } from '../utils/fileParser';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
+import { getLibsToInstallForStack, getPromptForStack } from './mobileTechStack';
 
-const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo.
-You create apps that uses local storage and doesn't require authentication.
+const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
 You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Use expo-router for navigation.
-Do not respond until you receive the request. User will first request design and then code generation.
+Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
+User will first request app design and then code generation.
 If the user asks a non-programming question, politely decline to respond.`;
 
 /**
@@ -69,14 +65,13 @@ export class MobileApp extends App {
 
     const initializeAppPrompt = new InitializeAppPrompt({
       userMessage: userMessage,
+      techStack: getPromptForStack(this.getTechStackOptions()),
     });
 
     const initializeAppMessages = [
-      this.languageModelService.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
+      this.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
       // Add user's message
-      this.languageModelService.createUserMessage(
-        initializeAppPrompt.getInstructionsPrompt(),
-      ),
+      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
     ];
 
     // send the request
@@ -91,7 +86,7 @@ export class MobileApp extends App {
           },
         );
       initializeAppMessages.push(
-        this.languageModelService.createAssistantMessage(createAppResponse),
+        this.createAssistantMessage(createAppResponse),
       );
 
       this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
@@ -102,6 +97,8 @@ export class MobileApp extends App {
         .toLowerCase();
       // fix app name
       createAppResponseObj.name = formattedAppName;
+      // set app name
+      this.setAppName(formattedAppName);
 
       await this.postInitialize(createAppResponseObj);
 
@@ -110,8 +107,9 @@ export class MobileApp extends App {
       await createAppConfig({
         name: createAppResponseObj.name,
         initialPrompt: userMessage,
-        components: JSON.stringify(createAppResponseObj.components),
+        components: createAppResponseObj.components,
         features: createAppResponseObj.features,
+        tectStack: getPromptForStack(this.getTechStackOptions()),
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -130,8 +128,9 @@ export class MobileApp extends App {
   async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
     // Create expo project
     await createExpoApp(createAppResponseObj.name);
-    //reset expo project
-    await resetExpoProject(createAppResponseObj.name);
+    // TODO: Commenting this out for now because behavior is not clear
+    // Reset expo project
+    // await resetExpoProject(createAppResponseObj.name);
     this.logMessage(`Created expo project: ${createAppResponseObj.name}`);
     // Design the app
     this.logProgress('Writing the design diagram to the file');
@@ -172,10 +171,14 @@ export class MobileApp extends App {
     > = new Map();
     let error = false;
     const installedDependencies: string[] = [];
+    // Install default dependencies for the tech stack
+    const libsForStack = getLibsToInstallForStack(this.getTechStackOptions());
+    await installNPMDependencies(appName, libsForStack, installedDependencies);
 
     const codeGenerationMessages = [
       ...previousMessages,
-      this.languageModelService.createUserMessage(
+      // TODO: Try switching to a system message with coder role with design generated with architect role
+      this.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
         Write the actual code that will be used in production.
@@ -205,14 +208,11 @@ export class MobileApp extends App {
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
-        techStack:
-          'For navigation, use expo-router. For theming, use react-native-paper.  Use default theme for the app. For storage, use AsyncStorage.',
+        techStack: getPromptForStack(this.getTechStackOptions()),
       });
       const messages = [
         ...codeGenerationMessages,
-        this.languageModelService.createUserMessage(
-          codeGenerationPrompt.getInstructionsPrompt(),
-        ),
+        this.createUserMessage(codeGenerationPrompt.getInstructionsPrompt()),
       ];
 
       let codeGenerationResponse, codeGenerationResponseObj;
@@ -236,32 +236,6 @@ export class MobileApp extends App {
         //   vscode.LanguageModelChatMessage.Assistant(codeGenerationResponse),
         // );
         console.info(`Received code for component ${component.name}`);
-        // Handle assets
-        if (
-          codeGenerationResponseObj.assets &&
-          codeGenerationResponseObj.assets.length > 0
-        ) {
-          console.info(`Component ${component.name} has assets`);
-          // Save assets
-          this.logProgress('Saving assets');
-          const files = [];
-          for (const asset of codeGenerationResponseObj.assets) {
-            files.push({
-              path: asset.filePath,
-              content: asset.content,
-            });
-          }
-          await FileParser.parseAndCreateFiles(files, appName);
-          // Update generated files count
-          this.incrementGeneratedFilesCount();
-          this.logMessage(
-            'Assets saved successfully for component: ' + component.name,
-          );
-        }
-        console.info(
-          `Component path: ${component.path} \n Received path: ${codeGenerationResponseObj.filePath}`,
-        );
-        //console.info(codeGenerationResponse);
       } catch (error) {
         console.error(
           'MobileBuilder: Error parsing code generation response for component',
@@ -287,12 +261,29 @@ export class MobileApp extends App {
         );
       }
 
+      // Handle assets
+      this.handleAssets(codeGenerationResponseObj, component, appName);
+
       const files = [
         {
           path: codeGenerationResponseObj.filePath,
           content: codeGenerationResponseObj.content,
         },
       ];
+      // Check for updated dependencies
+      if (
+        codeGenerationResponseObj.updatedDependencies &&
+        codeGenerationResponseObj.updatedDependencies.length > 0
+      ) {
+        console.warn('*** Updated dependencies found ***');
+        for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
+          files.push({
+            path: updatedDependency.filePath,
+            content: updatedDependency.content,
+          });
+        }
+      }
+      // Create files
       await FileParser.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies

@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for building mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "preview": false,
   "repository": {
     "type": "git",
@@ -129,6 +129,15 @@
         "title": "App Developer: Create a mobile app"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "techStack.webview",
+          "name": "Tech Stack Configuration"
+        }
+      ]
+    },
     "chatParticipants": [
       {
         "id": "app-developer.mobile",

@@ -47,6 +47,7 @@ export class StreamHandlerService {
   message(text: string): void {
     if (this.useChatStream && this.chatStream) {
       this.chatStream.markdown(text);
+      this.chatStream.markdown('\n');
     } else if (this.statusBarItem) {
       this.statusBarItem.text = text;
       this.outputChannel?.show();

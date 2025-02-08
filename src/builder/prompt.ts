@@ -47,17 +47,16 @@ export class InitializeAppPrompt extends PromptBase<
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-    First think through the problem and design the mobile app using react-native and expo. Use expo-router for navigation.
+    Create app for: ${input.userMessage}.
+    First think through the problem and design the mobile app. Use expo-router for navigation.
     Assume the app is initialized using 'npx create-expo-app' and uses expo-router with typescript template.
-    You don't have to add authentication to the app.
-    Use default theme for the app and do not configure or create any custom theme.
+    Tech stack: ${input.techStack}
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
     Make sure there are no circular dependencies between components.
     Make sure the app uses expo-router for navigation and file path of the components are consistent.
     Make sure that app/index.tsx is the entry point of the app.
-    
-    Create app for: ${input.userMessage}. Do not create too many componnets. Keep it simple and functional.`;
+    Do not create too many components. Use default theme for UI if available. Keep it simple and functional.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
@@ -67,14 +66,18 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
   ZGenerateCodeForComponentResponseType
 > {
   constructor(input: IGenerateCodeForComponentInput) {
-    const instructions = `Request: Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
-    Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image, sound etc.. include the media as assets in the code.
-    This component is part of an react native expo app. Design of the app: ${input.design}.
+    const instructions = `Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
+    If this is the entry file, make sure to initialize the UI library correctly.
     Tech stack: ${input.techStack}.
+    This component is part of an react native app. Design of the app as a mermaid diagram: ${input.design}.
+    Generate code in typescript and make sure the code is properly typed, functional and error free.
+    Do not create placeholder code. Write the actual code that will be used in production.
+    If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
+    If the code uses any external libraries, include the libraries in the response.
     Reuse code from dependencies if possible.
-    Code for dependent components: ${getPromptForDependentCode(input.dependencies)}.
-    Make sure to import the dependencies correctly based on path when using code from dependencies.`;
+    When using code from dependencies, make sure to import the dependencies correctly based on path.
+    Code for dependent components:
+    ${getPromptForDependentCode(input.dependencies)}.`;
     super(input, instructions, ZGenerateCodeForComponentResponseSchema);
   }
 }
@@ -85,10 +88,10 @@ function getPromptForDependentCode(
   return dependencies
     .map(
       (dependency) =>
-        `Code for ${dependency.componentName} is located at path ${dependency.filePath}
-      <!------------------------------CODE START------------------------------------------->
-      ${dependency.content}
-      <!------------------------------CODE END------------------------------------------->`,
+        `================================
+          File: ${dependency.filePath}
+        ================================
+        ${dependency.content}`,
     )
     .join('\n');
 }
