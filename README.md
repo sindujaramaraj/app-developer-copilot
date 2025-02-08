@@ -12,7 +12,7 @@ The extension is developed to act like a real world application developer. Given
 - Generate application architecture and component designs
 - Automatically generate TypeScript code for components
 - Handle project setup and dependency management
-- Uses expo-router for navigation and option to choose UI, storage and other libraries
+- Uses expo-router for navigation and option to choose UI, storage and other libraries. ![Refer screenshot](media/screenshots/techstack.png)
 
 ## Requirements
 
