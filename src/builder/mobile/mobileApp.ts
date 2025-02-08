@@ -12,11 +12,7 @@ import {
   ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
 } from '../types';
-import {
-  createExpoApp,
-  installNPMDependencies,
-  resetExpoProject,
-} from '../terminalHelper';
+import { createExpoApp, installNPMDependencies } from '../terminalHelper';
 import { FileParser } from '../utils/fileParser';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
@@ -132,6 +128,7 @@ export class MobileApp extends App {
   async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
     // Create expo project
     await createExpoApp(createAppResponseObj.name);
+    // TODO: Commenting this out for now because behavior is not clear
     // Reset expo project
     // await resetExpoProject(createAppResponseObj.name);
     this.logMessage(`Created expo project: ${createAppResponseObj.name}`);

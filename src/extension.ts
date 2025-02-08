@@ -69,16 +69,30 @@ function registerCommands(context: vscode.ExtensionContext) {
           outputChannel,
         });
         streamService.progress('Waiting for tech stack options input');
-        const tectStackOptions = await TechStackWebviewProvider.createOrShow();
-        streamService.progress('Tech stack options received');
-        streamService.message(
-          'Chosen tech stack options: ' + JSON.stringify(tectStackOptions),
-        );
+        let tectStackOptions = await TechStackWebviewProvider.createOrShow();
+        if (!tectStackOptions) {
+          streamService.message(
+            'Using default tech stack options: ' +
+              JSON.stringify(getDefaultStack()),
+          );
+        } else {
+          streamService.message(
+            'Chosen tech stack options: ' + JSON.stringify(tectStackOptions),
+          );
+          // Merge with default stack options
+          tectStackOptions = {
+            ...getDefaultStack(),
+            ...tectStackOptions,
+          };
+        }
+
         // Initialize the app builder
-        const app = new MobileApp(modelService, streamService, userInput, {
-          ...getDefaultStack(),
-          ...tectStackOptions,
-        });
+        const app = new MobileApp(
+          modelService,
+          streamService,
+          userInput,
+          tectStackOptions,
+        );
         app
           .execute()
           .then(() => {
@@ -210,11 +224,22 @@ async function handleCreateMobileApp(
   });
   // Get tech stack options
   streamService.progress('Waiting for tech stack options input');
-  const techStackOptions = await TechStackWebviewProvider.createOrShow();
-  streamService.progress('Tech stack options received');
-  streamService.message(
-    'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
-  );
+  let techStackOptions = await TechStackWebviewProvider.createOrShow();
+  if (!techStackOptions) {
+    techStackOptions = getDefaultStack();
+    streamService.message(
+      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
+    );
+  } else {
+    streamService.message(
+      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+    );
+    // Merge with default stack options
+    techStackOptions = {
+      ...getDefaultStack(),
+      ...techStackOptions,
+    };
+  }
 
   try {
     app = new MobileApp(
