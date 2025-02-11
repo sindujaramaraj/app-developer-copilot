@@ -1,6 +1,12 @@
 # Change Log
 
-## [1.0.5] - 2025-02-07
+## [1.0.5] - 2025-02-11
+
+### Changed
+
+- Cleanup webview implementation
+
+## [1.0.4] - 2025-02-07
 
 ### Added
 
