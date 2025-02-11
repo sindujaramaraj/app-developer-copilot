@@ -6,6 +6,7 @@ import {
   Navigation,
   Storage,
   Authentication,
+  getDefaultStack,
 } from '../builder/mobile/mobileTechStack';
 import { ENABLE_AUTHENTICATION } from '../builder/constants';
 
@@ -14,8 +15,19 @@ export class TechStackWebviewProvider {
   private _view?: vscode.WebviewView;
   private static _panel: vscode.WebviewPanel;
 
-  public dispose() {
-    TechStackWebviewProvider._panel?.dispose();
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken,
+  ) {
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+
+    webviewView.webview.html = TechStackWebviewProvider._getHtmlForWebview();
   }
 
   public static async createOrShow(): Promise<TechStackOptions> {
@@ -54,6 +66,7 @@ export class TechStackWebviewProvider {
   }
 
   private static _getHtmlForWebview() {
+    const defaultOptions: TechStackOptions = getDefaultStack();
     return `
       <!DOCTYPE html>
       <html>
@@ -70,28 +83,40 @@ export class TechStackWebviewProvider {
           <label>State Management:</label>
           <select id="stateManagement">
             ${Object.values(StateManagement)
-              .map((value) => `<option value="${value}">${value}</option>`)
+              .map(
+                (value) =>
+                  `<option value="${value}" ${defaultOptions.stateManagement === value ? 'selected' : ''} >${value}</option>`,
+              )
               .join('')}
           </select>
 
           <label>UI Library:</label>
           <select id="uiLibrary">
             ${Object.values(UILibrary)
-              .map((value) => `<option value="${value}">${value}</option>`)
+              .map(
+                (value) =>
+                  `<option value="${value}" ${defaultOptions.uiLibrary === value ? 'selected' : ''}>${value}</option>`,
+              )
               .join('')}
           </select>
 
           <!--<label>Navigation:</label>
           <select id="navigation">
             ${Object.values(Navigation)
-              .map((value) => `<option value="${value}">${value}</option>`)
+              .map(
+                (value) =>
+                  `<option value="${value}" ${defaultOptions.navigation === value ? 'selected' : ''}>${value}</option>`,
+              )
               .join('')}
           </select>-->
 
           <label>Storage:</label>
           <select id="storage">
             ${Object.values(Storage)
-              .map((value) => `<option value="${value}">${value}</option>`)
+              .map(
+                (value) =>
+                  `<option value="${value}" ${defaultOptions.storage === value ? 'selected' : ''}>${value}</option>`,
+              )
               .join('')}
           </select>
               
@@ -101,7 +126,10 @@ export class TechStackWebviewProvider {
           <label>Authentication:</label>
           <select id="authentication">
             ${Object.values(Authentication)
-              .map((value) => `<option value="${value}">${value}</option>`)
+              .map(
+                (value) =>
+                  `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
+              )
               .join('')}
           </select>`
               : ''

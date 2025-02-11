@@ -26,21 +26,19 @@ export function activate(context: vscode.ExtensionContext) {
   // Register extension commands and participants
   registerChatParticipants(context);
   registerCommands(context);
-  //registerWebview(context);
+  registerWebview(context);
 }
 
-// function registerWebview(context: vscode.ExtensionContext) {
-//   // Add to registerCommands function:
+function registerWebview(context: vscode.ExtensionContext) {
+  const provider = new TechStackWebviewProvider(context.extensionUri);
 
-//   const provider = new TechStackWebviewProvider(context.extensionUri);
-
-//   context.subscriptions.push(
-//     vscode.window.registerWebviewViewProvider(
-//       TechStackWebviewProvider.viewType,
-//       provider,
-//     ),
-//   );
-// }
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      TechStackWebviewProvider.viewType,
+      provider,
+    ),
+  );
+}
 
 function registerCommands(context: vscode.ExtensionContext) {
   const telemetry = TelemetryService.getInstance(context);

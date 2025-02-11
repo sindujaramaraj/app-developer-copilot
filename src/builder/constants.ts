@@ -8,5 +8,5 @@ export const CLASS_DIAGRAM_FILE = 'classDiagram.md';
 export const PROJECT_TREE_DIAGRAM_FILE = 'projectTreeDiagram.md';
 export const MAX_RETRY_COUNT = 1;
 
-export const ENABLE_TELEMETRY = false;
+export const ENABLE_TELEMETRY = true;
 export const ENABLE_AUTHENTICATION = false;
