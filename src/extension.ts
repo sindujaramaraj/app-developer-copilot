@@ -8,10 +8,7 @@ import { LanguageModelService } from './service/languageModel';
 import { StreamHandlerService } from './service/streamHandler';
 import { TelemetryService } from './service/telemetry/telemetry';
 import { TechStackWebviewProvider } from './webview/techStackWebview';
-import {
-  getDefaultStack,
-  TechStackOptions,
-} from './builder/mobile/mobileTechStack';
+import { getDefaultStack } from './builder/mobile/mobileTechStack';
 
 let outputChannel: vscode.OutputChannel;
 

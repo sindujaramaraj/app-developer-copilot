@@ -13,45 +13,32 @@ export class TechStackWebviewProvider {
   public static viewType = 'techStack.webview';
   private _view?: vscode.WebviewView;
   private static _panel: vscode.WebviewPanel;
-  private _disposables: vscode.Disposable[] = [];
-
-  constructor(private readonly _extensionUri: vscode.Uri) {}
 
   public dispose() {
-    TechStackWebviewProvider._panel.dispose();
-
-    while (this._disposables.length) {
-      const x = this._disposables.pop();
-      if (x) {
-        x.dispose();
-      }
-    }
+    TechStackWebviewProvider._panel?.dispose();
   }
 
-  public static async createOrShow() {
-    const column = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
+  public static async createOrShow(): Promise<TechStackOptions> {
+    TechStackWebviewProvider._panel?.dispose();
 
-    // Otherwise, create a new panel.
     const panel = vscode.window.createWebviewPanel(
       TechStackWebviewProvider.viewType,
       'Choose Tech Stack',
-      column || vscode.ViewColumn.One,
+      vscode.ViewColumn.One,
       {
         enableScripts: true,
       },
     );
     let result: TechStackOptions;
 
-    const onSubmitWrapper = async (options: TechStackOptions) => {
+    const onSubmitCallback = async (options: TechStackOptions) => {
       result = options;
       panel.dispose();
     };
 
     TechStackWebviewProvider.setWebviewMessageListener(
       panel.webview,
-      onSubmitWrapper,
+      onSubmitCallback,
     );
 
     panel.webview.html = TechStackWebviewProvider._getHtmlForWebview();
@@ -60,6 +47,8 @@ export class TechStackWebviewProvider {
         resolve(result);
       });
     });
+
+    TechStackWebviewProvider._panel = panel;
 
     return promise;
   }

@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.0.5] - 2025-02-07
+
+### Added
+
+- Updated README with techstack image
+
 ## [1.0.3] - 2025-02-07
 
 ### Added
