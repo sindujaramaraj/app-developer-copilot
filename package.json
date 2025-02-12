@@ -1,7 +1,7 @@
 {
   "name": "app-developer-copilot",
   "displayName": "App Developer Copilot",
-  "description": "App developer agent for building mobile apps",
+  "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
   "version": "1.0.5",
   "preview": false,
@@ -33,6 +33,8 @@
     "developer",
     "copilot",
     "expo",
+    "react",
+    "web",
     "react-native",
     "mobile",
     "Claude",
@@ -127,6 +129,10 @@
       {
         "command": "app-developer.mobile.create",
         "title": "App Developer: Create a mobile app"
+      },
+      {
+        "command": "app-developer.web.create",
+        "title": "App Developer: Create a web app"
       }
     ],
     "views": {
@@ -144,6 +150,27 @@
         "fullName": "Mobile App Developer",
         "name": "app-developer-mobile",
         "description": "I will help you build mobile apps",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "create",
+            "description": "What would you like to create?"
+          },
+          {
+            "name": "run",
+            "description": "Run the app"
+          },
+          {
+            "name": "help",
+            "description": "Get help with using the extension"
+          }
+        ]
+      },
+      {
+        "id": "app-developer.web",
+        "fullName": "Web App Developer",
+        "name": "app-developer-web",
+        "description": "I will help you build web apps",
         "isSticky": true,
         "commands": [
           {

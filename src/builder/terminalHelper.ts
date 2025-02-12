@@ -39,7 +39,7 @@ export async function runExpoProject(folderName: string): Promise<void> {
   return runCommandWithPromise(`npm run start`, folderName);
 }
 
-function runCommandWithPromise(
+export function runCommandWithPromise(
   command: string,
   folder?: string,
   useNewTerminal = false,

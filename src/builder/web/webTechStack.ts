@@ -1,9 +1,9 @@
+import { IGenericStack } from '../types';
+
 export enum WebFramework {
   NEXT = 'next',
-  REMIX = 'remix',
-  GATSBY = 'gatsby',
-  ASTRO = 'astro',
-  VITE = 'vite',
+  // REMIX = 'remix',
+  // GATSBY = 'gatsby',
 }
 
 export enum StateManagement {
@@ -54,7 +54,7 @@ export enum BuildTools {
   SWC = '@swc/core',
 }
 
-export interface WebTechStackOptions {
+export interface WebTechStackOptions extends IGenericStack {
   framework: WebFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
@@ -72,4 +72,38 @@ export const DEFAULT_WEB_STACK: WebTechStackOptions = {
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
+};
+
+export const getDefaultWebTechStack = (): WebTechStackOptions => {
+  return DEFAULT_WEB_STACK;
+};
+
+export const getWebAppCreationCommand = (
+  stack: WebTechStackOptions,
+  appName: string,
+): string => {
+  switch (stack.framework) {
+    case WebFramework.NEXT:
+      return `npx create-next-app@latest ${appName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`;
+  }
+};
+
+export const getLibsToInstallForStack = (
+  _stack: WebTechStackOptions,
+): string[] => {
+  const libs = [];
+  // TODO: Add libraries
+  libs.push('react', 'react-dom');
+  return libs;
+};
+
+export const getPromptForStack = (stack: WebTechStackOptions): string => {
+  let prompt = `Create a web app using ${stack.framework} with the following tech stack:\
+  State Management: ${stack.stateManagement}\
+  UI Library: ${stack.uiLibrary}\
+  Data Fetching: ${stack.dataFetching}\
+  Styling: ${stack.styling}\
+  Build Tool: ${stack.buildTool}
+  `;
+  return prompt;
 };

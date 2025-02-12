@@ -186,3 +186,10 @@ export const ZGenerateCodeResponseSchema = ZResponseBaseSchema.extend({
 export type ZGenerateCodeResponseType = z.infer<
   typeof ZGenerateCodeResponseSchema
 >;
+
+export interface IGenericStack {
+  stateManagement: string;
+  uiLibrary: string;
+  dataFetching?: string;
+  testing: string[];
+}

@@ -41,7 +41,7 @@ export class PromptBase<TInput, TOutput> {
   }
 }
 
-export class InitializeAppPrompt extends PromptBase<
+export class InitializeMobileAppPrompt extends PromptBase<
   IInitializeAppInput,
   ZInitializeAppResponseType
 > {
@@ -61,7 +61,26 @@ export class InitializeAppPrompt extends PromptBase<
   }
 }
 
-export class GenerateCodeForComponentPrompt extends PromptBase<
+export class InitializeWebAppPrompt extends PromptBase<
+  IInitializeAppInput,
+  ZInitializeAppResponseType
+> {
+  constructor(input: IInitializeAppInput) {
+    const instructions = `
+    Create app for: ${input.userMessage}.
+    First think through the problem and design the web app.
+    Tech stack: ${input.techStack}
+    First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
+    Then to implement the app, think through and create components for the app.
+    Make sure there are no circular dependencies between components.
+    Make sure the app uses the correct framework and the file path of the components are consistent.
+    Make sure that index.tsx is the entry point of the app.
+    Do not create too many components. Use default theme for UI if available. Keep it simple and functional.`;
+    super(input, instructions, ZInitializeAppResponseSchema);
+  }
+}
+
+export class GenerateCodeForMobileComponentPrompt extends PromptBase<
   IGenerateCodeForComponentInput,
   ZGenerateCodeForComponentResponseType
 > {
@@ -70,6 +89,27 @@ export class GenerateCodeForComponentPrompt extends PromptBase<
     If this is the entry file, make sure to initialize the UI library correctly.
     Tech stack: ${input.techStack}.
     This component is part of an react native app. Design of the app as a mermaid diagram: ${input.design}.
+    Generate code in typescript and make sure the code is properly typed, functional and error free.
+    Do not create placeholder code. Write the actual code that will be used in production.
+    If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
+    If the code uses any external libraries, include the libraries in the response.
+    Reuse code from dependencies if possible.
+    When using code from dependencies, make sure to import the dependencies correctly based on path.
+    Code for dependent components:
+    ${getPromptForDependentCode(input.dependencies)}.`;
+    super(input, instructions, ZGenerateCodeForComponentResponseSchema);
+  }
+}
+
+export class GenerateCodeForWebComponentPrompt extends PromptBase<
+  IGenerateCodeForComponentInput,
+  ZGenerateCodeForComponentResponseType
+> {
+  constructor(input: IGenerateCodeForComponentInput) {
+    const instructions = `Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
+    If this is the entry file, make sure to initialize the UI library correctly.
+    Tech stack: ${input.techStack}.
+    This component is part of an web app. Design of the app as a mermaid diagram: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.

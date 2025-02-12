@@ -40,6 +40,7 @@ export interface ITelemetryAppCreationEventProperties
   extends ITelemetryEventCommonProperties {
   input: string;
   source: 'chat' | 'command';
+  appType: 'mobile' | 'web';
   success: boolean;
   error?: string;
   errorMessage?: string;
