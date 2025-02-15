@@ -3,6 +3,7 @@ import { TelemetryService } from './service/telemetry/telemetry';
 import { registerChatParticipants } from './register/chatParticipants';
 import { registerCommands } from './register/commands';
 import { registerWebview } from './register/webviews';
+import { registerTools } from './register/tools';
 
 export function activate(context: vscode.ExtensionContext) {
   // Initialize telemetry
@@ -12,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register extension commands and participants
   registerChatParticipants(context);
+  registerTools(context);
   registerCommands(context);
   registerWebview(context);
 }

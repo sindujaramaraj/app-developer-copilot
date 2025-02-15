@@ -53,7 +53,12 @@ export function runCommandWithPromise(
       terminal.sendText(`cd ${folder}`);
     }
   }
-  terminal.sendText(command);
+  const fixedCommand = fixCommandForTerminal(command);
+  if (!fixedCommand) {
+    console.log('Skip running command:', command);
+    return Promise.resolve();
+  }
+  terminal.sendText(fixedCommand);
   return new Promise((resolve) => {
     const disposable = vscode.window.onDidEndTerminalShellExecution((e) => {
       if (
@@ -67,4 +72,12 @@ export function runCommandWithPromise(
       }
     });
   });
+}
+
+function fixCommandForTerminal(command: string): string {
+  if (command.startsWith('npx shadcn-ui')) {
+    command = command.replace('npx shadcn-ui', 'npx shadcn');
+    console.log('Fixed shadcn command for terminal:', command);
+  }
+  return command;
 }

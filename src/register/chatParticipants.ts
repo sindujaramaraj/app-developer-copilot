@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { APP_CONFIG_FILE, APP_DISPLAY_NAME } from '../builder/constants';
+import { APP_CONFIG_FILE } from '../builder/constants';
 import { TelemetryService } from '../service/telemetry/telemetry';
 import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
 import { runExpoProject } from '../builder/terminalHelper';

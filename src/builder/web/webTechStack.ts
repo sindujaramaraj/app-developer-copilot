@@ -78,14 +78,25 @@ export const getDefaultWebTechStack = (): WebTechStackOptions => {
   return DEFAULT_WEB_STACK;
 };
 
-export const getWebAppCreationCommand = (
+export const getWebAppCreationCommands = (
   stack: WebTechStackOptions,
   appName: string,
-): string => {
+): string[] => {
+  const commands = [];
   switch (stack.framework) {
     case WebFramework.NEXT:
-      return `npx create-next-app@latest ${appName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`;
+      commands.push(
+        `npx create-next-app@latest ${appName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`,
+      );
+      break;
   }
+  switch (stack.uiLibrary) {
+    case UILibrary.SHADCN:
+      commands.push(`cd ${appName}`);
+      commands.push('npx shadcn@latest init --yes -d');
+      break;
+  }
+  return commands;
 };
 
 export const getLibsToInstallForStack = (
@@ -93,17 +104,32 @@ export const getLibsToInstallForStack = (
 ): string[] => {
   const libs = [];
   // TODO: Add libraries
-  libs.push('react', 'react-dom');
+  // switch (_stack.uiLibrary) {
+  //   case UILibrary.MATERIAL_UI:
+  //     libs.push('@mui/material', '@mui/icons-material');
+  //     break;
+  //   case UILibrary.CHAKRA:
+  //     libs.push('@chakra-ui/react', '@chakra-ui/icons');
+  //     break;
+  //   case UILibrary.TAILWIND:
+  //     libs.push('tailwindcss');
+  //     break;
+  //   case UILibrary.SHADCN:
+  //     libs.push('shadcn-ui');
+  //     break;
+  //   case UILibrary.RADIX:
+  //     libs.push('@radix-ui/react');
+  //     break;
+  // }
+  libs.push('react');
   return libs;
 };
 
 export const getPromptForStack = (stack: WebTechStackOptions): string => {
-  let prompt = `Create a web app using ${stack.framework} with the following tech stack:\
-  State Management: ${stack.stateManagement}\
-  UI Library: ${stack.uiLibrary}\
-  Data Fetching: ${stack.dataFetching}\
-  Styling: ${stack.styling}\
-  Build Tool: ${stack.buildTool}
+  let prompt = `Use ${stack.framework} for the web app framework,
+  ${stack.uiLibrary} for UI library,\
+  ${stack.styling} for styling,\
+  ${stack.buildTool} for build tool.
   `;
   return prompt;
 };

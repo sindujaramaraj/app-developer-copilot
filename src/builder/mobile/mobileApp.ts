@@ -278,18 +278,18 @@ export class MobileApp extends App {
         },
       ];
       // Check for updated dependencies
-      if (
-        codeGenerationResponseObj.updatedDependencies &&
-        codeGenerationResponseObj.updatedDependencies.length > 0
-      ) {
-        console.warn('*** Updated dependencies found ***');
-        for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
-          files.push({
-            path: updatedDependency.filePath,
-            content: updatedDependency.content,
-          });
-        }
-      }
+      // if (
+      //   codeGenerationResponseObj.updatedDependencies &&
+      //   codeGenerationResponseObj.updatedDependencies.length > 0
+      // ) {
+      //   console.warn('*** Updated dependencies found ***');
+      //   for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
+      //     files.push({
+      //       path: updatedDependency.filePath,
+      //       content: updatedDependency.content,
+      //     });
+      //   }
+      // }
       // Create files
       await FileParser.parseAndCreateFiles(files, appName);
 

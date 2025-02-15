@@ -9,6 +9,7 @@ import {
   ZGenerateCodeForComponentResponseType,
   IGenerateCodeForComponentResponse,
 } from './types';
+import { getWebAppCreationCommands } from './web/webTechStack';
 
 export class PromptBase<TInput, TOutput> {
   protected input: TInput;
@@ -49,7 +50,7 @@ export class InitializeMobileAppPrompt extends PromptBase<
     const instructions = `
     Create app for: ${input.userMessage}.
     First think through the problem and design the mobile app. Use expo-router for navigation.
-    Assume the app is initialized using 'npx create-expo-app' and uses expo-router with typescript template.
+    The app will be initialized using 'npx create-expo-app' and uses expo-router with typescript template.
     Tech stack: ${input.techStack}
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
@@ -69,13 +70,15 @@ export class InitializeWebAppPrompt extends PromptBase<
     const instructions = `
     Create app for: ${input.userMessage}.
     First think through the problem and design the web app.
-    Tech stack: ${input.techStack}
+    The webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
+    Tech stack: ${input.techStack}.
     First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
     Then to implement the app, think through and create components for the app.
     Make sure there are no circular dependencies between components.
     Make sure the app uses the correct framework and the file path of the components are consistent.
-    Make sure that index.tsx is the entry point of the app.
-    Do not create too many components. Use default theme for UI if available. Keep it simple and functional.`;
+    Use default theme provider from the ui library if available and dont create a theme provider component unless necessary.
+    Do not create too many components. Keep it simple and functional.
+    Include necessary commands in the response to create app and install dependencies. Commands must run without user intervention.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
@@ -114,7 +117,6 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
     If the code uses any external libraries, include the libraries in the response.
-    Reuse code from dependencies if possible.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
     Code for dependent components:
     ${getPromptForDependentCode(input.dependencies)}.`;
@@ -125,6 +127,7 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
 function getPromptForDependentCode(
   dependencies: IGenerateCodeForComponentResponse[],
 ): string {
+  // TODO:  Should we include the code for configuration files?
   return dependencies
     .map(
       (dependency) =>

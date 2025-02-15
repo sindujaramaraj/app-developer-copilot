@@ -187,6 +187,29 @@
           }
         ]
       }
+    ],
+    "languageModelTools": [
+      {
+        "name": "app_developer_runInTerminal",
+        "tags": [
+          "terminal",
+          "chat-tools-sample"
+        ],
+        "displayName": "Run in Terminal",
+        "modelDescription": "Run a command in a terminal and return the output",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "The command to run"
+            }
+          },
+          "required": [
+            "command"
+          ]
+        }
+      }
     ]
   },
   "scripts": {

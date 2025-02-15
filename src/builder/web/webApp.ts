@@ -26,7 +26,7 @@ import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
   getPromptForStack,
-  getWebAppCreationCommand,
+  getWebAppCreationCommands,
   WebTechStackOptions,
 } from './webTechStack';
 
@@ -138,11 +138,54 @@ export class WebApp extends App {
 
   async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
     // Create web app
-    const createWebAppCommand = getWebAppCreationCommand(
+    this.logProgress('Running commands to create project');
+    const createWebAppCommands = getWebAppCreationCommands(
       this.getTechStackOptions(),
       createAppResponseObj.name,
     );
-    await runCommandWithPromise(createWebAppCommand, undefined, true);
+    // Run commands to create web app
+    let useNewTerminal = true;
+    for (const createWebAppCommand of createWebAppCommands) {
+      this.logProgress('Running command that might need user input');
+      await runCommandWithPromise(
+        createWebAppCommand,
+        undefined,
+        useNewTerminal,
+      );
+      useNewTerminal = false;
+    }
+    console.log(
+      'initialization commands',
+      createAppResponseObj.commands?.length,
+    );
+    this.logProgress('Running initialization commands');
+    const initializationCommands = createAppResponseObj.commands;
+    if (initializationCommands && initializationCommands.length > 0) {
+      console.log('Running initialization commands');
+      let useNewTerminal = true;
+      for (const command of initializationCommands) {
+        if (command.startsWith('npx create-next-app')) {
+          // Project is already initialized
+          console.log('Skipping create next app command', command);
+          continue;
+        }
+        if (
+          command.startsWith('npx shadcn@latest init') ||
+          command.startsWith('npx shadcn-ui@latest init')
+        ) {
+          // Porject is already initialized
+          console.log('Skipping initializing shadcn command', command);
+          continue;
+        }
+        console.log('Running command', command);
+        await runCommandWithPromise(
+          command,
+          createAppResponseObj.name,
+          useNewTerminal,
+        );
+        useNewTerminal = false;
+      }
+    }
     // TODO: Commenting this out for now because behavior is not clear
     // Reset expo project
     // await resetExpoProject(createAppResponseObj.name);
@@ -288,18 +331,18 @@ export class WebApp extends App {
         },
       ];
       // Check for updated dependencies
-      if (
-        codeGenerationResponseObj.updatedDependencies &&
-        codeGenerationResponseObj.updatedDependencies.length > 0
-      ) {
-        console.warn('*** Updated dependencies found ***');
-        for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
-          files.push({
-            path: updatedDependency.filePath,
-            content: updatedDependency.content,
-          });
-        }
-      }
+      // if (
+      //   codeGenerationResponseObj.updatedDependencies &&
+      //   codeGenerationResponseObj.updatedDependencies.length > 0
+      // ) {
+      //   console.warn('*** Updated dependencies found ***');
+      //   for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
+      //     files.push({
+      //       path: updatedDependency.filePath,
+      //       content: updatedDependency.content,
+      //     });
+      //   }
+      // }
       // Create files
       await FileParser.parseAndCreateFiles(files, appName);
 

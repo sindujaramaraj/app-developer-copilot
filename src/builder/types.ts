@@ -73,6 +73,10 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
   design: z.string().describe('Design of the app as a mermaid diagram'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
+  commands: z
+    .array(z.string())
+    .optional()
+    .describe('Commands to run in the terminal'),
 });
 
 export type ZInitializeAppResponseType = z.infer<
@@ -157,10 +161,6 @@ export const ZGenerateCodeForComponentResponseSchema =
     libraries: z
       .array(z.string())
       .describe('List of external libraries used in the component'),
-    updatedDependencies: z
-      .array(ZCodeFileSchema)
-      .optional()
-      .describe('Updated dependencies of the component'),
   });
 
 export type ZGenerateCodeForComponentResponseType = z.infer<
