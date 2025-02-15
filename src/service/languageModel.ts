@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateObject, generateText, LanguageModel } from 'ai';
+import { generateObject, generateText, LanguageModel, tool } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import { AppSettings, SettingsServie } from './settings';
 import { convertStringToJSON } from '../builder/utils/contentUtil';
 import { MAX_RETRY_COUNT } from '../builder/constants';
 import { LLMCodeModel, LLMProvider } from './types';
+import { runCommandWithPromise } from '../builder/terminalHelper';
 
 export interface IModelMessage {
   content: string;
@@ -81,10 +82,104 @@ export class LanguageModelService {
     };
   }
 
+  async generateTextWithTools<T>(
+    options: IGenerateObjectRequest<T>,
+  ): Promise<{ response: string; tools: string }> {
+    if (this.useOwnModel && this.ownModel) {
+      if (options.responseFormatPrompt) {
+        options.messages.push({
+          content: options.responseFormatPrompt,
+          role: 'user',
+        });
+      }
+      const { text } = await generateText<{}, T>({
+        model: this.ownModel,
+        tools: {
+          initializeNextProject: tool({
+            description: 'Initialize a Next.js project',
+            parameters: z.object({
+              projectName: z.string().describe('The name of the project'),
+            }),
+            execute: async ({ projectName }) => {
+              await runCommandWithPromise(
+                `npx create-next-app@latest ${projectName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`,
+                undefined,
+                true,
+              );
+              return `Created Next.js project: ${projectName}`;
+            },
+          }),
+          installShadcnUIComponents: tool({
+            description: 'Install shadcn UI components',
+            parameters: z.object({
+              components: z
+                .array(z.string())
+                .describe('List of shadcn UI components'),
+            }),
+            execute: async ({ components }) => {
+              await runCommandWithPromise(
+                `npm install shadcn ${components?.join(' ')}`,
+              );
+              return `Installed shadcn UI components: ${components}`;
+            },
+          }),
+          runInTerminal: tool({
+            description: 'Run a command in the terminal',
+            parameters: z.object({
+              commands: z
+                .array(z.string())
+                .describe('The commands to run in the terminal'),
+            }),
+            execute: async ({ commands }) => {
+              let useNewTerminal = true;
+              for (const command of commands) {
+                // await runCommandWithPromise(command, undefined, useNewTerminal);
+                useNewTerminal = false;
+                console.log(`Executed command: ${command}`);
+              }
+            },
+          }),
+        },
+        // prompt:
+        //   'create a next.js hello world app and use available tools to create app, install shadcn UI components and run commands in terminal',
+        messages: options.messages,
+        headers: {
+          'HTTP-Referer':
+            'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
+          'X-Title': 'app-developer-copilot', // Optional. Shows in rankings on openrouter.ai.
+        },
+      });
+      return { response: text, tools: '' };
+    } else if (this.copilotModel) {
+      const messages = convertToCopilotMessages(options.messages);
+      const response = await handleCopilotRequest(
+        this.copilotModel,
+        messages,
+        this.token as vscode.CancellationToken,
+        z.string(),
+      );
+      return { response: response.responseContent, tools: '' };
+    } else {
+      throw new Error('No model available');
+    }
+  }
+
   async generateText(options: IModelMessage[]): Promise<string> {
     if (this.useOwnModel && this.ownModel) {
       const { text } = await generateText({
         model: this.ownModel,
+        tools: {
+          runInTerminal: tool({
+            description: 'Run a command in the terminal',
+            parameters: z.object({
+              command: z.string().describe('The command to run'),
+            }),
+            execute: async ({ command }) => {
+              await runCommandWithPromise(command);
+              return `Executed command: ${command}`;
+            },
+          }),
+        },
         messages: options,
         headers: {
           'HTTP-Referer':
@@ -111,11 +206,25 @@ export class LanguageModelService {
     response: string;
     object: T;
   }> {
+    const useTools = false;
     if (this.useOwnModel && this.ownModel) {
+      if (useTools) {
+        const { response } = await this.generateTextWithTools(options);
+        const object = convertStringToJSON(response);
+        return {
+          response,
+          object,
+        };
+      }
       const { object } = await generateObject<T>({
         model: this.ownModel,
         schema: options.schema,
         messages: options.messages,
+        headers: {
+          'HTTP-Referer':
+            'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
+          'X-Title': 'app-developer-copilot', // Optional. Shows in rankings on openrouter.ai.
+        },
       });
       return {
         response: JSON.stringify(object, null, 2),

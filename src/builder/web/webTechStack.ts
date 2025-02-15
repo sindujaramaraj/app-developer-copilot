@@ -1,9 +1,9 @@
+import { IGenericStack } from '../types';
+
 export enum WebFramework {
   NEXT = 'next',
-  REMIX = 'remix',
-  GATSBY = 'gatsby',
-  ASTRO = 'astro',
-  VITE = 'vite',
+  // REMIX = 'remix',
+  // GATSBY = 'gatsby',
 }
 
 export enum StateManagement {
@@ -54,7 +54,7 @@ export enum BuildTools {
   SWC = '@swc/core',
 }
 
-export interface WebTechStackOptions {
+export interface WebTechStackOptions extends IGenericStack {
   framework: WebFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
@@ -72,4 +72,64 @@ export const DEFAULT_WEB_STACK: WebTechStackOptions = {
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
+};
+
+export const getDefaultWebTechStack = (): WebTechStackOptions => {
+  return DEFAULT_WEB_STACK;
+};
+
+export const getWebAppCreationCommands = (
+  stack: WebTechStackOptions,
+  appName: string,
+): string[] => {
+  const commands = [];
+  switch (stack.framework) {
+    case WebFramework.NEXT:
+      commands.push(
+        `npx create-next-app@latest ${appName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`,
+      );
+      break;
+  }
+  switch (stack.uiLibrary) {
+    case UILibrary.SHADCN:
+      commands.push(`cd ${appName}`);
+      commands.push('npx shadcn@latest init --yes -d');
+      break;
+  }
+  return commands;
+};
+
+export const getLibsToInstallForStack = (
+  _stack: WebTechStackOptions,
+): string[] => {
+  const libs = [];
+  // TODO: Add libraries
+  // switch (_stack.uiLibrary) {
+  //   case UILibrary.MATERIAL_UI:
+  //     libs.push('@mui/material', '@mui/icons-material');
+  //     break;
+  //   case UILibrary.CHAKRA:
+  //     libs.push('@chakra-ui/react', '@chakra-ui/icons');
+  //     break;
+  //   case UILibrary.TAILWIND:
+  //     libs.push('tailwindcss');
+  //     break;
+  //   case UILibrary.SHADCN:
+  //     libs.push('shadcn-ui');
+  //     break;
+  //   case UILibrary.RADIX:
+  //     libs.push('@radix-ui/react');
+  //     break;
+  // }
+  libs.push('react');
+  return libs;
+};
+
+export const getPromptForStack = (stack: WebTechStackOptions): string => {
+  let prompt = `Use ${stack.framework} for the web app framework,
+  ${stack.uiLibrary} for UI library,\
+  ${stack.styling} for styling,\
+  ${stack.buildTool} for build tool.
+  `;
+  return prompt;
 };
