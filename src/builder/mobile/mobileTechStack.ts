@@ -147,7 +147,7 @@ export const getLibsToInstallForStack = (
 };
 
 export const getPromptForStack = (stack: MobileTechStackOptions): string => {
-  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI, \
+  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
    and ${stack.storage} for storage. \
    ${stack.authentication !== Authentication.None ? ` Use ${stack.authentication} for authentication.` : 'Do not add authentication.'}`;

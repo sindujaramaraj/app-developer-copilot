@@ -96,8 +96,8 @@ export class MobileApp extends App {
         this.createAssistantMessage(createAppResponse),
       );
 
-      this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
-      console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
+      this.logInitialResponse(createAppResponseObj);
+
       this.logProgress(`Creating app ${createAppResponseObj.name}`);
       const formattedAppName = createAppResponseObj.name
         .replace(/\s/g, '-')
@@ -106,6 +106,7 @@ export class MobileApp extends App {
       createAppResponseObj.name = formattedAppName;
       // set app name
       this.setAppName(formattedAppName);
+      this.setAppTitle(createAppResponseObj.title);
 
       await this.postInitialize(createAppResponseObj);
 
@@ -113,6 +114,7 @@ export class MobileApp extends App {
       const modelConfig = this.languageModelService.getModelConfig();
       await createAppConfig({
         name: createAppResponseObj.name,
+        title: createAppResponseObj.title,
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,

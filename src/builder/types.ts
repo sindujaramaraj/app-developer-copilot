@@ -70,6 +70,7 @@ export interface IInitializeAppResponse extends IResponseBase {
 
 export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   name: z.string().describe('Name of the app'),
+  title: z.string().describe('Title of the app'),
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
   design: z.string().describe('Design of the app as a mermaid diagram'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),

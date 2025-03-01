@@ -12,6 +12,7 @@ export enum AppType {
 
 export interface AppConfig {
   name: string;
+  title: string;
   version: string;
   initialPrompt: string;
   modelProvider: LLMProvider;

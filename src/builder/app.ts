@@ -39,6 +39,7 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
 
 export class App {
   protected appName: string = '';
+  protected appTitle: string = '';
   protected languageModelService: LanguageModelService;
   protected streamService: StreamHandlerService;
   protected stage: AppStage;
@@ -201,12 +202,26 @@ export class App {
     return this.appName;
   }
 
+  setAppTitle(appTitle: string) {
+    this.appTitle = appTitle;
+  }
+
+  getAppTitle(): string {
+    return this.appTitle;
+  }
+
   setStage(stage: AppStage) {
     this.stage = stage;
   }
 
   getTechStackOptions(): IGenericStack {
     return this.techStackOptions;
+  }
+
+  logInitialResponse(createAppResponseObj: ZInitializeAppResponseType) {
+    this.logMessage(`Let's call the app: ${createAppResponseObj.title}`);
+    this.logMessage(`\nApp will have the following features:\n`);
+    this.logMessage(`${createAppResponseObj.features.join('\n')}`);
   }
 
   logProgress(message: string) {

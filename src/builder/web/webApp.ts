@@ -100,8 +100,8 @@ export class WebApp extends App {
         this.createAssistantMessage(createAppResponse),
       );
 
-      this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
-      console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
+      this.logInitialResponse(createAppResponseObj);
+
       this.logProgress(`Creating app ${createAppResponseObj.name}`);
       const formattedAppName = createAppResponseObj.name
         .replace(/\s/g, '-')
@@ -110,6 +110,7 @@ export class WebApp extends App {
       createAppResponseObj.name = formattedAppName;
       // set app name
       this.setAppName(formattedAppName);
+      this.setAppTitle(createAppResponseObj.title);
 
       await this.postInitialize(createAppResponseObj);
 
@@ -117,6 +118,7 @@ export class WebApp extends App {
       const modelConfig = this.languageModelService.getModelConfig();
       await createAppConfig({
         name: createAppResponseObj.name,
+        title: createAppResponseObj.title,
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
@@ -158,10 +160,37 @@ export class WebApp extends App {
       'initialization commands',
       createAppResponseObj.commands?.length,
     );
-    this.logProgress('Running initialization commands');
-    const initializationCommands = createAppResponseObj.commands;
+    // TODO: Not able to ensure the correctness of this commands. Lets enable later and just use the web stack creation commands
+    // await this.runInitializationCommands(
+    //   createAppResponseObj.commands || [],
+    //   createAppResponseObj.name,
+    // );
+
+    this.logMessage(`Created web project: ${createAppResponseObj.name}`);
+    // Design the app
+    this.logProgress('Writing design diagram to file');
+    let designDiagram = createAppResponseObj.design;
+    if (!isMermaidMarkdown(designDiagram)) {
+      designDiagram = convertToMermaidMarkdown(designDiagram);
+    }
+    await FileParser.parseAndCreateFiles(
+      [
+        {
+          path: APP_ARCHITECTURE_DIAGRAM_FILE,
+          content: designDiagram,
+        },
+      ],
+      createAppResponseObj.name,
+    );
+    this.logMessage('Design Diagram saved successfully');
+  }
+
+  async runInitializationCommands(
+    initializationCommands: string[],
+    folderName: string,
+  ) {
     if (initializationCommands && initializationCommands.length > 0) {
-      console.log('Running initialization commands');
+      this.logProgress('Running initialization commands');
       let useNewTerminal = true;
       for (const command of initializationCommands) {
         if (command.startsWith('npx create-next-app')) {
@@ -178,34 +207,10 @@ export class WebApp extends App {
           continue;
         }
         console.log('Running command', command);
-        await runCommandWithPromise(
-          command,
-          createAppResponseObj.name,
-          useNewTerminal,
-        );
+        await runCommandWithPromise(command, folderName, useNewTerminal);
         useNewTerminal = false;
       }
     }
-    // TODO: Commenting this out for now because behavior is not clear
-    // Reset expo project
-    // await resetExpoProject(createAppResponseObj.name);
-    this.logMessage(`Created web project: ${createAppResponseObj.name}`);
-    // Design the app
-    this.logProgress('Writing the design diagram to the file');
-    let designDiagram = createAppResponseObj.design;
-    if (!isMermaidMarkdown(designDiagram)) {
-      designDiagram = convertToMermaidMarkdown(designDiagram);
-    }
-    await FileParser.parseAndCreateFiles(
-      [
-        {
-          path: APP_ARCHITECTURE_DIAGRAM_FILE,
-          content: designDiagram,
-        },
-      ],
-      createAppResponseObj.name,
-    );
-    this.logMessage('Design Diagram saved successfully');
   }
 
   async generateCode({

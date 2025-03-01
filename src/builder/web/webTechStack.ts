@@ -11,14 +11,13 @@ export enum StateManagement {
   ZUSTAND = 'zustand',
   JOTAI = 'jotai',
   RECOIL = 'recoil',
-  CONTEXT = 'context',
 }
 
 export enum UILibrary {
   MATERIAL_UI = '@mui/material',
   CHAKRA = '@chakra-ui/react',
   TAILWIND = 'tailwindcss',
-  SHADCN = 'shadcn-ui',
+  SHADCN = 'shadcn',
   RADIX = '@radix-ui/react',
 }
 
@@ -93,43 +92,40 @@ export const getWebAppCreationCommands = (
   switch (stack.uiLibrary) {
     case UILibrary.SHADCN:
       commands.push(`cd ${appName}`);
-      commands.push('npx shadcn@latest init --yes -d');
+      commands.push('npx shadcn@latest init --yes -d'); // init shadcn
+      commands.push('npx shadcn@latest add --all'); // add all components
       break;
   }
   return commands;
 };
 
 export const getLibsToInstallForStack = (
-  _stack: WebTechStackOptions,
+  stack: WebTechStackOptions,
 ): string[] => {
   const libs = [];
-  // TODO: Add libraries
-  // switch (_stack.uiLibrary) {
-  //   case UILibrary.MATERIAL_UI:
-  //     libs.push('@mui/material', '@mui/icons-material');
-  //     break;
-  //   case UILibrary.CHAKRA:
-  //     libs.push('@chakra-ui/react', '@chakra-ui/icons');
-  //     break;
-  //   case UILibrary.TAILWIND:
-  //     libs.push('tailwindcss');
-  //     break;
-  //   case UILibrary.SHADCN:
-  //     libs.push('shadcn-ui');
-  //     break;
-  //   case UILibrary.RADIX:
-  //     libs.push('@radix-ui/react');
-  //     break;
-  // }
-  libs.push('react');
+  switch (stack.stateManagement) {
+    case StateManagement.REDUX:
+      libs.push('react-redux');
+      break;
+    case StateManagement.ZUSTAND:
+      libs.push('zustand');
+      break;
+    case StateManagement.JOTAI:
+      libs.push('jotai');
+      break;
+    case StateManagement.RECOIL:
+      libs.push('recoil');
+      break;
+  }
   return libs;
 };
 
 export const getPromptForStack = (stack: WebTechStackOptions): string => {
   let prompt = `Use ${stack.framework} for the web app framework,
-  ${stack.uiLibrary} for UI library,\
+  ${stack.uiLibrary} for UI component library,\
+  ${stack.stateManagement} for state management,\
   ${stack.styling} for styling,\
-  ${stack.buildTool} for build tool.
+  and ${stack.buildTool} for build tool.
   `;
   return prompt;
 };

@@ -18,7 +18,10 @@ export async function installNPMDependencies(
       console.info(`Dependency ${dependency} already installed`);
       continue;
     }
-    await runCommandWithPromise(`npm install ${dependency}`, folderName);
+    await runCommandWithPromise(
+      `npm install ${dependency} --legacy-peer-deps`,
+      folderName,
+    );
     installedDependencies.push(dependency);
   }
 }

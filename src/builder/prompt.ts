@@ -78,7 +78,7 @@ export class InitializeWebAppPrompt extends PromptBase<
     Make sure the app uses the correct framework and the file path of the components are consistent.
     Use default theme provider from the ui library if available and dont create a theme provider component unless necessary.
     Do not create too many components. Keep it simple and functional.
-    Include necessary commands in the response to create app and install dependencies. Commands must run without user intervention.`;
+    Include necessary commands in the response to install dependencies. Commands must run without user intervention.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
