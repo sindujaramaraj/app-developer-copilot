@@ -84,6 +84,7 @@
           "order": 3,
           "type": "string",
           "enum": [
+            "claude-3-7-sonnet-latest",
             "claude-3-5-sonnet-latest",
             "claude-3-5-haiku-latest",
             "claude-3-opus-latest",
@@ -93,6 +94,7 @@
             "o1-mini",
             "o1-preview",
             "openrouter/auto",
+            "anthropic/claude-3.7-sonnet",
             "anthropic/claude-3.5-sonnet",
             "anthropic/claude-3.5-haiku",
             "anthropic/claude-3-opus",
@@ -103,6 +105,7 @@
             "openai/o1-preview"
           ],
           "enumItemLabels": [
+            "Anthropic - Claude 3.7 Sonnet Latest",
             "Anthropic - Claude 3.5 Sonnet Latest",
             "Anthropic - Claude 3.5 Haiku Latest",
             "Anthropic - Claude 3 Opus Latest",
@@ -112,6 +115,7 @@
             "OpenAI - O1 Mini",
             "OpenAI - O1 Preview",
             "OpenRouter - Auto",
+            "OpenRouter - Claude 3.7 Sonnet",
             "OpenRouter - Claude 3.5 Sonnet",
             "OpenRouter - Claude 3.5 Haiku",
             "OpenRouter - Claude 3 Opus",

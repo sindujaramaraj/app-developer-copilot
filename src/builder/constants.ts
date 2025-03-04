@@ -10,3 +10,5 @@ export const MAX_RETRY_COUNT = 1;
 
 export const ENABLE_TELEMETRY = true;
 export const ENABLE_AUTHENTICATION = false;
+export const ENABLE_WEB_APP = true;
+export const ENABLE_WEB_STACK_CONFIG = false;

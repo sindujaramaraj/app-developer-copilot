@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 
-import { APP_CONFIG_FILE } from '../builder/constants';
+import {
+  APP_CONFIG_FILE,
+  ENABLE_WEB_APP,
+  ENABLE_WEB_STACK_CONFIG,
+} from '../builder/constants';
 import { TelemetryService } from '../service/telemetry/telemetry';
 import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
 import { runExpoProject } from '../builder/terminalHelper';
@@ -22,7 +26,9 @@ enum ChatCommands {
 
 export function registerChatParticipants(context: vscode.ExtensionContext) {
   registerMobileChatParticipants(context);
-  registerWebChatParticipants(context);
+  if (ENABLE_WEB_APP) {
+    registerWebChatParticipants(context);
+  }
 }
 
 function registerMobileChatParticipants(context: vscode.ExtensionContext) {
@@ -367,7 +373,10 @@ export async function handleCreateWebApp(
 
   // Get tech stack options
   streamService.progress('Waiting for tech stack options input');
-  let techStackOptions = await WebTechStackWebviewProvider.createOrShow();
+  let techStackOptions;
+  if (ENABLE_WEB_STACK_CONFIG) {
+    techStackOptions = await WebTechStackWebviewProvider.createOrShow();
+  }
   if (!techStackOptions) {
     techStackOptions = getDefaultWebTechStack();
     streamService.message(
