@@ -3,7 +3,10 @@ import {
   convertToMermaidMarkdown,
   isMermaidMarkdown,
 } from '../utils/contentUtil';
-import { GenerateCodeForComponentPrompt, InitializeAppPrompt } from '../prompt';
+import {
+  GenerateCodeForMobileComponentPrompt,
+  InitializeMobileAppPrompt,
+} from '../prompt';
 import {
   ComponetType,
   ZGenerateCodeForComponentResponseSchema,
@@ -17,7 +20,11 @@ import { FileParser } from '../utils/fileParser';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
-import { getLibsToInstallForStack, getPromptForStack } from './mobileTechStack';
+import {
+  getLibsToInstallForStack,
+  getPromptForStack,
+  MobileTechStackOptions,
+} from './mobileTechStack';
 
 const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
 You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
@@ -63,7 +70,7 @@ export class MobileApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a mobile app');
 
-    const initializeAppPrompt = new InitializeAppPrompt({
+    const initializeAppPrompt = new InitializeMobileAppPrompt({
       userMessage: userMessage,
       techStack: getPromptForStack(this.getTechStackOptions()),
     });
@@ -89,8 +96,8 @@ export class MobileApp extends App {
         this.createAssistantMessage(createAppResponse),
       );
 
-      this.logMessage(`Let's call the app: ${createAppResponseObj.name}`);
-      console.warn(`${JSON.stringify(createAppResponseObj.components)}`);
+      this.logInitialResponse(createAppResponseObj);
+
       this.logProgress(`Creating app ${createAppResponseObj.name}`);
       const formattedAppName = createAppResponseObj.name
         .replace(/\s/g, '-')
@@ -99,6 +106,7 @@ export class MobileApp extends App {
       createAppResponseObj.name = formattedAppName;
       // set app name
       this.setAppName(formattedAppName);
+      this.setAppTitle(createAppResponseObj.title);
 
       await this.postInitialize(createAppResponseObj);
 
@@ -106,6 +114,7 @@ export class MobileApp extends App {
       const modelConfig = this.languageModelService.getModelConfig();
       await createAppConfig({
         name: createAppResponseObj.name,
+        title: createAppResponseObj.title,
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
@@ -201,7 +210,7 @@ export class MobileApp extends App {
         }
       }
       // Generate code for the component
-      const codeGenerationPrompt = new GenerateCodeForComponentPrompt({
+      const codeGenerationPrompt = new GenerateCodeForMobileComponentPrompt({
         name: component.name,
         path: component.path,
         type: component.type as ComponetType,
@@ -271,18 +280,18 @@ export class MobileApp extends App {
         },
       ];
       // Check for updated dependencies
-      if (
-        codeGenerationResponseObj.updatedDependencies &&
-        codeGenerationResponseObj.updatedDependencies.length > 0
-      ) {
-        console.warn('*** Updated dependencies found ***');
-        for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
-          files.push({
-            path: updatedDependency.filePath,
-            content: updatedDependency.content,
-          });
-        }
-      }
+      // if (
+      //   codeGenerationResponseObj.updatedDependencies &&
+      //   codeGenerationResponseObj.updatedDependencies.length > 0
+      // ) {
+      //   console.warn('*** Updated dependencies found ***');
+      //   for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
+      //     files.push({
+      //       path: updatedDependency.filePath,
+      //       content: updatedDependency.content,
+      //     });
+      //   }
+      // }
       // Create files
       await FileParser.parseAndCreateFiles(files, appName);
 
@@ -307,5 +316,9 @@ export class MobileApp extends App {
         summary: 'Successfully generated code for all components',
       },
     };
+  }
+
+  getTechStackOptions(): MobileTechStackOptions {
+    return this.techStackOptions as MobileTechStackOptions;
   }
 }

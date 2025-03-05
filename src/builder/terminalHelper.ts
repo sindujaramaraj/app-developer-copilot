@@ -18,7 +18,10 @@ export async function installNPMDependencies(
       console.info(`Dependency ${dependency} already installed`);
       continue;
     }
-    await runCommandWithPromise(`npm install ${dependency}`, folderName);
+    await runCommandWithPromise(
+      `npm install ${dependency} --legacy-peer-deps`,
+      folderName,
+    );
     installedDependencies.push(dependency);
   }
 }
@@ -39,7 +42,7 @@ export async function runExpoProject(folderName: string): Promise<void> {
   return runCommandWithPromise(`npm run start`, folderName);
 }
 
-function runCommandWithPromise(
+export function runCommandWithPromise(
   command: string,
   folder?: string,
   useNewTerminal = false,
@@ -53,7 +56,12 @@ function runCommandWithPromise(
       terminal.sendText(`cd ${folder}`);
     }
   }
-  terminal.sendText(command);
+  const fixedCommand = fixCommandForTerminal(command);
+  if (!fixedCommand) {
+    console.log('Skip running command:', command);
+    return Promise.resolve();
+  }
+  terminal.sendText(fixedCommand);
   return new Promise((resolve) => {
     const disposable = vscode.window.onDidEndTerminalShellExecution((e) => {
       if (
@@ -67,4 +75,12 @@ function runCommandWithPromise(
       }
     });
   });
+}
+
+function fixCommandForTerminal(command: string): string {
+  if (command.startsWith('npx shadcn-ui')) {
+    command = command.replace('npx shadcn-ui', 'npx shadcn');
+    console.log('Fixed shadcn command for terminal:', command);
+  }
+  return command;
 }

@@ -1,9 +1,9 @@
+import { IGenericStack } from '../types';
+
 export enum WebFramework {
   NEXT = 'next',
-  REMIX = 'remix',
-  GATSBY = 'gatsby',
-  ASTRO = 'astro',
-  VITE = 'vite',
+  // REMIX = 'remix',
+  // GATSBY = 'gatsby',
 }
 
 export enum StateManagement {
@@ -11,14 +11,13 @@ export enum StateManagement {
   ZUSTAND = 'zustand',
   JOTAI = 'jotai',
   RECOIL = 'recoil',
-  CONTEXT = 'context',
 }
 
 export enum UILibrary {
   MATERIAL_UI = '@mui/material',
   CHAKRA = '@chakra-ui/react',
   TAILWIND = 'tailwindcss',
-  SHADCN = 'shadcn-ui',
+  SHADCN = 'shadcn',
   RADIX = '@radix-ui/react',
 }
 
@@ -54,7 +53,7 @@ export enum BuildTools {
   SWC = '@swc/core',
 }
 
-export interface WebTechStackOptions {
+export interface WebTechStackOptions extends IGenericStack {
   framework: WebFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
@@ -72,4 +71,61 @@ export const DEFAULT_WEB_STACK: WebTechStackOptions = {
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
+};
+
+export const getDefaultWebTechStack = (): WebTechStackOptions => {
+  return DEFAULT_WEB_STACK;
+};
+
+export const getWebAppCreationCommands = (
+  stack: WebTechStackOptions,
+  appName: string,
+): string[] => {
+  const commands = [];
+  switch (stack.framework) {
+    case WebFramework.NEXT:
+      commands.push(
+        `npx create-next-app@latest ${appName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`,
+      );
+      break;
+  }
+  switch (stack.uiLibrary) {
+    case UILibrary.SHADCN:
+      commands.push(`cd ${appName}`);
+      commands.push('npx shadcn@latest init --yes -d'); // init shadcn
+      commands.push('npx shadcn@latest add --all'); // add all components
+      break;
+  }
+  return commands;
+};
+
+export const getLibsToInstallForStack = (
+  stack: WebTechStackOptions,
+): string[] => {
+  const libs = [];
+  switch (stack.stateManagement) {
+    case StateManagement.REDUX:
+      libs.push('react-redux');
+      break;
+    case StateManagement.ZUSTAND:
+      libs.push('zustand');
+      break;
+    case StateManagement.JOTAI:
+      libs.push('jotai');
+      break;
+    case StateManagement.RECOIL:
+      libs.push('recoil');
+      break;
+  }
+  return libs;
+};
+
+export const getPromptForStack = (stack: WebTechStackOptions): string => {
+  let prompt = `Use ${stack.framework} for the web app framework,
+  ${stack.uiLibrary} for UI component library,\
+  ${stack.stateManagement} for state management,\
+  ${stack.styling} for styling,\
+  and ${stack.buildTool} for build tool.
+  `;
+  return prompt;
 };

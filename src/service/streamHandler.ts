@@ -57,6 +57,24 @@ export class StreamHandlerService {
     }
   }
 
+  messages(messages: string[], title?: string): void {
+    if (this.useChatStream && this.chatStream) {
+      // convert list of messages to markdown
+      if (title) {
+        this.chatStream.markdown(`### ${title}`);
+      }
+      const markdown = messages.map((message) => `- ${message}`).join('\n');
+      this.chatStream.markdown(markdown);
+    } else if (this.statusBarItem) {
+      messages.forEach((message) => {
+        this.outputChannel?.show();
+        this.outputChannel?.appendLine(message);
+      });
+    } else {
+      console.log(messages.join('\n'));
+    }
+  }
+
   command(command: string, title?: string): void {
     title = title || `Run ${command}`;
     if (this.useChatStream && this.chatStream) {

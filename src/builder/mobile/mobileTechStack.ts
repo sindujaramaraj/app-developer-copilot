@@ -1,3 +1,10 @@
+import { IGenericStack } from '../types';
+
+export enum MobileFramework {
+  REACT_NATIVE = 'react-native',
+  FLUTTER = 'flutter',
+}
+
 export enum StateManagement {
   REDUX = 'redux',
   ZUSTAND = 'zustand',
@@ -45,7 +52,8 @@ export enum Authentication {
   SUPABASE = '@supabase/supabase-js',
 }
 
-export interface TechStackOptions {
+export interface MobileTechStackOptions extends IGenericStack {
+  framework: MobileFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
   navigation: Navigation;
@@ -55,20 +63,24 @@ export interface TechStackOptions {
   authentication: Authentication;
 }
 
-export const DEFAULT_STACK: TechStackOptions = {
+export const DEFAULT_MOBILE_STACK: MobileTechStackOptions = {
+  framework: MobileFramework.REACT_NATIVE,
   stateManagement: StateManagement.ZUSTAND,
   uiLibrary: UILibrary.REACT_NATIVE_PAPER,
+  dataFetching: DataFetching.REACT_QUERY,
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
   authentication: Authentication.None,
 };
 
-export const getDefaultStack = (): TechStackOptions => {
-  return DEFAULT_STACK;
+export const getDefaultMobileTechStack = (): MobileTechStackOptions => {
+  return DEFAULT_MOBILE_STACK;
 };
 
-export const getLibsToInstallForStack = (stack: TechStackOptions): string[] => {
+export const getLibsToInstallForStack = (
+  stack: MobileTechStackOptions,
+): string[] => {
   const libs = [];
   switch (stack.stateManagement) {
     case StateManagement.REDUX:
@@ -134,8 +146,8 @@ export const getLibsToInstallForStack = (stack: TechStackOptions): string[] => {
   return libs;
 };
 
-export const getPromptForStack = (stack: TechStackOptions): string => {
-  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI, \
+export const getPromptForStack = (stack: MobileTechStackOptions): string => {
+  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
    and ${stack.storage} for storage. \
    ${stack.authentication !== Authentication.None ? ` Use ${stack.authentication} for authentication.` : 'Do not add authentication.'}`;
@@ -150,7 +162,7 @@ export class MobileTechStack {
   private storage: Storage;
   private authentication: Authentication;
 
-  constructor(options: TechStackOptions) {
+  constructor(options: MobileTechStackOptions) {
     this.stateManagement = options.stateManagement;
     this.uiLibrary = options.uiLibrary;
     this.navigation = options.navigation;

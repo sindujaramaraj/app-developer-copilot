@@ -1,17 +1,15 @@
 import * as vscode from 'vscode';
 import {
-  TechStackOptions,
+  WebTechStackOptions,
   StateManagement,
   UILibrary,
-  Navigation,
-  Storage,
-  Authentication,
-  getDefaultStack,
-} from '../builder/mobile/mobileTechStack';
-import { ENABLE_AUTHENTICATION } from '../builder/constants';
+  getDefaultWebTechStack,
+  BuildTools,
+  Styling,
+} from '../builder/web/webTechStack';
 
-export class TechStackWebviewProvider {
-  public static viewType = 'techStack.webview';
+export class WebTechStackWebviewProvider {
+  public static viewType = 'webTechStack.webview';
   private _view?: vscode.WebviewView;
   private static _panel: vscode.WebviewPanel;
 
@@ -27,46 +25,46 @@ export class TechStackWebviewProvider {
       localResourceRoots: [this._extensionUri],
     };
 
-    webviewView.webview.html = TechStackWebviewProvider._getHtmlForWebview();
+    webviewView.webview.html = WebTechStackWebviewProvider._getHtmlForWebview();
   }
 
-  public static async createOrShow(): Promise<TechStackOptions> {
-    TechStackWebviewProvider._panel?.dispose();
+  public static async createOrShow(): Promise<WebTechStackOptions> {
+    WebTechStackWebviewProvider._panel?.dispose();
 
     const panel = vscode.window.createWebviewPanel(
-      TechStackWebviewProvider.viewType,
+      WebTechStackWebviewProvider.viewType,
       'Choose Tech Stack',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
       },
     );
-    let result: TechStackOptions;
+    let result: WebTechStackOptions;
 
-    const onSubmitCallback = async (options: TechStackOptions) => {
+    const onSubmitCallback = async (options: WebTechStackOptions) => {
       result = options;
       panel.dispose();
     };
 
-    TechStackWebviewProvider.setWebviewMessageListener(
+    WebTechStackWebviewProvider.setWebviewMessageListener(
       panel.webview,
       onSubmitCallback,
     );
 
-    panel.webview.html = TechStackWebviewProvider._getHtmlForWebview();
-    const promise = new Promise<TechStackOptions>((resolve) => {
+    panel.webview.html = WebTechStackWebviewProvider._getHtmlForWebview();
+    const promise = new Promise<WebTechStackOptions>((resolve) => {
       panel.onDidDispose(() => {
         resolve(result);
       });
     });
 
-    TechStackWebviewProvider._panel = panel;
+    WebTechStackWebviewProvider._panel = panel;
 
     return promise;
   }
 
   private static _getHtmlForWebview() {
-    const defaultOptions: TechStackOptions = getDefaultStack();
+    const defaultOptions: WebTechStackOptions = getDefaultWebTechStack();
     return `
       <!DOCTYPE html>
       <html>
@@ -100,40 +98,23 @@ export class TechStackWebviewProvider {
               .join('')}
           </select>
 
-          <!--<label>Navigation:</label>
-          <select id="navigation">
-            ${Object.values(Navigation)
-              .map(
-                (value) =>
-                  `<option value="${value}" ${defaultOptions.navigation === value ? 'selected' : ''}>${value}</option>`,
-              )
-              .join('')}
-          </select>-->
+          <label>Styling:</label>
+            <select id="styling">
+            ${Object.values(Styling).map(
+              (value) =>
+                `<option value="${value}" ${defaultOptions.styling === value ? 'selected' : ''}>${value}</option>`,
+            )}
+            </select>
 
-          <label>Storage:</label>
-          <select id="storage">
-            ${Object.values(Storage)
-              .map(
-                (value) =>
-                  `<option value="${value}" ${defaultOptions.storage === value ? 'selected' : ''}>${value}</option>`,
-              )
-              .join('')}
+          <label>Build:</label>
+          <select id="buildTool">
+          ${Object.values(BuildTools)
+            .map(
+              (value) =>
+                `<option value="${value}" ${defaultOptions.buildTool === value ? 'selected' : ''}>${value}</option>`,
+            )
+            .join('')}
           </select>
-              
-          ${
-            ENABLE_AUTHENTICATION
-              ? `
-          <label>Authentication:</label>
-          <select id="authentication">
-            ${Object.values(Authentication)
-              .map(
-                (value) =>
-                  `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
-              )
-              .join('')}
-          </select>`
-              : ''
-          }
 
           <button id="techstack-button-submit">Done</button>
 
@@ -146,12 +127,11 @@ export class TechStackWebviewProvider {
             });
 
             function submit() {
-              const authentication = document.getElementById('authentication');
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
-                storage: document.getElementById('storage').value,
-                authentication: authentication ? authentication.value : 'none',
+                styling: document.getElementById('styling').value,
+                buildTool: document.getElementById('buildTool').value,
               };
               vscode.postMessage({ type: 'submit', options });
             }
@@ -164,10 +144,10 @@ export class TechStackWebviewProvider {
 
   private static setWebviewMessageListener(
     webview: vscode.Webview,
-    onSubmit: (options: TechStackOptions) => void,
+    onSubmit: (options: WebTechStackOptions) => void,
   ) {
     webview.onDidReceiveMessage(
-      (message: { type: string; options: TechStackOptions }) => {
+      (message: { type: string; options: WebTechStackOptions }) => {
         switch (message.type) {
           case 'submit':
             onSubmit(message.options);

@@ -4,12 +4,12 @@ import {
   ZGenerateCodeResponseType,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
+  IGenericStack,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileParser } from './utils/fileParser';
 import { APP_CONVERSATION_FILE } from './constants';
-import { TechStackOptions } from './mobile/mobileTechStack';
 
 export enum AppStage {
   None,
@@ -39,12 +39,13 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
 
 export class App {
   protected appName: string = '';
+  protected appTitle: string = '';
   protected languageModelService: LanguageModelService;
   protected streamService: StreamHandlerService;
   protected stage: AppStage;
   private isExecuting: boolean;
   private initialInput: string;
-  private techStackOptions: TechStackOptions;
+  protected techStackOptions: IGenericStack;
   private componentsCount: number = 0;
   private generatedFilesCount: number = 0;
   private conversations: IModelMessage[] = [];
@@ -53,7 +54,7 @@ export class App {
     languageModelService: LanguageModelService,
     streamService: StreamHandlerService,
     initialInput: string,
-    techStackOptions: TechStackOptions,
+    techStackOptions: IGenericStack,
   ) {
     this.languageModelService = languageModelService;
     this.streamService = streamService;
@@ -201,12 +202,28 @@ export class App {
     return this.appName;
   }
 
+  setAppTitle(appTitle: string) {
+    this.appTitle = appTitle;
+  }
+
+  getAppTitle(): string {
+    return this.appTitle;
+  }
+
   setStage(stage: AppStage) {
     this.stage = stage;
   }
 
-  getTechStackOptions(): TechStackOptions {
+  getTechStackOptions(): IGenericStack {
     return this.techStackOptions;
+  }
+
+  logInitialResponse(createAppResponseObj: ZInitializeAppResponseType) {
+    this.logMessage(`Let's call the app: ${createAppResponseObj.title}`);
+    this.logMessages(
+      createAppResponseObj.features,
+      'App will have the following features:',
+    );
   }
 
   logProgress(message: string) {
@@ -215,6 +232,10 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  logMessages(messages: string[], title?: string) {
+    this.streamService.messages(messages, title);
   }
 
   createUserMessage(content: string): IModelMessage {

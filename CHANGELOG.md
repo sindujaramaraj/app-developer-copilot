@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.0.6] - 2025-03-04
+
+### Added
+
+- Support web app creation using React and Next.js
+
 ## [1.0.5] - 2025-02-11
 
 ### Changed

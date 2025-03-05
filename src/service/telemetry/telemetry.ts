@@ -85,6 +85,7 @@ export class TelemetryService {
       // Send error event in case of failure
       this.trackError(
         TelemetryEvent.AppCreation,
+        otherProps.appType,
         otherProps.source,
         undefined,
         otherProps,
@@ -113,6 +114,7 @@ export class TelemetryService {
    */
   public trackError(
     event: string,
+    appType: 'mobile' | 'web',
     source: string,
     error?: Error,
     properties?: Record<string, string>,
@@ -124,6 +126,7 @@ export class TelemetryService {
         ...properties,
         event,
         source,
+        appType,
         errorName: error?.name,
         errorMessage: error?.message,
       },
