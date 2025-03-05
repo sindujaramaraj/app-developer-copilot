@@ -15,7 +15,10 @@ import { FileParser } from '../builder/utils/fileParser';
 import { LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { WebApp } from '../builder/web/webApp';
-import { getDefaultWebTechStack } from '../builder/web/webTechStack';
+import {
+  getDefaultWebTechStack,
+  getPromptForStack,
+} from '../builder/web/webTechStack';
 import { WebTechStackWebviewProvider } from '../webview/webTechStackWebview';
 
 enum ChatCommands {
@@ -380,11 +383,12 @@ export async function handleCreateWebApp(
   if (!techStackOptions) {
     techStackOptions = getDefaultWebTechStack();
     streamService.message(
-      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
+      'Using default tech stack options: ' +
+        getPromptForStack(techStackOptions),
     );
   } else {
     streamService.message(
-      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+      'Chosen tech stack options: ' + getPromptForStack(techStackOptions),
     );
     // Merge with default stack options
     techStackOptions = {

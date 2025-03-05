@@ -220,8 +220,10 @@ export class App {
 
   logInitialResponse(createAppResponseObj: ZInitializeAppResponseType) {
     this.logMessage(`Let's call the app: ${createAppResponseObj.title}`);
-    this.logMessage(`\nApp will have the following features:\n`);
-    this.logMessage(`${createAppResponseObj.features.join('\n')}`);
+    this.logMessages(
+      createAppResponseObj.features,
+      'App will have the following features:',
+    );
   }
 
   logProgress(message: string) {
@@ -230,6 +232,10 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  logMessages(messages: string[], title?: string) {
+    this.streamService.messages(messages, title);
   }
 
   createUserMessage(content: string): IModelMessage {
