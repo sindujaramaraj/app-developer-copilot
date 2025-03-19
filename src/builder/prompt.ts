@@ -149,14 +149,13 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
   constructor(input: IGenerateCodeForComponentInput) {
     const instructions = `Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
     If this is the entry file, make sure to initialize the UI library correctly.
-    Tech stack: ${input.techStack}.
+    Tech stack: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
     This component is part of an web app. Design of the app as a mermaid diagram: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image or sound, do not generate the media. Just use placeholder text and include the media as asset in the response.
-    If the code uses any external libraries, include the libraries in the response.
-    When using code from dependencies, make sure to import the dependenciesimport { getPromptForWebStack } from './web/webTechStack';
- correctly based on path.
+    If the code uses any external libraries, include the libraries in the response so they can be installed later.
+    When using code from dependencies, make sure to import the dependencies correctly based on path.
     Code for dependent components:
     ${getPromptForDependentCode(input.dependencies)}.`;
     super(input, instructions, ZGenerateCodeForComponentResponseSchema);

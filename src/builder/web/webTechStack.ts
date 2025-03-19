@@ -127,6 +127,7 @@ export const getLibsToInstallForStack = (
   }
   switch (stack.backend) {
     case Backend.SUPABASE:
+      libs.push('@supabase/ssr');
       libs.push('@supabase/supabase-js');
       break;
   }
