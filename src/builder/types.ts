@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { IWebTechStackOptions } from './web/webTechStack';
+import { IMobileTechStackOptions } from './mobile/mobileTechStack';
+import { Backend } from './backend/serviceStack';
 
 export interface IResponseBase {
   summary: string;
@@ -13,6 +16,9 @@ export const ZResponseBaseSchema = z.object({
 export type ZResponseBaseType = z.infer<typeof ZResponseBaseSchema>;
 
 export enum ComponetType {
+  Router = 'router',
+  Handler = 'handler',
+  Schema = 'schema',
   Util = 'util',
   Factory = 'factory',
   Service = 'service',
@@ -39,6 +45,9 @@ export const ZCodeComponentSchema = z.object({
       'util',
       'factory',
       'service',
+      'router',
+      'handler',
+      'schema',
       'ui_component',
       'screen',
       'config',
@@ -58,7 +67,7 @@ export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
 export interface IInitializeAppInput {
   userMessage: string;
-  techStack: string;
+  techStack: IWebTechStackOptions | IMobileTechStackOptions;
 }
 
 export interface IInitializeAppResponse extends IResponseBase {
@@ -74,6 +83,7 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
   design: z.string().describe('Design of the app as a mermaid diagram'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
+  sqlScripts: z.string().optional().describe('SQL scripts for the app'),
   commands: z
     .array(z.string())
     .optional()
@@ -82,6 +92,15 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
 
 export type ZInitializeAppResponseType = z.infer<
   typeof ZInitializeAppResponseSchema
+>;
+
+export const ZInitializeAppWithBackendResponseSchema =
+  ZInitializeAppResponseSchema.extend({
+    sqlScripts: z.string().describe('SQL scripts for the app'),
+  });
+
+export type ZInitializeAppWithBackendResponseType = z.infer<
+  typeof ZInitializeAppWithBackendResponseSchema
 >;
 
 export interface ICodeFile {
@@ -106,7 +125,7 @@ export interface IGenerateCodeForComponentInput {
   dependencies: IGenerateCodeForComponentResponse[];
   projectStructure?: string;
   design: string;
-  techStack: string;
+  techStack: IMobileTechStackOptions | IWebTechStackOptions;
 }
 
 export const ZGenerateCodeForComponentInputSchema = z.object({
@@ -116,6 +135,9 @@ export const ZGenerateCodeForComponentInputSchema = z.object({
       'util',
       'factory',
       'service',
+      'router',
+      'handler',
+      'schema',
       'ui_component',
       'screen',
       'config',
@@ -193,4 +215,5 @@ export interface IGenericStack {
   uiLibrary: string;
   dataFetching?: string;
   testing: string[];
+  backend: Backend;
 }

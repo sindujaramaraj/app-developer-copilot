@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import {
-  MobileTechStackOptions,
+  IMobileTechStackOptions,
   StateManagement,
   UILibrary,
   Navigation,
@@ -31,7 +31,7 @@ export class MobileTechStackWebviewProvider {
       MobileTechStackWebviewProvider._getHtmlForWebview();
   }
 
-  public static async createOrShow(): Promise<MobileTechStackOptions> {
+  public static async createOrShow(): Promise<IMobileTechStackOptions> {
     MobileTechStackWebviewProvider._panel?.dispose();
 
     const panel = vscode.window.createWebviewPanel(
@@ -42,9 +42,9 @@ export class MobileTechStackWebviewProvider {
         enableScripts: true,
       },
     );
-    let result: MobileTechStackOptions;
+    let result: IMobileTechStackOptions;
 
-    const onSubmitCallback = async (options: MobileTechStackOptions) => {
+    const onSubmitCallback = async (options: IMobileTechStackOptions) => {
       result = options;
       panel.dispose();
     };
@@ -55,7 +55,7 @@ export class MobileTechStackWebviewProvider {
     );
 
     panel.webview.html = MobileTechStackWebviewProvider._getHtmlForWebview();
-    const promise = new Promise<MobileTechStackOptions>((resolve) => {
+    const promise = new Promise<IMobileTechStackOptions>((resolve) => {
       panel.onDidDispose(() => {
         resolve(result);
       });
@@ -67,7 +67,7 @@ export class MobileTechStackWebviewProvider {
   }
 
   private static _getHtmlForWebview() {
-    const defaultOptions: MobileTechStackOptions = getDefaultMobileTechStack();
+    const defaultOptions: IMobileTechStackOptions = getDefaultMobileTechStack();
     return `
       <!DOCTYPE html>
       <html>
@@ -165,10 +165,10 @@ export class MobileTechStackWebviewProvider {
 
   private static setWebviewMessageListener(
     webview: vscode.Webview,
-    onSubmit: (options: MobileTechStackOptions) => void,
+    onSubmit: (options: IMobileTechStackOptions) => void,
   ) {
     webview.onDidReceiveMessage(
-      (message: { type: string; options: MobileTechStackOptions }) => {
+      (message: { type: string; options: IMobileTechStackOptions }) => {
         switch (message.type) {
           case 'submit':
             onSubmit(message.options);

@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import { TelemetryService } from './service/telemetry/telemetry';
-import { registerChatParticipants } from './register/chatParticipants';
-import { registerCommands } from './register/commands';
-import { registerWebview } from './register/webviews';
-import { registerTools } from './register/tools';
+import * as vscode from "vscode";
+import { TelemetryService } from "./service/telemetry/telemetry";
+import { registerChatParticipants } from "./register/chatParticipants";
+import { registerCommands } from "./register/commands";
+import { registerWebview } from "./register/webviews";
+import { registerTools } from "./register/tools";
 
 export function activate(context: vscode.ExtensionContext) {
   // Initialize telemetry

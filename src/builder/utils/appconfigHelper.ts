@@ -3,6 +3,8 @@ import * as path from 'path';
 import { APP_CONFIG_FILE, APP_VERISON } from '../constants';
 import { FileParser } from './fileParser';
 import { LLMCodeModel, LLMProvider } from '../../service/types';
+import { IMobileTechStackOptions } from '../mobile/mobileTechStack';
+import { IWebTechStackOptions } from '../web/webTechStack';
 
 export enum AppType {
   MOBILE = 'mobile',
@@ -19,7 +21,7 @@ export interface AppConfig {
   languageModel: LLMCodeModel;
   features: string[];
   components: Object;
-  tectStack: string;
+  techStack: IMobileTechStackOptions | IWebTechStackOptions;
   type: AppType;
   hasDatabase?: boolean;
   hasAuth?: boolean;

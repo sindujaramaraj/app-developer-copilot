@@ -1,3 +1,4 @@
+import { Backend } from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
 export enum MobileFramework {
@@ -52,7 +53,7 @@ export enum Authentication {
   SUPABASE = '@supabase/supabase-js',
 }
 
-export interface MobileTechStackOptions extends IGenericStack {
+export interface IMobileTechStackOptions extends IGenericStack {
   framework: MobileFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
@@ -63,7 +64,7 @@ export interface MobileTechStackOptions extends IGenericStack {
   authentication: Authentication;
 }
 
-export const DEFAULT_MOBILE_STACK: MobileTechStackOptions = {
+export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
   framework: MobileFramework.REACT_NATIVE,
   stateManagement: StateManagement.ZUSTAND,
   uiLibrary: UILibrary.REACT_NATIVE_PAPER,
@@ -72,14 +73,15 @@ export const DEFAULT_MOBILE_STACK: MobileTechStackOptions = {
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
   authentication: Authentication.None,
+  backend: Backend.None,
 };
 
-export const getDefaultMobileTechStack = (): MobileTechStackOptions => {
+export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {
   return DEFAULT_MOBILE_STACK;
 };
 
 export const getLibsToInstallForStack = (
-  stack: MobileTechStackOptions,
+  stack: IMobileTechStackOptions,
 ): string[] => {
   const libs = [];
   switch (stack.stateManagement) {
@@ -146,57 +148,15 @@ export const getLibsToInstallForStack = (
   return libs;
 };
 
-export const getPromptForStack = (stack: MobileTechStackOptions): string => {
+export const getPromptForMobileStack = (
+  stack: IMobileTechStackOptions,
+): string => {
   return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
    and ${stack.storage} for storage. \
-   ${stack.authentication !== Authentication.None ? ` Use ${stack.authentication} for authentication.` : 'Do not add authentication.'}`;
+   ${
+     stack.authentication !== Authentication.None
+       ? ` Use ${stack.authentication} for authentication.`
+       : 'Do not add authentication.'
+   }`;
 };
-
-export class MobileTechStack {
-  private stateManagement: StateManagement;
-  private uiLibrary: UILibrary;
-  private navigation: Navigation;
-  private dataFetching?: DataFetching;
-  private testing: Testing[];
-  private storage: Storage;
-  private authentication: Authentication;
-
-  constructor(options: MobileTechStackOptions) {
-    this.stateManagement = options.stateManagement;
-    this.uiLibrary = options.uiLibrary;
-    this.navigation = options.navigation;
-    this.dataFetching = options.dataFetching;
-    this.testing = options.testing;
-    this.storage = options.storage;
-    this.authentication = options.authentication;
-  }
-
-  public getStateManagement(): StateManagement {
-    return this.stateManagement;
-  }
-
-  public getUILibrary(): UILibrary {
-    return this.uiLibrary;
-  }
-
-  public getNavigation(): Navigation {
-    return this.navigation;
-  }
-
-  public getDataFetching(): DataFetching | undefined {
-    return this.dataFetching;
-  }
-
-  public getTesting(): Testing[] {
-    return this.testing;
-  }
-
-  public getStorage(): Storage {
-    return this.storage;
-  }
-
-  public getAuthentication(): Authentication | undefined {
-    return this.authentication;
-  }
-}

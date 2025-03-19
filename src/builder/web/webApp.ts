@@ -6,6 +6,7 @@ import {
 import {
   GenerateCodeForWebComponentPrompt,
   InitializeWebAppPrompt,
+  InitializeWebAppWithBackendPrompt,
 } from '../prompt';
 import {
   ComponetType,
@@ -14,23 +15,28 @@ import {
   ZGenerateCodeResponseType,
   ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
+  ZInitializeAppWithBackendResponseSchema,
+  ZInitializeAppWithBackendResponseType,
 } from '../types';
 import {
   installNPMDependencies,
   runCommandWithPromise,
 } from '../terminalHelper';
-import { FileParser } from '../utils/fileParser';
-import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
+import { FileParser, IFile } from '../utils/fileParser';
+import {
+  APP_ARCHITECTURE_DIAGRAM_FILE,
+  SUPA_SQL_FILE,
+  SUPA_TYPES_FILE,
+} from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
-  getPromptForStack,
   getWebAppCreationCommands,
-  WebTechStackOptions,
+  IWebTechStackOptions,
 } from './webTechStack';
 
-const WEB_BUILDER_INSTRUCTION = `You are an expert at building web applications.
+const WEB_BUILDER_INSTRUCTION = `You are an expert at building full stack web applications using nextjs.
 You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
 Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
 User will first request app design and then code generation.
@@ -74,28 +80,36 @@ export class WebApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a web app');
 
-    const initializeAppPrompt = new InitializeWebAppPrompt({
+    const promptClass = this.getTechStackOptions().backend
+      ? InitializeWebAppWithBackendPrompt
+      : InitializeWebAppPrompt;
+
+    const responseSchema = this.getTechStackOptions().backend
+      ? ZInitializeAppWithBackendResponseSchema
+      : ZInitializeAppResponseSchema;
+
+    const initializeAppPrompt = new promptClass({
       userMessage: userMessage,
-      techStack: getPromptForStack(this.getTechStackOptions()),
+      techStack: this.getTechStackOptions(),
     });
 
     const initializeAppMessages = [
-      this.createSystemMessage(WEB_BUILDER_INSTRUCTION),
+      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
       // Add user's message
-      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
+      this.createUserMessage(`Create app for: ${userMessage}`),
     ];
 
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
       let { response: createAppResponse, object: createAppResponseObj } =
-        await this.languageModelService.generateObject<ZInitializeAppResponseType>(
-          {
-            messages: initializeAppMessages,
-            schema: ZInitializeAppResponseSchema,
-            responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
-          },
-        );
+        await this.languageModelService.generateObject<
+          ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
+        >({
+          messages: initializeAppMessages,
+          schema: responseSchema,
+          responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+        });
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse),
       );
@@ -122,7 +136,7 @@ export class WebApp extends App {
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
-        tectStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
         type: AppType.WEB,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -138,7 +152,11 @@ export class WebApp extends App {
     }
   }
 
-  async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
+  async postInitialize(
+    createAppResponseObj:
+      | ZInitializeAppResponseType
+      | ZInitializeAppWithBackendResponseType,
+  ) {
     // Create web app
     this.logProgress('Running commands to create project');
     const createWebAppCommands = getWebAppCreationCommands(
@@ -167,22 +185,30 @@ export class WebApp extends App {
     // );
 
     this.logMessage(`Created web project: ${createAppResponseObj.name}`);
-    // Design the app
+
+    // Create files
+    const files: IFile[] = [];
+    // Design of the app
     this.logProgress('Writing design diagram to file');
     let designDiagram = createAppResponseObj.design;
     if (!isMermaidMarkdown(designDiagram)) {
       designDiagram = convertToMermaidMarkdown(designDiagram);
     }
-    await FileParser.parseAndCreateFiles(
-      [
-        {
-          path: APP_ARCHITECTURE_DIAGRAM_FILE,
-          content: designDiagram,
-        },
-      ],
-      createAppResponseObj.name,
-    );
-    this.logMessage('Design Diagram saved successfully');
+    files.push({
+      path: APP_ARCHITECTURE_DIAGRAM_FILE,
+      content: designDiagram,
+    });
+    // SQL scripts
+    if (createAppResponseObj.sqlScripts) {
+      files.push({
+        path: SUPA_SQL_FILE,
+        content: createAppResponseObj.sqlScripts,
+      });
+    }
+    await FileParser.parseAndCreateFiles(files, createAppResponseObj.name);
+
+    this.logMessage('Initial files saved successfully');
+    await this.handleBackend(createAppResponseObj);
   }
 
   async runInitializationCommands(
@@ -255,7 +281,8 @@ export class WebApp extends App {
 
     for (const component of sortedComponents) {
       const dependentComponents = component.dependsOn || [];
-      const dependenciesWithContent = [];
+      const dependenciesWithContent: ZGenerateCodeForComponentResponseType[] =
+        [];
       // Get dependencies content
       for (const dependency of dependentComponents) {
         const dependencyContent = generatedCodeByComponent.get(dependency);
@@ -263,6 +290,18 @@ export class WebApp extends App {
           dependenciesWithContent.push(dependencyContent);
         }
       }
+
+      if (previousOutput.sqlScripts) {
+        // Add generated types to the dependencies
+        dependenciesWithContent.push({
+          componentName: 'database',
+          filePath: SUPA_TYPES_FILE,
+          content: previousOutput.sqlScripts,
+          libraries: [],
+          summary: 'Generated types for the database',
+        });
+      }
+
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForWebComponentPrompt({
         name: component.name,
@@ -271,9 +310,7 @@ export class WebApp extends App {
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
-        techStack: getPromptForStack(
-          this.getTechStackOptions() as WebTechStackOptions,
-        ),
+        techStack: this.getTechStackOptions(),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -283,7 +320,9 @@ export class WebApp extends App {
       let codeGenerationResponse, codeGenerationResponseObj;
       try {
         this.logProgress(
-          `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
+          `Generating code ${
+            componentIndex + 1
+          }/${totalComponents} for component ${component.name}`,
         );
         const { response, object } =
           await this.languageModelService.generateObject<ZGenerateCodeForComponentResponseType>(
@@ -374,7 +413,7 @@ export class WebApp extends App {
     };
   }
 
-  getTechStackOptions(): WebTechStackOptions {
-    return this.techStackOptions as WebTechStackOptions;
+  getTechStackOptions(): IWebTechStackOptions {
+    return this.techStackOptions as IWebTechStackOptions;
   }
 }

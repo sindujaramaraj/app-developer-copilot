@@ -61,7 +61,7 @@ export class StreamHandlerService {
     if (this.useChatStream && this.chatStream) {
       // convert list of messages to markdown
       if (title) {
-        this.chatStream.markdown(`### ${title}`);
+        this.chatStream.markdown(`### ${title}\n`);
       }
       const markdown = messages.map((message) => `- ${message}`).join('\n');
       this.chatStream.markdown(markdown);

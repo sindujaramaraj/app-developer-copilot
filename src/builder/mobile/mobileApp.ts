@@ -22,8 +22,7 @@ import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
-  getPromptForStack,
-  MobileTechStackOptions,
+  IMobileTechStackOptions,
 } from './mobileTechStack';
 
 const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
@@ -72,7 +71,7 @@ export class MobileApp extends App {
 
     const initializeAppPrompt = new InitializeMobileAppPrompt({
       userMessage: userMessage,
-      techStack: getPromptForStack(this.getTechStackOptions()),
+      techStack: this.getTechStackOptions(),
     });
 
     const initializeAppMessages = [
@@ -118,7 +117,7 @@ export class MobileApp extends App {
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
-        tectStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -217,7 +216,7 @@ export class MobileApp extends App {
         purpose: component.purpose,
         dependencies: dependenciesWithContent,
         design,
-        techStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -318,7 +317,7 @@ export class MobileApp extends App {
     };
   }
 
-  getTechStackOptions(): MobileTechStackOptions {
-    return this.techStackOptions as MobileTechStackOptions;
+  getTechStackOptions(): IMobileTechStackOptions {
+    return this.techStackOptions as IMobileTechStackOptions;
   }
 }
