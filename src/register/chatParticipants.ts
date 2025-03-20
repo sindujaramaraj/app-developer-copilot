@@ -1,38 +1,37 @@
-import * as vscode from "vscode";
-
+import * as vscode from 'vscode';
 import {
   APP_CONFIG_FILE,
   ENABLE_WEB_APP,
   ENABLE_WEB_STACK_CONFIG,
-} from "../builder/constants";
-import { TelemetryService } from "../service/telemetry/telemetry";
-import { readAppConfigFromFile } from "../builder/utils/appconfigHelper";
-import { runExpoProject } from "../builder/terminalHelper";
-import { MobileTechStackWebviewProvider } from "../webview/mobileTechStackWebview";
-import { getDefaultMobileTechStack } from "../builder/mobile/mobileTechStack";
-import { MobileApp } from "../builder/mobile/mobileApp";
-import { FileParser } from "../builder/utils/fileParser";
-import { LanguageModelService } from "../service/languageModel";
-import { StreamHandlerService } from "../service/streamHandler";
-import { WebApp } from "../builder/web/webApp";
+} from '../builder/constants';
+import { TelemetryService } from '../service/telemetry/telemetry';
+import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
+import { runExpoProject } from '../builder/terminalHelper';
+import { MobileTechStackWebviewProvider } from '../webview/mobileTechStackWebview';
+import { getDefaultMobileTechStack } from '../builder/mobile/mobileTechStack';
+import { MobileApp } from '../builder/mobile/mobileApp';
+import { FileUtil } from '../builder/utils/fileUtil';
+import { LanguageModelService } from '../service/languageModel';
+import { StreamHandlerService } from '../service/streamHandler';
+import { WebApp } from '../builder/web/webApp';
 import {
   getDefaultWebTechStack,
   getPromptForWebStack,
-} from "../builder/web/webTechStack";
-import { WebTechStackWebviewProvider } from "../webview/webTechStackWebview";
-import { Backend } from "../builder/backend/serviceStack";
-import { IGenericStack } from "../builder/types";
-import { SupabaseService } from "../builder/backend/supabase/service";
+} from '../builder/web/webTechStack';
+import { WebTechStackWebviewProvider } from '../webview/webTechStackWebview';
+import { Backend } from '../builder/backend/serviceStack';
+import { IGenericStack } from '../builder/types';
+import { SupabaseService } from '../builder/backend/supabase/service';
 import {
   clearSupabaseTokens,
   connectToSupabase,
   isConnectedToSupabase,
-} from "../builder/backend/supabase/oauth";
+} from '../builder/backend/supabase/oauth';
 
 enum ChatCommands {
-  Create = "create",
-  Run = "run",
-  Help = "help",
+  Create = 'create',
+  Run = 'run',
+  Help = 'help',
 }
 
 export function registerChatParticipants(context: vscode.ExtensionContext) {
@@ -54,10 +53,10 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
-        stream.markdown("Enter a valid prompt");
+        stream.markdown('Enter a valid prompt');
         return {
           errorDetails: {
-            message: "Enter a valid prompt",
+            message: 'Enter a valid prompt',
           },
         };
       }
@@ -70,7 +69,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       // Handle create mobile app
       return await handleCreateMobileApp(
         request.prompt,
-        "chat",
+        'chat',
         modelService,
         streamService,
         telemetry,
@@ -79,9 +78,9 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       return await handleRunMobileApp(stream, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
-        telemetry.trackChatInteraction("mobile.help", {});
+        telemetry.trackChatInteraction('mobile.help', {});
       } else {
-        telemetry.trackChatInteraction("mobile.general", {
+        telemetry.trackChatInteraction('mobile.general', {
           input: request.prompt,
         });
       }
@@ -89,18 +88,18 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         `Mobile App Developer agent is designed to create mobile apps. To create a mobile app, type \`@app-developer-mobile /create\` and follow the prompts. To run the app, type \`@app-developer-mobile /run.\``,
       );
       return {
-        metadata: { command: "help" },
+        metadata: { command: 'help' },
       };
     }
   };
 
   const mobileAppDeveloper = vscode.chat.createChatParticipant(
-    "app-developer.mobile",
+    'app-developer.mobile',
     mobileAppHanlder,
   );
   mobileAppDeveloper.iconPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "media/icon.jpeg",
+    'media/icon.jpeg',
   );
   mobileAppDeveloper.followupProvider = getFollowUpProvider();
   context.subscriptions.push(mobileAppDeveloper);
@@ -118,10 +117,10 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
-        stream.markdown("Enter a valid prompt");
+        stream.markdown('Enter a valid prompt');
         return {
           errorDetails: {
-            message: "Enter a valid prompt",
+            message: 'Enter a valid prompt',
           },
         };
       }
@@ -135,7 +134,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       return await handleCreateWebApp(
         context,
         request.prompt,
-        "chat",
+        'chat',
         modelService,
         streamService,
         telemetry,
@@ -144,9 +143,9 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       return await handleRunMobileApp(stream, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
-        telemetry.trackChatInteraction("web.help", {});
+        telemetry.trackChatInteraction('web.help', {});
       } else {
-        telemetry.trackChatInteraction("web.general", {
+        telemetry.trackChatInteraction('web.general', {
           input: request.prompt,
         });
       }
@@ -154,18 +153,18 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         `Web App Developer agent is designed to create web apps. To create a web app, type \`@app-developer-web /create\` and follow the prompts. To run the app, type \`@app-developer-web /run.\``,
       );
       return {
-        metadata: { command: "help" },
+        metadata: { command: 'help' },
       };
     }
   };
 
   const webAppDeveloper = vscode.chat.createChatParticipant(
-    "app-developer.web",
+    'app-developer.web',
     webAppHandler,
   );
   webAppDeveloper.iconPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "media/icon.jpeg",
+    'media/icon.jpeg',
   );
   webAppDeveloper.followupProvider = getFollowUpProvider();
   context.subscriptions.push(webAppDeveloper);
@@ -173,28 +172,28 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
 
 export async function handleCreateMobileApp(
   userInput: string,
-  source: "chat" | "command",
+  source: 'chat' | 'command',
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
 ) {
-  telemetry.trackChatInteraction("mobile.create", {});
-  console.log("MobileBuilder: Create command called");
+  telemetry.trackChatInteraction('mobile.create', {});
+  console.log('MobileBuilder: Create command called');
   let error: any;
   let app = null;
   const startTime = Date.now();
 
   // Get tech stack options
-  streamService.progress("Waiting for tech stack options input");
+  streamService.progress('Waiting for tech stack options input');
   let techStackOptions = await MobileTechStackWebviewProvider.createOrShow();
   if (!techStackOptions) {
     techStackOptions = getDefaultMobileTechStack();
     streamService.message(
-      "Using default tech stack options: " + JSON.stringify(techStackOptions),
+      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
     );
   } else {
     streamService.message(
-      "Chosen tech stack options: " + JSON.stringify(techStackOptions),
+      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
     );
     // Merge with default stack options
     techStackOptions = {
@@ -217,7 +216,7 @@ export async function handleCreateMobileApp(
         input: userInput,
         success: true,
         source,
-        appType: "mobile",
+        appType: 'mobile',
         ...modelService.getModelConfig(),
       },
       {
@@ -232,10 +231,10 @@ export async function handleCreateMobileApp(
         input: userInput,
         success: false,
         source,
-        appType: "mobile",
+        appType: 'mobile',
         error: error,
         errorMessage: error.message,
-        errorReason: "execution_error",
+        errorReason: 'execution_error',
         ...modelService.getModelConfig(),
       },
       {
@@ -249,10 +248,10 @@ export async function handleCreateMobileApp(
   return {
     errorDetails: error
       ? {
-        message: error.message,
-      }
+          message: error.message,
+        }
       : undefined,
-    metadata: { command: "create" },
+    metadata: { command: 'create' },
   };
 }
 
@@ -260,20 +259,20 @@ async function handleRunMobileApp(
   stream: vscode.ChatResponseStream,
   telemetry: TelemetryService,
 ) {
-  telemetry.trackChatInteraction("mobile.run");
+  telemetry.trackChatInteraction('mobile.run');
   const startTime = Date.now();
 
   try {
-    const workspaceFolder = await FileParser.getWorkspaceFolder();
+    const workspaceFolder = await FileUtil.getWorkspaceFolder();
     if (!workspaceFolder) {
-      stream.markdown("No workspace folder selected");
+      stream.markdown('No workspace folder selected');
       telemetry.trackError(
-        "mobile.run",
-        "mobile",
-        "chat",
+        'mobile.run',
+        'mobile',
+        'chat',
         undefined,
         {
-          error: "no_workspace_folder",
+          error: 'no_workspace_folder',
         },
         {
           duration: Date.now() - startTime,
@@ -281,22 +280,22 @@ async function handleRunMobileApp(
       );
       return {
         errorDetails: {
-          message: "No workspace folder selected",
+          message: 'No workspace folder selected',
         },
-        metadata: { command: "run" },
+        metadata: { command: 'run' },
       };
     }
 
     const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
     if (files.length === 0) {
-      stream.markdown("Not able to locate a appdev.json file");
+      stream.markdown('Not able to locate a appdev.json file');
       telemetry.trackError(
-        "mobile.run",
-        "mobile",
-        "chat",
+        'mobile.run',
+        'mobile',
+        'chat',
         undefined,
         {
-          error: "no_app_json",
+          error: 'no_app_json',
         },
         {
           duration: Date.now() - startTime,
@@ -304,9 +303,9 @@ async function handleRunMobileApp(
       );
       return {
         errorDetails: {
-          message: "No app.json found",
+          message: 'No app.json found',
         },
-        metadata: { command: "run" },
+        metadata: { command: 'run' },
       };
     }
 
@@ -316,21 +315,21 @@ async function handleRunMobileApp(
     stream.markdown(`Running app ${appName}`);
     runExpoProject(appName);
 
-    telemetry.trackChatInteraction("mobile.run", {
+    telemetry.trackChatInteraction('mobile.run', {
       success: String(true),
       duration: String(Date.now() - startTime),
     });
 
     return {
-      metadata: { command: "run" },
+      metadata: { command: 'run' },
     };
   } catch (error) {
-    telemetry.trackError("mobile.run", "mobile", "chat", error as Error);
+    telemetry.trackError('mobile.run', 'mobile', 'chat', error as Error);
     return {
       errorDetails: {
         message: (error as Error).message,
       },
-      metadata: { command: "run" },
+      metadata: { command: 'run' },
     };
   }
 }
@@ -345,24 +344,24 @@ function getFollowUpProvider() {
       if (!result.metadata) {
         return [];
       }
-      if (result.metadata.command === "create") {
+      if (result.metadata.command === 'create') {
         return [
           {
-            prompt: "Run the app",
-            command: "run",
+            prompt: 'Run the app',
+            command: 'run',
           } satisfies vscode.ChatFollowup,
         ];
-      } else if (result.metadata.command === "help") {
+      } else if (result.metadata.command === 'help') {
         return [
           {
-            prompt: "Create a notes app",
-            label: "Try a sample to create a notes app",
-            command: "create",
+            prompt: 'Create a notes app',
+            label: 'Try a sample to create a notes app',
+            command: 'create',
           } satisfies vscode.ChatFollowup,
           {
-            label: "If you have already created an app, run it",
-            prompt: "Run app",
-            command: "run",
+            label: 'If you have already created an app, run it',
+            prompt: 'Run app',
+            command: 'run',
           } satisfies vscode.ChatFollowup,
         ];
       }
@@ -374,19 +373,19 @@ function getFollowUpProvider() {
 export async function handleCreateWebApp(
   context: vscode.ExtensionContext,
   userInput: string,
-  source: "chat" | "command",
+  source: 'chat' | 'command',
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
 ) {
-  telemetry.trackChatInteraction("web.create", {});
-  console.log("WebBuilder: Create command called");
+  telemetry.trackChatInteraction('web.create', {});
+  console.log('WebBuilder: Create command called');
   let error: any;
   let app = null;
   const startTime = Date.now();
 
   // Get tech stack options
-  streamService.progress("Waiting for tech stack options input");
+  streamService.progress('Waiting for tech stack options input');
   let techStackOptions;
   if (ENABLE_WEB_STACK_CONFIG) {
     techStackOptions = await WebTechStackWebviewProvider.createOrShow();
@@ -394,18 +393,18 @@ export async function handleCreateWebApp(
   if (!techStackOptions) {
     techStackOptions = getDefaultWebTechStack();
     streamService.message(
-      "Using default tech stack options: " +
+      'Using default tech stack options: ' +
         getPromptForWebStack(techStackOptions),
     );
   } else {
-    streamService.message(
-      "Chosen tech stack options: " + getPromptForWebStack(techStackOptions),
-    );
     // Merge with default stack options
     techStackOptions = {
       ...getDefaultWebTechStack(),
       ...techStackOptions,
     };
+    streamService.message(
+      'Chosen tech stack options: ' + getPromptForWebStack(techStackOptions),
+    );
   }
 
   try {
@@ -424,7 +423,7 @@ export async function handleCreateWebApp(
         input: userInput,
         success: true,
         source,
-        appType: "web",
+        appType: 'web',
         ...modelService.getModelConfig(),
       },
       {
@@ -439,10 +438,10 @@ export async function handleCreateWebApp(
         input: userInput,
         success: false,
         source,
-        appType: "web",
+        appType: 'web',
         error: error,
         errorMessage: error.message,
-        errorReason: "execution_error",
+        errorReason: 'execution_error',
         ...modelService.getModelConfig(),
       },
       {
@@ -456,10 +455,10 @@ export async function handleCreateWebApp(
   return {
     errorDetails: error
       ? {
-        message: error.message,
-      }
+          message: error.message,
+        }
       : undefined,
-    metadata: { command: "create" },
+    metadata: { command: 'create' },
   };
 }
 
@@ -468,33 +467,34 @@ async function getBackend(
   techStackOptions: IGenericStack,
 ): Promise<SupabaseService | null> {
   const backend = techStackOptions.backend;
+
   if (backend === Backend.SUPABASE) {
     try {
       const isConnected = await isConnectedToSupabase(context);
       if (!isConnected) {
-        console.log("Not connected to Supabase. Will try connecting first.");
+        console.log('Not connected to Supabase. Will try connecting first.');
         await connectToSupabase(context);
       }
       const supabaseService = await SupabaseService.getInstance(context);
       if (!supabaseService) {
-        throw new Error("Failed to get instance of Supabase service");
+        throw new Error('Failed to get instance of Supabase service');
       }
       return supabaseService;
     } catch (error) {
-      console.error("Failed to get Supabase service", error);
+      console.error('Failed to get Supabase service', error);
 
       // Try again
       const options: vscode.MessageOptions = {
-        detail: "Message Description",
+        detail: 'Message Description',
         modal: true,
       };
       const userResponse = await vscode.window.showInformationMessage(
-        "Failed to get Supabase service. Would you like to try connecting to Supabase again?",
+        'Failed to get Supabase service. Would you like to try connecting to Supabase again?',
         options,
-        "Yes",
-        "No",
+        'Yes',
+        'No',
       );
-      if (userResponse === "Yes") {
+      if (userResponse === 'Yes') {
         // Clear supabase tokens. Caution: This will clear all tokens
         await clearSupabaseTokens(context);
         return getBackend(context, techStackOptions);

@@ -253,6 +253,7 @@
     "ai": "^4.0.18",
     "client-oauth2": "^4.3.3",
     "openai": "^4.76.3",
+    "repomix": "^0.3.0",
     "supabase": "^2.19.5",
     "supabase-management-js": "^1.0.0"
   }

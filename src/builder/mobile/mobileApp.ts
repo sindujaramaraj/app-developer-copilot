@@ -16,7 +16,7 @@ import {
   ZInitializeAppResponseType,
 } from '../types';
 import { createExpoApp, installNPMDependencies } from '../terminalHelper';
-import { FileParser } from '../utils/fileParser';
+import { FileUtil } from '../utils/fileUtil';
 import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
@@ -146,7 +146,7 @@ export class MobileApp extends App {
     if (!isMermaidMarkdown(designDiagram)) {
       designDiagram = convertToMermaidMarkdown(designDiagram);
     }
-    await FileParser.parseAndCreateFiles(
+    await FileUtil.parseAndCreateFiles(
       [
         {
           path: APP_ARCHITECTURE_DIAGRAM_FILE,
@@ -292,7 +292,7 @@ export class MobileApp extends App {
       //   }
       // }
       // Create files
-      await FileParser.parseAndCreateFiles(files, appName);
+      await FileUtil.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies
       this.logProgress('Installing npm dependencies');

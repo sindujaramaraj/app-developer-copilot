@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { APP_CONFIG_FILE, APP_VERISON } from '../constants';
-import { FileParser } from './fileParser';
+import { FileUtil } from './fileUtil';
 import { LLMCodeModel, LLMProvider } from '../../service/types';
 import { IMobileTechStackOptions } from '../mobile/mobileTechStack';
 import { IWebTechStackOptions } from '../web/webTechStack';
@@ -36,7 +36,7 @@ export async function createAppConfig(
     version: APP_VERISON,
   };
   const content = JSON.stringify(appManifest, null, 2);
-  await FileParser.parseAndCreateFiles(
+  await FileUtil.parseAndCreateFiles(
     [
       {
         path: APP_CONFIG_FILE,
@@ -48,12 +48,12 @@ export async function createAppConfig(
 }
 
 export async function getAppConfig(appName: string): Promise<AppConfig> {
-  const workspaceFolder = await FileParser.getWorkspaceFolder();
+  const workspaceFolder = await FileUtil.getWorkspaceFolder();
   if (!workspaceFolder) {
     throw new Error('No workspace folder selected');
   }
   try {
-    const content = await FileParser.readFile(
+    const content = await FileUtil.readFile(
       path.join(workspaceFolder, appName, APP_CONFIG_FILE),
     );
     return JSON.parse(content);
@@ -66,6 +66,6 @@ export async function getAppConfig(appName: string): Promise<AppConfig> {
 export async function readAppConfigFromFile(
   appConfigFilePath: string,
 ): Promise<AppConfig> {
-  const content = await FileParser.readFile(appConfigFilePath);
+  const content = await FileUtil.readFile(appConfigFilePath);
   return JSON.parse(content);
 }

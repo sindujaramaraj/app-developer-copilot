@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 import {
   IGenericStack,
   ZCodeComponentType,
@@ -7,13 +7,13 @@ import {
   ZInitializeAppResponseType,
   ZInitializeAppWithBackendResponseType,
   ZResponseBaseType,
-} from "./types";
-import { IModelMessage, LanguageModelService } from "../service/languageModel";
-import { StreamHandlerService } from "../service/streamHandler";
-import { FileParser } from "./utils/fileParser";
-import { APP_CONVERSATION_FILE, SUPA_TYPES_FILE } from "./constants";
-import { Backend } from "./backend/serviceStack";
-import { SupabaseService } from "./backend/supabase/service";
+} from './types';
+import { IModelMessage, LanguageModelService } from '../service/languageModel';
+import { StreamHandlerService } from '../service/streamHandler';
+import { FileUtil } from './utils/fileUtil';
+import { APP_CONVERSATION_FILE, SUPA_TYPES_FILE } from './constants';
+import { Backend } from './backend/serviceStack';
+import { SupabaseService } from './backend/supabase/service';
 
 export enum AppStage {
   None,
@@ -42,8 +42,8 @@ export interface IAppStageInput<T extends ZResponseBaseType> {
  */
 
 export class App {
-  protected appName: string = "";
-  protected appTitle: string = "";
+  protected appName: string = '';
+  protected appTitle: string = '';
   protected languageModelService: LanguageModelService;
   protected streamService: StreamHandlerService;
   protected backendService: SupabaseService | null;
@@ -64,7 +64,7 @@ export class App {
   ) {
     // Validate backend
     if (techStackOptions.backend === Backend.SUPABASE && !backendService) {
-      throw new Error("Supabase client is required for backend");
+      throw new Error('Supabase client is required for backend');
     }
 
     this.languageModelService = languageModelService;
@@ -83,17 +83,17 @@ export class App {
 
   async execute(): Promise<void> {
     if (this.isExecuting) {
-      console.warn("Execution already in progress");
+      console.warn('Execution already in progress');
       return;
     }
     const stages = this.getStages();
     // check if current stage is the last stage
     if (this.stage === stages[stages.length - 1]) {
-      console.warn("Execution already completed");
+      console.warn('Execution already completed');
       return;
     }
     if (this.stage === AppStage.Cancelled) {
-      console.warn("Execution cancelled");
+      console.warn('Execution cancelled');
       return;
     }
     if (this.stage === AppStage.None) {
@@ -103,7 +103,7 @@ export class App {
     try {
       const success = await this.precheck();
       if (!success) {
-        console.error("Precheck failed");
+        console.error('Precheck failed');
         this.isExecuting = false;
         this.setStage(AppStage.Cancelled);
         return;
@@ -126,7 +126,7 @@ export class App {
             if (!stageOutput) {
               this.setStage(AppStage.Cancelled);
               this.isExecuting = false;
-              throw new Error("No previous output to generate code");
+              throw new Error('No previous output to generate code');
             }
             currentOutput = await this.generateCode({
               previousMessages: stageOutput.messages,
@@ -140,10 +140,10 @@ export class App {
         stageOutput = currentOutput;
       }
       // Handle completion
-      this.streamService.message("App creation completed");
+      this.streamService.message('App creation completed');
     } catch (error: any) {
-      console.error("Error executing app:", error);
-      this.logMessage("Error creating app");
+      console.error('Error executing app:', error);
+      this.logMessage('Error creating app');
       error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
       throw error;
@@ -151,7 +151,7 @@ export class App {
       this.isExecuting = false;
       this.streamService.close();
       // store conversations in a file
-      await FileParser.parseAndCreateFiles(
+      await FileUtil.parseAndCreateFiles(
         [
           {
             content: JSON.stringify(this.conversations, null, 2),
@@ -166,14 +166,14 @@ export class App {
 
   precheck(): Promise<boolean> {
     // Check for pre-requisites
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   initialize(
     _userMessage: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
     // Initialize the application
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   // design(
@@ -184,10 +184,8 @@ export class App {
   //   throw new Error('Method not implemented.');
   // }
 
-  async handleBackend(
-    createAppResponseObj: ZInitializeAppResponseType,
-  ) {
-    this.logProgress("Setting up backend");
+  async handleBackend(createAppResponseObj: ZInitializeAppResponseType) {
+    this.logProgress('Setting up backend');
     if (
       this.getTechStackOptions().backend === Backend.SUPABASE &&
       this.backendService &&
@@ -200,70 +198,69 @@ export class App {
         // Select organization to create project in
         const orgs = await this.backendService.getOrgs();
         if (!orgs || orgs.length === 0) {
-          throw new Error("No organizations found in supabase");
+          throw new Error('No organizations found in supabase');
         }
 
-        this.logMessage("Select organization to create project in");
+        this.logMessage('Select organization to create project in');
         const selectedOrg = await vscode.window.showQuickPick(
-          orgs.map((org) => org.id + "-" + org.name),
+          orgs.map((org) => org.id + '-' + org.name),
           {
-            placeHolder: "Select organization to create project in",
+            placeHolder: 'Select organization to create project in',
           },
         );
         if (!selectedOrg) {
-          throw new Error("Organization not selected");
+          throw new Error('Organization not selected');
         }
-        const selectedOrgId = selectedOrg.split("-")[0];
+        const selectedOrgId = selectedOrg.split('-')[0];
         // Create project in the selected org
-        this.logProgress("Creating project in supabase");
-        const projectName = createAppResponseObj.name + "-backend";
+        this.logProgress('Creating project in supabase');
+        const projectName = createAppResponseObj.name + '-backend';
         const newProject = await this.backendService.createProject(
           projectName,
-          "db123456", // TODO: use a random password
+          'db123456', // TODO: use a random password
           selectedOrgId,
         );
         if (!newProject) {
-          this.logMessage("Failed to create project in supabase");
-          throw new Error("Failed to create project in supabase");
+          this.logMessage('Failed to create project in supabase');
+          throw new Error('Failed to create project in supabase');
         }
         this.logMessage(`Project ${newProject.name} created in supabase`);
 
         const projectId = newProject.id;
 
         // Create tables
-        this.logProgress("Creating tables in supabase");
+        this.logProgress('Creating tables in supabase');
         await this.backendService.runQuery(
           projectId,
           createAppResponseObj.sqlScripts,
         );
-        this.logMessage("Tables created in supabase");
+        this.logMessage('Tables created in supabase');
 
         // Generate types
-        this.logProgress("Generating types for project");
-        const generatedTypes = await this.backendService
-          .generateTypesForProject(
-            projectId,
-          );
+        this.logProgress('Generating types for project');
+        const generatedTypes =
+          await this.backendService.generateTypesForProject(projectId);
         // Get keys
         const anonKey = await this.backendService.getProjectAnonKey(projectId);
         const projectUrl = this.backendService.getProjectUrl(projectId);
         // Create env.local file with keys
         const envLocalContent = `NEXT_PUBLIC_SUPABASE_URL=${projectUrl}
 NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
-        this.logMessage("Types generated for project");
+        this.logMessage('Types generated for project');
         if (
-          generatedTypes && generatedTypes.types &&
+          generatedTypes &&
+          generatedTypes.types &&
           generatedTypes.types.length > 0
         ) {
           // Save types and api keys to file
-          FileParser.parseAndCreateFiles(
+          FileUtil.parseAndCreateFiles(
             [
               {
                 path: SUPA_TYPES_FILE,
                 content: generatedTypes.types,
               },
               {
-                path: ".env.local",
+                path: '.env.local',
                 content: envLocalContent,
               },
             ],
@@ -271,39 +268,65 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
           );
         } else {
           this.logMessage(
-            "No types generated for project. Try generating them manually",
+            'No types generated for project. Try generating them manually',
           );
         }
       } else {
         this.logMessage(
-          "Not able to connect to supabase. Proceeding without backend",
+          'Not able to connect to supabase. Proceeding without backend',
         );
       }
     } else {
-      this.logMessage("No backend setup required");
+      this.logMessage('No backend setup required');
     }
+  }
+
+  async getPredefinedDependenciesForCodeGeneration() {
+    let predefinedDependencies: ZGenerateCodeForComponentResponseType[] = [];
+    if (this.getTechStackOptions().backend === Backend.SUPABASE) {
+      // Add generated types to the dependencies
+      const workspaceFolder = await FileUtil.getWorkspaceFolder();
+      if (workspaceFolder) {
+        const typesFilePath = vscode.Uri.joinPath(
+          vscode.Uri.file(workspaceFolder),
+          this.getAppName(),
+          SUPA_TYPES_FILE,
+        );
+        const typesFileContent = await FileUtil.readFile(typesFilePath.fsPath);
+        predefinedDependencies.push({
+          componentName: 'database',
+          filePath: SUPA_TYPES_FILE,
+          content: typesFileContent,
+          libraries: [],
+          summary: 'Generated types for the database',
+        });
+      } else {
+        console.error('WebBuilder: Error getting workspace folder');
+      }
+    }
+    return predefinedDependencies;
   }
 
   generateCode(
     _input: IAppStageInput<ZInitializeAppResponseType>,
   ): Promise<IAppStageOutput<ZGenerateCodeResponseType>> {
     // Generate code
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   build() {
     // Check for errors
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   run() {
     // Run the application
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   deploy() {
     // Deploy the application
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   setAppName(appName: string) {
@@ -334,7 +357,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
     this.logMessage(`Let's call the app: ${createAppResponseObj.title}`);
     this.logMessages(
       createAppResponseObj.features,
-      "App will have the following features:",
+      'App will have the following features:',
     );
   }
 
@@ -394,7 +417,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
           `Component ${component.name} uses asset: ${asset.filePath}. We are not able to ensure asset generation right now. Please make sure to fix the asset before running the app.`,
         );
       }
-      await FileParser.parseAndCreateFiles(files, appName, true);
+      await FileUtil.parseAndCreateFiles(files, appName, true);
       // Update generated files count
       this.incrementGeneratedFilesCount();
     }

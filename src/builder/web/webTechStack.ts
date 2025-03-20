@@ -99,7 +99,9 @@ export const getWebAppCreationCommands = (
   switch (stack.uiLibrary) {
     case UILibrary.SHADCN:
       commands.push(`cd ${appName}`);
-      commands.push('npx shadcn@latest init --yes -d'); // init shadcn
+      commands.push(
+        'npx shadcn@latest init --yes --defaults --base-color neutral',
+      ); // init shadcn
       commands.push('npx shadcn@latest add --all'); // add all components
       break;
   }

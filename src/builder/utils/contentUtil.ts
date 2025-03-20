@@ -1,5 +1,3 @@
-import { ICodeComponent } from '../types';
-
 const MAX_RETRY_COUNT = 1;
 
 export function isMarkdown(response: string): boolean {

@@ -84,10 +84,6 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   design: z.string().describe('Design of the app as a mermaid diagram'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
   sqlScripts: z.string().optional().describe('SQL scripts for the app'),
-  commands: z
-    .array(z.string())
-    .optional()
-    .describe('Commands to run in the terminal'),
 });
 
 export type ZInitializeAppResponseType = z.infer<

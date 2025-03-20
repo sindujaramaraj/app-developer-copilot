@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { pack } from 'repomix';
+import repomixConfig from './repomix.config';
 import {
   extractCodeFromMarkdown,
   isCodeBlock,
@@ -16,7 +18,7 @@ export interface IFile {
   content: string;
 }
 
-export class FileParser {
+export class FileUtil {
   /**
    * Create or replace files in the workspace based on the response
    * @param files List of files to create/replace
@@ -31,7 +33,7 @@ export class FileParser {
   ): Promise<void> {
     // Get workspace directory if not provided
     if (!baseDir) {
-      const workspaceFolder = await FileParser.getWorkspaceFolder();
+      const workspaceFolder = await FileUtil.getWorkspaceFolder();
       if (!workspaceFolder) {
         throw new Error('No workspace folder selected');
       }
@@ -46,7 +48,7 @@ export class FileParser {
         console.info(`Converting ${file.path} to ${newPath}`);
         file.path = newPath;
       }
-      await FileParser.createFile(baseDir, file, isMedia);
+      await FileUtil.createFile(baseDir, file, isMedia);
     }
   }
 
@@ -148,5 +150,18 @@ export class FileParser {
         },
       );
     });
+  }
+
+  static async packMyCode(projectFolder: string) {
+    const wsFolder = await FileUtil.getWorkspaceFolder();
+    if (!wsFolder) {
+      throw new Error('No workspace folder selected');
+    }
+    const projectPath = vscode.Uri.joinPath(
+      vscode.Uri.file(wsFolder),
+      projectFolder,
+    ).fsPath;
+
+    return await pack([projectPath], repomixConfig as any);
   }
 }
