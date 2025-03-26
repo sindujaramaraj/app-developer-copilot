@@ -23,11 +23,7 @@ import {
   runCommandWithPromise,
 } from '../terminalHelper';
 import { FileUtil, IFile } from '../utils/fileUtil';
-import {
-  APP_ARCHITECTURE_DIAGRAM_FILE,
-  SUPA_SQL_FILE,
-  SUPA_TYPES_FILE,
-} from '../constants';
+import { APP_ARCHITECTURE_DIAGRAM_FILE, SUPA_SQL_FILE } from '../constants';
 import { checkNodeInstallation } from '../utils/nodeUtil';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
@@ -35,12 +31,6 @@ import {
   getWebAppCreationCommands,
   IWebTechStackOptions,
 } from './webTechStack';
-
-const WEB_BUILDER_INSTRUCTION = `You are an expert at building full stack web applications using nextjs.
-You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
-User will first request app design and then code generation.
-If the user asks a non-programming question, politely decline to respond.`;
 
 /**
  * Web app builder
@@ -80,16 +70,15 @@ export class WebApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a web app');
 
-    const promptClass = this.getTechStackOptions().backend
+    const promptClass = this.hasBacked()
       ? InitializeWebAppWithBackendPrompt
       : InitializeWebAppPrompt;
 
-    const responseSchema = this.getTechStackOptions().backend
+    const responseSchema = this.hasBacked()
       ? ZInitializeAppWithBackendResponseSchema
       : ZInitializeAppResponseSchema;
 
     const initializeAppPrompt = new promptClass({
-      userMessage: userMessage,
       techStack: this.getTechStackOptions(),
     });
 

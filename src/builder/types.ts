@@ -66,7 +66,6 @@ export const ZCodeComponentSchema = z.object({
 export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
 export interface IInitializeAppInput {
-  userMessage: string;
   techStack: IWebTechStackOptions | IMobileTechStackOptions;
 }
 

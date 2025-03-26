@@ -70,14 +70,13 @@ export class MobileApp extends App {
     this.logMessage('Lets start building a mobile app');
 
     const initializeAppPrompt = new InitializeMobileAppPrompt({
-      userMessage: userMessage,
       techStack: this.getTechStackOptions(),
     });
 
     const initializeAppMessages = [
-      this.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
+      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
       // Add user's message
-      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
+      this.createUserMessage(`Create a mobile app for: ${userMessage}`),
     ];
 
     // send the request

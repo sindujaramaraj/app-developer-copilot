@@ -56,7 +56,12 @@ export class InitializeMobileAppPrompt extends PromptBase<
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-    Create app for: ${input.userMessage}.
+    You are an expert at building mobile apps using react native and expo based on the requested tech stack.
+    You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
+    Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
+    User will first request app design and then code generation.
+    If the user asks a non-programming question, politely decline to respond.
+    
     First think through the problem and design the mobile app. Use expo-router for navigation.
     The app will be initialized using 'npx create-expo-app' and uses expo-router with typescript template.
     Tech stack: ${getPromptForMobileStack(
@@ -105,17 +110,22 @@ export class InitializeWebAppPrompt extends PromptBase<
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-      Create app for: ${input.userMessage}.
-      First think through the problem and design the web app.
-      The webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
-      Tech stack: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
-      First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
-      Then to implement the app, think through and create components for the app.
-      Make sure there are no circular dependencies between components.
-      Make sure the app uses the correct framework and the file path of the components are consistent.
-      Use default theme provider from the ui library if available and dont create a theme provider component unless necessary.
-      Do not create too many components. Keep it simple and functional.
-      Include necessary commands in the response to install dependencies. Commands must run without user intervention.`;
+      You are an expert at building web applications. For simplicity, we are not using a backend for this app.
+      Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
+      You will first design the app components that will enable the functionality of the app. Represent the design as a mermaid diagram. Do not create too many components. Keep it simple and functional.
+      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+
+      Assume the webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
+      This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
+
+      Things to keep in mind when designing the app:
+      1. Code for components will be requested later so all components must be listed in the response.
+      2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
+      3. There should be no circular dependencies between components.
+      4. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
+      
+      User will first request design for the app and request code the components one by one sequentially.
+      If the user asks a non-programming question, politely decline to respond.`;
 
     super(input, instructions, ZInitializeAppResponseSchema);
   }
@@ -155,6 +165,7 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image or sound, do not generate the media. Just use placeholder text and include the media as asset in the response.
     If the code uses any external libraries, include the libraries in the response so they can be installed later.
+    Specify "use client" directive in the code if the component is a client component.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
     Code for dependent components:
     ${getPromptForDependentCode(input.dependencies)}.`;

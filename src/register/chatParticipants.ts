@@ -410,6 +410,9 @@ export async function handleCreateWebApp(
   try {
     // Check for backend
     const backend = await getBackend(context, techStackOptions);
+    if (techStackOptions.backend !== Backend.None) {
+      streamService.message('Continuing app creation without backend');
+    }
     app = new WebApp(
       modelService,
       streamService,
@@ -470,6 +473,7 @@ async function getBackend(
 
   if (backend === Backend.SUPABASE) {
     try {
+      // await clearSupabaseTokens(context);
       const isConnected = await isConnectedToSupabase(context);
       if (!isConnected) {
         console.log('Not connected to Supabase. Will try connecting first.');
@@ -496,6 +500,7 @@ async function getBackend(
       );
       if (userResponse === 'Yes') {
         // Clear supabase tokens. Caution: This will clear all tokens
+        console.log('Clearing Supabase tokens before retrying');
         await clearSupabaseTokens(context);
         return getBackend(context, techStackOptions);
       } else {

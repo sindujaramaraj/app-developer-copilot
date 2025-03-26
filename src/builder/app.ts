@@ -62,11 +62,6 @@ export class App {
     techStackOptions: IGenericStack,
     backendService: SupabaseService | null,
   ) {
-    // Validate backend
-    if (techStackOptions.backend === Backend.SUPABASE && !backendService) {
-      throw new Error('Supabase client is required for backend');
-    }
-
     this.languageModelService = languageModelService;
     this.streamService = streamService;
     this.initialInput = initialInput;
@@ -283,7 +278,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
 
   async getPredefinedDependenciesForCodeGeneration() {
     let predefinedDependencies: ZGenerateCodeForComponentResponseType[] = [];
-    if (this.getTechStackOptions().backend === Backend.SUPABASE) {
+    if (this.hasBacked()) {
       // Add generated types to the dependencies
       const workspaceFolder = await FileUtil.getWorkspaceFolder();
       if (workspaceFolder) {
@@ -351,6 +346,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
 
   getTechStackOptions(): IGenericStack {
     return this.techStackOptions;
+  }
+
+  hasBacked(): boolean {
+    return (
+      this.getTechStackOptions().backend !== Backend.None &&
+      this.backendService !== null
+    );
   }
 
   logInitialResponse(createAppResponseObj: ZInitializeAppResponseType) {
