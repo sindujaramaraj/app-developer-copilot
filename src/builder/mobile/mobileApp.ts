@@ -25,12 +25,6 @@ import {
   IMobileTechStackOptions,
 } from './mobileTechStack';
 
-const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
-You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
-User will first request app design and then code generation.
-If the user asks a non-programming question, politely decline to respond.`;
-
 /**
  * Mobile app builder
  */
@@ -198,15 +192,11 @@ export class MobileApp extends App {
     let componentIndex = 0;
 
     for (const component of sortedComponents) {
-      const dependentComponents = component.dependsOn || [];
-      const dependenciesWithContent = [];
-      // Get dependencies content
-      for (const dependency of dependentComponents) {
-        const dependencyContent = generatedCodeByComponent.get(dependency);
-        if (dependencyContent) {
-          dependenciesWithContent.push(dependencyContent);
-        }
-      }
+      // Use all previously generated code as dependencies
+      const dependenciesWithContent = Array.from(
+        generatedCodeByComponent.values(),
+      );
+
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForMobileComponentPrompt({
         name: component.name,

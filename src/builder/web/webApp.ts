@@ -236,16 +236,9 @@ export class WebApp extends App {
       await this.getPredefinedDependenciesForCodeGeneration();
 
     for (const component of sortedComponents) {
-      const dependentComponents = component.dependsOn || [];
+      // Just include all the previously generated components
       const dependenciesWithContent: ZGenerateCodeForComponentResponseType[] =
-        [];
-      // Get dependencies content
-      for (const dependency of dependentComponents) {
-        const dependencyContent = generatedCodeByComponent.get(dependency);
-        if (dependencyContent) {
-          dependenciesWithContent.push(dependencyContent);
-        }
-      }
+        Array.from(generatedCodeByComponent.values());
 
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForWebComponentPrompt({
