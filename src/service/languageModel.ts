@@ -335,6 +335,7 @@ export async function handleCopilotRequest<T>(
         retryCount + 1,
       );
     }
+    jsonResponse = fixResponseFromModel(jsonResponse);
     // check if response is valid schema
     const validationResult = schema.safeParse(jsonResponse);
     if (validationResult.error) {
@@ -364,4 +365,25 @@ export async function handleCopilotRequest<T>(
       responseObject: responseContent as T,
     };
   }
+}
+
+function fixResponseFromModel(jsonResponse: any): any {
+  // Check if the response is an array
+  if (Array.isArray(jsonResponse)) {
+    // If it's an array, return the first element
+    return jsonResponse[0];
+  }
+  if (jsonResponse && jsonResponse['json_schema']) {
+    // If it has a json_schema property, return the json_schema property
+    // Note: This is a workaround for response received from openai models
+    return jsonResponse['json_schema'];
+  }
+  if (jsonResponse && jsonResponse['schema']) {
+    // If it has a schema property, return the schema property
+    // Note: This is a workaround for response received from openai models
+    return jsonResponse['schema'];
+  }
+
+  // In any other scenario, return the response as is
+  return jsonResponse;
 }

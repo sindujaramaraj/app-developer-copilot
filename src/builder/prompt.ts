@@ -41,9 +41,8 @@ export class PromptBase<TInput, TOutput> {
 
   getResponseFormatPrompt(): string {
     const responseSchema = zodResponseFormat(this.responseSchema, 'json');
-    return `Response must be JSON using the following schema: ${JSON.stringify(
-      responseSchema,
-    )}`;
+    return `I need you to generate a JSON response based on the following schema:
+    ${JSON.stringify(responseSchema)}`;
   }
 
   validateResponse(response: any): TOutput {
