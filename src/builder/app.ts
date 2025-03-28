@@ -136,9 +136,15 @@ export class App {
         stageOutput = currentOutput;
       }
       // Handle completion
-      this.streamService.message('App creation completed');
+      // Check for number of files created
+      if (this.getGeneratedFilesCount() > 0) {
+        this.logMessage('App creation completed');
+      } else {
+        this.logMessage('Something went wrong. No files created');
+        throw new Error('Something went wrong.No files created');
+      }
     } catch (error: any) {
-      console.error('Error executing app:', error);
+      console.error('Error creating app:', error);
       this.logMessage('Error creating app');
       error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
@@ -171,14 +177,6 @@ export class App {
     // Initialize the application
     throw new Error('Method not implemented.');
   }
-
-  // design(
-  //   _input: IAppStageInput<IInitializeAppResponse>,
-  // ): Promise<IAppStageOutput<IAppDesignResponse>> {
-  //   // Generate class diagram
-  //   // Generate projet structure
-  //   throw new Error('Method not implemented.');
-  // }
 
   async handleBackend(createAppResponseObj: ZInitializeAppResponseType) {
     this.logProgress('Setting up backend');
@@ -366,6 +364,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  logError(message: string) {
+    this.streamService.error(message);
   }
 
   logMessages(messages: string[], title?: string) {

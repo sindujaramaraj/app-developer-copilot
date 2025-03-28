@@ -7,8 +7,8 @@ import {
   Storage,
   getDefaultMobileTechStack,
 } from '../builder/mobile/mobileTechStack';
-import { ENABLE_AUTHENTICATION } from '../builder/constants';
-import { AuthenticationMethod } from '../builder/backend/serviceStack';
+import { ENABLE_AUTHENTICATION, ENABLE_BACKEND } from '../builder/constants';
+import { AuthenticationMethod, Backend } from '../builder/backend/serviceStack';
 
 export class MobileTechStackWebviewProvider {
   public static viewType = 'mobileTechStack.webview';
@@ -120,9 +120,24 @@ export class MobileTechStackWebviewProvider {
               )
               .join('')}
           </select>
+
+          ${
+            ENABLE_BACKEND
+              ? `
+                    <label>Backend:</label>
+                    <select id="backend">
+                    ${Object.values(Backend).map(
+                      (value) =>
+                        `<option value="${value}" ${
+                          defaultOptions.backend === value ? 'selected' : ''
+                        }>${value}</option>`,
+                    )}
+                    </select>`
+              : ''
+          }
               
           ${
-            ENABLE_AUTHENTICATION
+            ENABLE_BACKEND && ENABLE_AUTHENTICATION
               ? `
           <label>Authentication:</label>
           <select id="authentication">
@@ -148,10 +163,13 @@ export class MobileTechStackWebviewProvider {
 
             function submit() {
               const authentication = document.getElementById('authentication');
+              const backend = document.getElementById('backend');
+
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 storage: document.getElementById('storage').value,
+                backend: backend ? backend.value : 'none',
                 authentication: authentication ? authentication.value : 'none',
               };
               vscode.postMessage({ type: 'submit', options });

@@ -8,7 +8,10 @@ import { TelemetryService } from '../service/telemetry/telemetry';
 import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
 import { runExpoProject } from '../builder/terminalHelper';
 import { MobileTechStackWebviewProvider } from '../webview/mobileTechStackWebview';
-import { getDefaultMobileTechStack } from '../builder/mobile/mobileTechStack';
+import {
+  getDefaultMobileTechStack,
+  getPromptForMobileStack,
+} from '../builder/mobile/mobileTechStack';
 import { MobileApp } from '../builder/mobile/mobileApp';
 import { FileUtil } from '../builder/utils/fileUtil';
 import { LanguageModelService } from '../service/languageModel';
@@ -189,11 +192,12 @@ export async function handleCreateMobileApp(
   if (!techStackOptions) {
     techStackOptions = getDefaultMobileTechStack();
     streamService.message(
-      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
+      'Using default tech stack options: ' +
+        getPromptForMobileStack(techStackOptions),
     );
   } else {
     streamService.message(
-      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+      'Chosen tech stack options: ' + getPromptForMobileStack(techStackOptions),
     );
     // Merge with default stack options
     techStackOptions = {
@@ -435,7 +439,9 @@ export async function handleCreateWebApp(
         createdFilesCount: app.getGeneratedFilesCount(),
       },
     );
+    console.log('App created successfully');
   } catch (error: any) {
+    console.error('Error creating app', error);
     telemetry.trackAppCreation(
       {
         input: userInput,

@@ -13,6 +13,7 @@ export enum StateManagement {
   ZUSTAND = 'zustand',
   JOTAI = 'jotai',
   RECOIL = 'recoil',
+  NONE = 'none',
 }
 
 export enum UILibrary {
@@ -147,3 +148,24 @@ export const getPromptForWebStack = (stack: IWebTechStackOptions): string => {
   `;
   return prompt;
 };
+
+export function getBestPracticesPromptForWebFramework(
+  framework: WebFramework,
+): string {
+  switch (framework) {
+    case WebFramework.NEXT:
+      return `Next.js is a React framework that enables functionality like server-side rendering and generating static sites.\
+      Keep in mind the following best practices:\
+      - Use server components for static content.\
+      - Server components cannot use React hooks or client-side interactivity.\
+      - Server components CAN import client components
+      - Client components must have 'use client' directive at the top of the file.\
+      - Client components can use React hooks and event handlers.\
+      - Client components CANNOT import server components.\
+      - Keep components server-side by default.\
+      - Only use client components when absolutely necessary.\
+      `;
+    case WebFramework.REACT:
+      return `React is a JavaScript library for building user interfaces`;
+  }
+}

@@ -8,7 +8,7 @@ import {
   IWebTechStackOptions,
 } from '../builder/web/webTechStack';
 import { AuthenticationMethod, Backend } from '../builder/backend/serviceStack';
-import { ENABLE_AUTHENTICATION } from '../builder/constants';
+import { ENABLE_AUTHENTICATION, ENABLE_BACKEND } from '../builder/constants';
 
 export class WebTechStackWebviewProvider {
   public static viewType = 'webTechStack.webview';
@@ -125,7 +125,10 @@ export class WebTechStackWebviewProvider {
             )
             .join('')}
           </select>
-
+          
+          ${
+            ENABLE_BACKEND
+              ? `
           <label>Backend:</label>
           <select id="backend">
           ${Object.values(Backend).map(
@@ -134,10 +137,12 @@ export class WebTechStackWebviewProvider {
                 defaultOptions.backend === value ? 'selected' : ''
               }>${value}</option>`,
           )}
-          </select>
+          </select>`
+              : ''
+          }
 
           ${
-            ENABLE_AUTHENTICATION
+            ENABLE_BACKEND && ENABLE_AUTHENTICATION
               ? `
                     <label>Authentication:</label>
                     <select id="authentication">
@@ -165,12 +170,13 @@ export class WebTechStackWebviewProvider {
 
             function submit() {
               const authentication = document.getElementById('authentication');
+              const backend = document.getElementById('backend');
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 styling: document.getElementById('styling').value,
                 buildTool: document.getElementById('buildTool').value,
-                backend: document.getElementById('backend').value,
+                backend: backend? backend.value : 'none',
                 authentication: authentication ? authentication.value : 'none',
               };
               vscode.postMessage({ type: 'submit', options });
