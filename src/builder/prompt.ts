@@ -87,7 +87,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
     const instructions = `
       You are an expert at building web applications using Supabase as the backend and Next.js as the web framweork.
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
-      You will first design the app using database, server and client components that will enable the functionality of the app. Represent the design as a mermaid diagram. Do not create too many components. Keep it simple and functional.
+      You will first design the app using database, server and client components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
       Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
 
       Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
@@ -118,7 +118,7 @@ export class InitializeWebAppPrompt extends PromptBase<
     const instructions = `
       You are an expert at building web applications. For simplicity, we are not using a backend for this app.
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
-      You will first design the app components that will enable the functionality of the app. Represent the design as a mermaid diagram. Do not create too many components. Keep it simple and functional.
+      You will first design the app components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
       Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
 
       Assume the webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
