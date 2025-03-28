@@ -1,4 +1,4 @@
-import { Backend } from '../backend/serviceStack';
+import { AuthenticationMethod, Backend } from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
 export enum WebFramework {
@@ -75,6 +75,7 @@ export const DEFAULT_WEB_STACK: IWebTechStackOptions = {
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
   backend: Backend.None,
+  authentication: AuthenticationMethod.None,
 };
 
 export const getDefaultWebTechStack = (): IWebTechStackOptions => {

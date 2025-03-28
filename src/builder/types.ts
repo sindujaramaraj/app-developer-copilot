@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { IWebTechStackOptions } from './web/webTechStack';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
-import { Backend } from './backend/serviceStack';
+import { AuthenticationMethod, Backend } from './backend/serviceStack';
 
 export interface IResponseBase {
   summary: string;
@@ -211,4 +211,5 @@ export interface IGenericStack {
   dataFetching?: string;
   testing: string[];
   backend: Backend;
+  authentication: AuthenticationMethod;
 }

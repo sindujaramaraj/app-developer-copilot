@@ -7,7 +7,8 @@ import {
   UILibrary,
   IWebTechStackOptions,
 } from '../builder/web/webTechStack';
-import { Backend } from '../builder/backend/serviceStack';
+import { AuthenticationMethod, Backend } from '../builder/backend/serviceStack';
+import { ENABLE_AUTHENTICATION } from '../builder/constants';
 
 export class WebTechStackWebviewProvider {
   public static viewType = 'webTechStack.webview';
@@ -135,6 +136,21 @@ export class WebTechStackWebviewProvider {
           )}
           </select>
 
+          ${
+            ENABLE_AUTHENTICATION
+              ? `
+                    <label>Authentication:</label>
+                    <select id="authentication">
+                      ${Object.values(AuthenticationMethod)
+                        .map(
+                          (value) =>
+                            `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
+                        )
+                        .join('')}
+                    </select>`
+              : ''
+          }
+
           
 
           <button id="techstack-button-submit">Done</button>
@@ -148,12 +164,14 @@ export class WebTechStackWebviewProvider {
             });
 
             function submit() {
+              const authentication = document.getElementById('authentication');
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 styling: document.getElementById('styling').value,
                 buildTool: document.getElementById('buildTool').value,
                 backend: document.getElementById('backend').value,
+                authentication: authentication ? authentication.value : 'none',
               };
               vscode.postMessage({ type: 'submit', options });
             }

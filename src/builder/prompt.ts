@@ -16,6 +16,7 @@ import {
   IMobileTechStackOptions,
 } from './mobile/mobileTechStack';
 import { getPromptForWebStack, IWebTechStackOptions } from './web/webTechStack';
+import { getPromptForAuthenticationMethod } from './backend/serviceStack';
 
 export class PromptBase<TInput, TOutput> {
   protected input: TInput;
@@ -72,6 +73,7 @@ export class InitializeMobileAppPrompt extends PromptBase<
     Make sure there are no circular dependencies between components.
     Make sure the app uses expo-router for navigation and file path of the components are consistent.
     Make sure that app/index.tsx is the entry point of the app.
+    Use the best practices suggested by the ${input.techStack.framework} framework.
     Do not create too many components. Use default theme for UI if available. Keep it simple and functional.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
@@ -90,12 +92,16 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 
       Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
+
+      Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
       
       Things to keep in mind when designing the app:
       1. Code for components will be requested later so all components must be listed in the response.
       2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
       3. There should be no circular dependencies between components.
-      4. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
+      4. Make sure the app has a home page which acts as the entry point of the app.
+      5. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
+      6. Use the best practices suggested by the ${input.techStack.framework} framework.
     
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
@@ -123,6 +129,7 @@ export class InitializeWebAppPrompt extends PromptBase<
       2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
       3. There should be no circular dependencies between components.
       4. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
+      6. Use the best practices suggested by the ${input.techStack.framework} framework.
       
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;

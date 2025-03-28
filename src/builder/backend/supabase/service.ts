@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import { SupabaseManagementAPI } from "supabase-management-js";
+import * as vscode from 'vscode';
+import { SupabaseManagementAPI } from 'supabase-management-js';
 
-import { getSupabaseClient } from "./oauth";
+import { getSupabaseClient } from './oauth';
 
 export class SupabaseService {
   private static instance: SupabaseService;
@@ -23,7 +23,7 @@ export class SupabaseService {
     if (!SupabaseService.instance) {
       const client = await getSupabaseClient(context, true);
       if (!client) {
-        throw new Error("Failed to get Supabase client");
+        throw new Error('Failed to get Supabase client');
       }
       SupabaseService.instance = new SupabaseService(context, client);
     }
@@ -48,22 +48,18 @@ export class SupabaseService {
       await this.client.getOrganizations();
       return true;
     } catch (error) {
-      console.warn("Failed to connect to Supabase", error);
+      console.warn('Failed to connect to Supabase', error);
       return false;
     }
   }
 
-  public async createProject(
-    name: string,
-    dbPassword: string,
-    orgId: string,
-  ) {
+  public async createProject(name: string, dbPassword: string, orgId: string) {
     return await this.client.createProject({
       name,
       db_pass: dbPassword,
       organization_id: orgId,
-      region: "us-west-1",
-      plan: "free",
+      region: 'us-west-1',
+      plan: 'free',
     });
   }
 
@@ -75,13 +71,35 @@ export class SupabaseService {
     return await this.client.getTypescriptTypes(projectId);
   }
 
+  public async disableAuth(projectId: string) {
+    const ogClient = this.client.client;
+    const { data, response } = await ogClient.patch(
+      '/v1/projects/{ref}/config/auth',
+      {
+        params: {
+          path: {
+            ref: projectId,
+          },
+        },
+        body: {
+          disable_signup: true,
+        } as any,
+      },
+    );
+    if (response.status !== 200) {
+      console.error('Error updating update project auth config', response);
+      throw Error('Error updating update project auth config');
+    }
+    return data;
+  }
+
   public async getProjectAnonKey(projectId: string) {
     const apiKeys = await this.client.getProjectApiKeys(projectId);
     if (!apiKeys || apiKeys.length === 0) {
-      throw new Error("No API keys found for project");
+      throw new Error('No API keys found for project');
     }
     const apiKey = apiKeys[0];
-    return apiKey["api_key"];
+    return apiKey['api_key'];
   }
 
   public getProjectUrl(projectId: string) {

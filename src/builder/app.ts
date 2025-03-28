@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  IGenerateCodeForComponentResponse,
   IGenericStack,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
@@ -276,17 +277,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
     }
   }
 
-  async getPredefinedDependenciesForCodeGeneration() {
-    let predefinedDependencies: ZGenerateCodeForComponentResponseType[] = [];
+  async getCommonDependenciesForCodeGeneration() {
+    let predefinedDependencies: IGenerateCodeForComponentResponse[] = [];
     if (this.hasBacked()) {
       // Add generated types to the dependencies
       const workspaceFolder = await FileUtil.getWorkspaceFolder();
       if (workspaceFolder) {
-        const typesFilePath = vscode.Uri.joinPath(
-          vscode.Uri.file(workspaceFolder),
-          this.getAppName(),
-          SUPA_TYPES_FILE,
-        );
+        const typesFilePath = await this.getFilePathUri(SUPA_TYPES_FILE);
         const typesFileContent = await FileUtil.readFile(typesFilePath.fsPath);
         predefinedDependencies.push({
           componentName: 'database',
@@ -480,5 +477,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
 
   getGeneratedFilesCount(): number {
     return this.generatedFilesCount;
+  }
+
+  async getFilePathUri(relativePath: string): Promise<vscode.Uri> {
+    const workspaceFolder = await FileUtil.getWorkspaceFolder();
+    if (!workspaceFolder) {
+      throw new Error('No workspace folder selected');
+    }
+    return vscode.Uri.joinPath(
+      vscode.Uri.file(workspaceFolder),
+      this.getAppName(),
+      relativePath,
+    );
   }
 }

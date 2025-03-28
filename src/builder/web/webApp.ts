@@ -10,6 +10,7 @@ import {
 } from '../prompt';
 import {
   ComponetType,
+  IGenerateCodeForComponentResponse,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
@@ -30,6 +31,7 @@ import {
   getLibsToInstallForStack,
   getWebAppCreationCommands,
   IWebTechStackOptions,
+  WebFramework,
 } from './webTechStack';
 
 /**
@@ -233,7 +235,7 @@ export class WebApp extends App {
 
     // Get content for pre defined dependencies
     const predefinedDependencies =
-      await this.getPredefinedDependenciesForCodeGeneration();
+      await this.getCommonDependenciesForCodeGeneration();
 
     for (const component of sortedComponents) {
       // Just include all the previously generated components
@@ -337,6 +339,31 @@ export class WebApp extends App {
         summary: 'Successfully generated code for all components',
       },
     };
+  }
+
+  async getCommonDependenciesForCodeGeneration(): Promise<
+    IGenerateCodeForComponentResponse[]
+  > {
+    const commonDependencies: IGenerateCodeForComponentResponse[] =
+      await super.getCommonDependenciesForCodeGeneration();
+
+    const techStackOptions = this.getTechStackOptions();
+    if (techStackOptions.framework === WebFramework.NEXT) {
+      // This file is generated during project creation
+      const NEXT_CSS_FILE = 'src/app/globals.css';
+      const glocalCSSPath = await this.getFilePathUri(NEXT_CSS_FILE);
+      const globalCSSContent = await FileUtil.readFile(glocalCSSPath.fsPath);
+      // add the global.css file path
+      commonDependencies.push({
+        componentName: 'global.css',
+        filePath: NEXT_CSS_FILE,
+        content: globalCSSContent,
+        libraries: [],
+        summary: 'Global CSS file',
+      });
+    }
+
+    return commonDependencies;
   }
 
   getTechStackOptions(): IWebTechStackOptions {

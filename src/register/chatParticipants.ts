@@ -410,7 +410,7 @@ export async function handleCreateWebApp(
   try {
     // Check for backend
     const backend = await getBackend(context, techStackOptions);
-    if (techStackOptions.backend !== Backend.None) {
+    if (techStackOptions.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
     app = new WebApp(

@@ -5,10 +5,10 @@ import {
   UILibrary,
   Navigation,
   Storage,
-  Authentication,
   getDefaultMobileTechStack,
 } from '../builder/mobile/mobileTechStack';
 import { ENABLE_AUTHENTICATION } from '../builder/constants';
+import { AuthenticationMethod } from '../builder/backend/serviceStack';
 
 export class MobileTechStackWebviewProvider {
   public static viewType = 'mobileTechStack.webview';
@@ -126,7 +126,7 @@ export class MobileTechStackWebviewProvider {
               ? `
           <label>Authentication:</label>
           <select id="authentication">
-            ${Object.values(Authentication)
+            ${Object.values(AuthenticationMethod)
               .map(
                 (value) =>
                   `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,

@@ -1,4 +1,4 @@
-import { Backend } from '../backend/serviceStack';
+import { AuthenticationMethod, Backend } from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
 export enum MobileFramework {
@@ -45,14 +45,6 @@ export enum Storage {
   REALM = '@realm/react',
 }
 
-export enum Authentication {
-  None = 'none',
-  EXPO_AUTH = 'expo-auth-session',
-  FIREBASE = '@react-native-firebase/auth',
-  CLERK = '@clerk/clerk-expo',
-  SUPABASE = '@supabase/supabase-js',
-}
-
 export interface IMobileTechStackOptions extends IGenericStack {
   framework: MobileFramework;
   stateManagement: StateManagement;
@@ -61,7 +53,7 @@ export interface IMobileTechStackOptions extends IGenericStack {
   dataFetching?: DataFetching;
   testing: Testing[];
   storage: Storage;
-  authentication: Authentication;
+  authentication: AuthenticationMethod;
 }
 
 export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
@@ -72,7 +64,7 @@ export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
-  authentication: Authentication.None,
+  authentication: AuthenticationMethod.None,
   backend: Backend.None,
 };
 
@@ -153,10 +145,5 @@ export const getPromptForMobileStack = (
 ): string => {
   return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
-   and ${stack.storage} for storage. \
-   ${
-     stack.authentication !== Authentication.None
-       ? ` Use ${stack.authentication} for authentication.`
-       : 'Do not add authentication.'
-   }`;
+   and ${stack.storage} for storage.`;
 };
