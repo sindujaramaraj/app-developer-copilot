@@ -5,8 +5,12 @@ import {
   ENABLE_WEB_STACK_CONFIG,
 } from '../builder/constants';
 import { TelemetryService } from '../service/telemetry/telemetry';
-import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
-import { runExpoProject } from '../builder/terminalHelper';
+import {
+  AppConfig,
+  AppType,
+  readAppConfigFromFile,
+} from '../builder/utils/appconfigHelper';
+import { runExpoProject, runNextProject } from '../builder/terminalHelper';
 import { MobileTechStackWebviewProvider } from '../webview/mobileTechStackWebview';
 import {
   getDefaultMobileTechStack,
@@ -53,6 +57,12 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
+    // Create a new stream handler service
+    const streamService = new StreamHandlerService({
+      useChatStream: true,
+      chatStream: stream,
+    });
+    // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
@@ -65,10 +75,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       }
       // Initialize model and stream services
       const modelService = new LanguageModelService(request.model, token);
-      const streamService = new StreamHandlerService({
-        useChatStream: true,
-        chatStream: stream,
-      });
+
       // Handle create mobile app
       return await handleCreateMobileApp(
         request.prompt,
@@ -78,7 +85,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         telemetry,
       );
     } else if (request.command === ChatCommands.Run) {
-      return await handleRunMobileApp(stream, telemetry);
+      return await handleRunMobileApp(streamService, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('mobile.help', {});
@@ -117,6 +124,12 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
+    // Create a new stream handler service
+    const streamService = new StreamHandlerService({
+      useChatStream: true,
+      chatStream: stream,
+    });
+    // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
@@ -129,10 +142,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       }
       // Initialize model and stream services
       const modelService = new LanguageModelService(request.model, token);
-      const streamService = new StreamHandlerService({
-        useChatStream: true,
-        chatStream: stream,
-      });
+
       // Handle create web app
       return await handleCreateWebApp(
         context,
@@ -143,7 +153,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         telemetry,
       );
     } else if (request.command === ChatCommands.Run) {
-      return await handleRunMobileApp(stream, telemetry);
+      return await handleRunWebApp(streamService, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('web.help', {});
@@ -260,82 +270,71 @@ export async function handleCreateMobileApp(
 }
 
 async function handleRunMobileApp(
-  stream: vscode.ChatResponseStream,
+  streamService: StreamHandlerService,
   telemetry: TelemetryService,
 ) {
   telemetry.trackChatInteraction('mobile.run');
   const startTime = Date.now();
+  let appConfig: AppConfig;
 
   try {
-    const workspaceFolder = await FileUtil.getWorkspaceFolder();
-    if (!workspaceFolder) {
-      stream.markdown('No workspace folder selected');
-      telemetry.trackError(
-        'mobile.run',
-        'mobile',
-        'chat',
-        undefined,
-        {
-          error: 'no_workspace_folder',
-        },
-        {
-          duration: Date.now() - startTime,
-        },
-      );
-      return {
-        errorDetails: {
-          message: 'No workspace folder selected',
-        },
-        metadata: { command: 'run' },
-      };
-    }
-
-    const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
-    if (files.length === 0) {
-      stream.markdown('Not able to locate a appdev.json file');
-      telemetry.trackError(
-        'mobile.run',
-        'mobile',
-        'chat',
-        undefined,
-        {
-          error: 'no_app_json',
-        },
-        {
-          duration: Date.now() - startTime,
-        },
-      );
-      return {
-        errorDetails: {
-          message: 'No app.json found',
-        },
-        metadata: { command: 'run' },
-      };
-    }
-
-    const appJsonPath = files[0].fsPath;
-    const appJson = await readAppConfigFromFile(appJsonPath);
-    const appName = appJson.name;
-    stream.markdown(`Running app ${appName}`);
-    runExpoProject(appName);
-
-    telemetry.trackChatInteraction('mobile.run', {
-      success: String(true),
-      duration: String(Date.now() - startTime),
-    });
-
-    return {
-      metadata: { command: 'run' },
-    };
-  } catch (error) {
+    appConfig = await getAppToRun(AppType.MOBILE, streamService);
+  } catch (error: any) {
     telemetry.trackError('mobile.run', 'mobile', 'chat', error as Error);
     return {
       errorDetails: {
-        message: (error as Error).message,
+        message: error.message ? error.message : 'Something went wrong',
       },
       metadata: { command: 'run' },
     };
   }
+
+  const appName = appConfig.name;
+  streamService.message(`Running app ${appName}`);
+  runExpoProject(appName);
+
+  telemetry.trackChatInteraction('mobile.run', {
+    success: String(true),
+    duration: String(Date.now() - startTime),
+  });
+
+  return {
+    metadata: { command: 'run' },
+  };
+}
+
+async function handleRunWebApp(
+  streamService: StreamHandlerService,
+  telemetry: TelemetryService,
+) {
+  telemetry.trackChatInteraction('web.run');
+  const startTime = Date.now();
+  let appConfig: AppConfig;
+
+  try {
+    appConfig = await getAppToRun(AppType.WEB, streamService);
+  } catch (error) {
+    telemetry.trackError('web.run', 'web', 'chat', error as Error);
+    return {
+      errorDetails: {
+        message: 'No workspace folder selected',
+      },
+      metadata: { command: 'run' },
+    };
+  }
+
+  const appName = appConfig.name;
+  streamService.message(`Running app ${appName}`);
+  runNextProject(appName); // TODO: check for framework
+
+  telemetry.trackChatInteraction('web.run', {
+    success: String(true),
+    duration: String(Date.now() - startTime),
+  });
+
+  return {
+    metadata: { command: 'run' },
+  };
 }
 
 function getFollowUpProvider() {
@@ -515,4 +514,69 @@ async function getBackend(
     }
   }
   return null;
+}
+
+async function getAppToRun(
+  appType: AppType,
+  streamService: StreamHandlerService,
+): Promise<AppConfig> {
+  try {
+    const workspaceFolder = await FileUtil.getWorkspaceFolder();
+    if (!workspaceFolder) {
+      streamService.error('No workspace folder selected');
+      throw new Error('No workspace folder selected');
+    }
+    streamService.progress('Searching for app to run');
+    const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
+    if (files.length === 0) {
+      streamService.error(
+        'Not able to locate a appdev.json file. Have you created an app yet?',
+      );
+      throw new Error('No app.json found');
+    }
+
+    // filter for appType
+    const appConfigs = await Promise.all(
+      files.map(async (file) => {
+        const appConfig = await readAppConfigFromFile(file.fsPath);
+        return appConfig;
+      }),
+    );
+    const filteredAppConfigs = appConfigs.filter(
+      (appConfig) => appConfig.type === appType,
+    );
+    if (filteredAppConfigs.length === 0) {
+      streamService.error(
+        'Not able to locate a appdev.json file for the selected app type',
+      );
+      throw new Error('No appdev.json found for the selected app type');
+    }
+    if (filteredAppConfigs.length === 1) {
+      return filteredAppConfigs[0];
+    }
+    // Show quick pick for multiple app configs
+    streamService.progress('Waiting for user to select app to run');
+    const quickPickItems = filteredAppConfigs.map((appConfig) => ({
+      label: appConfig.name,
+      description: appConfig.title,
+    }));
+
+    const selectedFile = await vscode.window.showQuickPick(quickPickItems, {
+      placeHolder: 'Select the app to run',
+    });
+    if (!selectedFile) {
+      streamService.error('No appdev.json file selected');
+      throw new Error('No appdev.json file selected');
+    }
+    return (
+      filteredAppConfigs.find(
+        (appConfig) => appConfig.name === selectedFile.label,
+      ) || filteredAppConfigs[0]
+    );
+  } catch (error: any) {
+    streamService.error(
+      'Error getting app to run: ' + error.message ? error.message : error,
+    );
+    throw error;
+  }
 }
