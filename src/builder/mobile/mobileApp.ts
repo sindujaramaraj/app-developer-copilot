@@ -6,57 +6,33 @@ import {
 import {
   GenerateCodeForMobileComponentPrompt,
   InitializeMobileAppPrompt,
+  InitializeMobileAppWithBackendPrompt,
 } from '../prompt';
 import {
   ComponetType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
-  ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
+  ZInitializeAppWithBackendResponseType,
 } from '../types';
 import { createExpoApp, installNPMDependencies } from '../terminalHelper';
-import { FileParser } from '../utils/fileParser';
-import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
-import { checkNodeInstallation } from '../utils/nodeUtil';
+import { FileUtil, IFile } from '../utils/fileUtil';
+import {
+  APP_ARCHITECTURE_DIAGRAM_FILE,
+  SUPA_SQL_FILE_PATH,
+  SUPA_TYPES_MOBILE_FILE_PATH,
+} from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
-  getPromptForStack,
-  MobileTechStackOptions,
+  IMobileTechStackOptions,
 } from './mobileTechStack';
-
-const MOBILE_BUILDER_INSTRUCTION = `You are an expert at building mobile apps using react native and expo based on the requested tech stack.
-You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
-User will first request app design and then code generation.
-If the user asks a non-programming question, politely decline to respond.`;
 
 /**
  * Mobile app builder
  */
 export class MobileApp extends App {
-  async precheck(): Promise<boolean> {
-    this.setStage(AppStage.PreCheck);
-    // Check if node is installed
-    const nodeCheck = await checkNodeInstallation();
-    if (!nodeCheck.installed) {
-      this.logMessage(
-        'Node.js is not installed. Please install Node.js to proceed',
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    if (!nodeCheck.meetsMinimum) {
-      this.logMessage(
-        `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    return true;
-  }
-
   async initialize(
     userMessage?: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
@@ -70,28 +46,31 @@ export class MobileApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a mobile app');
 
-    const initializeAppPrompt = new InitializeMobileAppPrompt({
-      userMessage: userMessage,
-      techStack: getPromptForStack(this.getTechStackOptions()),
-    });
+    const initializeAppPrompt = this.hasBacked()
+      ? new InitializeMobileAppWithBackendPrompt({
+          techStack: this.getTechStackOptions(),
+        })
+      : new InitializeMobileAppPrompt({
+          techStack: this.getTechStackOptions(),
+        });
 
     const initializeAppMessages = [
-      this.createSystemMessage(MOBILE_BUILDER_INSTRUCTION),
+      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
       // Add user's message
-      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
+      this.createUserMessage(`Create app for: ${userMessage}`),
     ];
 
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
       let { response: createAppResponse, object: createAppResponseObj } =
-        await this.languageModelService.generateObject<ZInitializeAppResponseType>(
-          {
-            messages: initializeAppMessages,
-            schema: ZInitializeAppResponseSchema,
-            responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
-          },
-        );
+        await this.languageModelService.generateObject<
+          ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
+        >({
+          messages: initializeAppMessages,
+          schema: initializeAppPrompt.getResponseFormatSchema(),
+          responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+        });
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse),
       );
@@ -118,7 +97,7 @@ export class MobileApp extends App {
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
-        tectStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -141,22 +120,30 @@ export class MobileApp extends App {
     // Reset expo project
     // await resetExpoProject(createAppResponseObj.name);
     this.logMessage(`Created expo project: ${createAppResponseObj.name}`);
+
+    // Create files
+    const files: IFile[] = [];
     // Design the app
-    this.logProgress('Writing the design diagram to the file');
+    this.logProgress('Writing design diagram to file');
     let designDiagram = createAppResponseObj.design;
     if (!isMermaidMarkdown(designDiagram)) {
       designDiagram = convertToMermaidMarkdown(designDiagram);
     }
-    await FileParser.parseAndCreateFiles(
-      [
-        {
-          path: APP_ARCHITECTURE_DIAGRAM_FILE,
-          content: designDiagram,
-        },
-      ],
-      createAppResponseObj.name,
-    );
-    this.logMessage('Design Diagram saved successfully');
+    files.push({
+      path: APP_ARCHITECTURE_DIAGRAM_FILE,
+      content: designDiagram,
+    });
+    // SQL scripts
+    if (this.hasBacked() && createAppResponseObj.sqlScripts) {
+      files.push({
+        path: SUPA_SQL_FILE_PATH,
+        content: createAppResponseObj.sqlScripts,
+      });
+    }
+    await FileUtil.parseAndCreateFiles(files, createAppResponseObj.name);
+
+    this.logMessage('Initial files saved successfully');
+    await this.handleBackend(createAppResponseObj);
   }
 
   async generateCode({
@@ -199,25 +186,25 @@ export class MobileApp extends App {
     const totalComponents = sortedComponents.length;
     let componentIndex = 0;
 
+    // Get content for pre defined dependencies
+    const predefinedDependencies =
+      await this.getCommonDependenciesForCodeGeneration();
+
     for (const component of sortedComponents) {
-      const dependentComponents = component.dependsOn || [];
-      const dependenciesWithContent = [];
-      // Get dependencies content
-      for (const dependency of dependentComponents) {
-        const dependencyContent = generatedCodeByComponent.get(dependency);
-        if (dependencyContent) {
-          dependenciesWithContent.push(dependencyContent);
-        }
-      }
+      // Use all previously generated code as dependencies
+      const dependenciesWithContent = Array.from(
+        generatedCodeByComponent.values(),
+      );
+
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForMobileComponentPrompt({
         name: component.name,
         path: component.path,
         type: component.type as ComponetType,
         purpose: component.purpose,
-        dependencies: dependenciesWithContent,
+        dependencies: [...dependenciesWithContent, ...predefinedDependencies],
         design,
-        techStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -279,21 +266,9 @@ export class MobileApp extends App {
           content: codeGenerationResponseObj.content,
         },
       ];
-      // Check for updated dependencies
-      // if (
-      //   codeGenerationResponseObj.updatedDependencies &&
-      //   codeGenerationResponseObj.updatedDependencies.length > 0
-      // ) {
-      //   console.warn('*** Updated dependencies found ***');
-      //   for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
-      //     files.push({
-      //       path: updatedDependency.filePath,
-      //       content: updatedDependency.content,
-      //     });
-      //   }
-      // }
+
       // Create files
-      await FileParser.parseAndCreateFiles(files, appName);
+      await FileUtil.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies
       this.logProgress('Installing npm dependencies');
@@ -318,7 +293,19 @@ export class MobileApp extends App {
     };
   }
 
-  getTechStackOptions(): MobileTechStackOptions {
-    return this.techStackOptions as MobileTechStackOptions;
+  getTechStackOptions(): IMobileTechStackOptions {
+    return this.techStackOptions as IMobileTechStackOptions;
+  }
+
+  getSupaTypesFilePath(): string {
+    return SUPA_TYPES_MOBILE_FILE_PATH;
+  }
+
+  getSupaEnvFile(supaUrl: string, supaAnonKey: string): string {
+    const envLocalContent = `
+    EXPO_PUBLIC_SUPABASE_URL=${supaUrl}
+    EXPO_PUBLIC_SUPABASE_ANON_KEY=${supaAnonKey}
+    `;
+    return envLocalContent;
   }
 }

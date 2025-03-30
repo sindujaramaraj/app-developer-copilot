@@ -6,61 +6,39 @@ import {
 import {
   GenerateCodeForWebComponentPrompt,
   InitializeWebAppPrompt,
+  InitializeWebAppWithBackendPrompt,
 } from '../prompt';
 import {
   ComponetType,
+  IGenerateCodeForComponentResponse,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
-  ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
+  ZInitializeAppWithBackendResponseType,
 } from '../types';
 import {
   installNPMDependencies,
   runCommandWithPromise,
 } from '../terminalHelper';
-import { FileParser } from '../utils/fileParser';
-import { APP_ARCHITECTURE_DIAGRAM_FILE } from '../constants';
-import { checkNodeInstallation } from '../utils/nodeUtil';
+import { FileUtil, IFile } from '../utils/fileUtil';
+import {
+  APP_ARCHITECTURE_DIAGRAM_FILE,
+  SUPA_SQL_FILE_PATH,
+  SUPA_TYPES_WEB_FILE_PATH,
+} from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
-  getPromptForStack,
   getWebAppCreationCommands,
-  WebTechStackOptions,
+  IWebTechStackOptions,
+  WebFramework,
 } from './webTechStack';
-
-const WEB_BUILDER_INSTRUCTION = `You are an expert at building web applications.
-You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
-User will first request app design and then code generation.
-If the user asks a non-programming question, politely decline to respond.`;
 
 /**
  * Web app builder
  */
 export class WebApp extends App {
-  async precheck(): Promise<boolean> {
-    this.setStage(AppStage.PreCheck);
-    // Check if node is installed
-    const nodeCheck = await checkNodeInstallation();
-    if (!nodeCheck.installed) {
-      this.logMessage(
-        'Node.js is not installed. Please install Node.js to proceed',
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    if (!nodeCheck.meetsMinimum) {
-      this.logMessage(
-        `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    return true;
-  }
-
   async initialize(
     userMessage?: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
@@ -74,28 +52,31 @@ export class WebApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a web app');
 
-    const initializeAppPrompt = new InitializeWebAppPrompt({
-      userMessage: userMessage,
-      techStack: getPromptForStack(this.getTechStackOptions()),
+    const promptClass = this.hasBacked()
+      ? InitializeWebAppWithBackendPrompt
+      : InitializeWebAppPrompt;
+
+    const initializeAppPrompt = new promptClass({
+      techStack: this.getTechStackOptions(),
     });
 
     const initializeAppMessages = [
-      this.createSystemMessage(WEB_BUILDER_INSTRUCTION),
+      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
       // Add user's message
-      this.createUserMessage(initializeAppPrompt.getInstructionsPrompt()),
+      this.createUserMessage(`Create app for: ${userMessage}`),
     ];
 
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
       let { response: createAppResponse, object: createAppResponseObj } =
-        await this.languageModelService.generateObject<ZInitializeAppResponseType>(
-          {
-            messages: initializeAppMessages,
-            schema: ZInitializeAppResponseSchema,
-            responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
-          },
-        );
+        await this.languageModelService.generateObject<
+          ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
+        >({
+          messages: initializeAppMessages,
+          schema: initializeAppPrompt.getResponseFormatSchema(),
+          responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+        });
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse),
       );
@@ -122,7 +103,7 @@ export class WebApp extends App {
         initialPrompt: userMessage,
         components: createAppResponseObj.components,
         features: createAppResponseObj.features,
-        tectStack: getPromptForStack(this.getTechStackOptions()),
+        techStack: this.getTechStackOptions(),
         type: AppType.WEB,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
@@ -138,7 +119,11 @@ export class WebApp extends App {
     }
   }
 
-  async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
+  async postInitialize(
+    createAppResponseObj:
+      | ZInitializeAppResponseType
+      | ZInitializeAppWithBackendResponseType,
+  ) {
     // Create web app
     this.logProgress('Running commands to create project');
     const createWebAppCommands = getWebAppCreationCommands(
@@ -156,61 +141,32 @@ export class WebApp extends App {
       );
       useNewTerminal = false;
     }
-    console.log(
-      'initialization commands',
-      createAppResponseObj.commands?.length,
-    );
-    // TODO: Not able to ensure the correctness of this commands. Lets enable later and just use the web stack creation commands
-    // await this.runInitializationCommands(
-    //   createAppResponseObj.commands || [],
-    //   createAppResponseObj.name,
-    // );
 
     this.logMessage(`Created web project: ${createAppResponseObj.name}`);
-    // Design the app
+
+    // Create files
+    const files: IFile[] = [];
+    // Design of the app
     this.logProgress('Writing design diagram to file');
     let designDiagram = createAppResponseObj.design;
     if (!isMermaidMarkdown(designDiagram)) {
       designDiagram = convertToMermaidMarkdown(designDiagram);
     }
-    await FileParser.parseAndCreateFiles(
-      [
-        {
-          path: APP_ARCHITECTURE_DIAGRAM_FILE,
-          content: designDiagram,
-        },
-      ],
-      createAppResponseObj.name,
-    );
-    this.logMessage('Design Diagram saved successfully');
-  }
-
-  async runInitializationCommands(
-    initializationCommands: string[],
-    folderName: string,
-  ) {
-    if (initializationCommands && initializationCommands.length > 0) {
-      this.logProgress('Running initialization commands');
-      let useNewTerminal = true;
-      for (const command of initializationCommands) {
-        if (command.startsWith('npx create-next-app')) {
-          // Project is already initialized
-          console.log('Skipping create next app command', command);
-          continue;
-        }
-        if (
-          command.startsWith('npx shadcn@latest init') ||
-          command.startsWith('npx shadcn-ui@latest init')
-        ) {
-          // Porject is already initialized
-          console.log('Skipping initializing shadcn command', command);
-          continue;
-        }
-        console.log('Running command', command);
-        await runCommandWithPromise(command, folderName, useNewTerminal);
-        useNewTerminal = false;
-      }
+    files.push({
+      path: APP_ARCHITECTURE_DIAGRAM_FILE,
+      content: designDiagram,
+    });
+    // SQL scripts
+    if (this.hasBacked() && createAppResponseObj.sqlScripts) {
+      files.push({
+        path: SUPA_SQL_FILE_PATH,
+        content: createAppResponseObj.sqlScripts,
+      });
     }
+    await FileUtil.parseAndCreateFiles(files, createAppResponseObj.name);
+
+    this.logMessage('Initial files saved successfully');
+    await this.handleBackend(createAppResponseObj);
   }
 
   async generateCode({
@@ -253,27 +209,24 @@ export class WebApp extends App {
     const totalComponents = sortedComponents.length;
     let componentIndex = 0;
 
+    // Get content for pre defined dependencies
+    const predefinedDependencies =
+      await this.getCommonDependenciesForCodeGeneration();
+
     for (const component of sortedComponents) {
-      const dependentComponents = component.dependsOn || [];
-      const dependenciesWithContent = [];
-      // Get dependencies content
-      for (const dependency of dependentComponents) {
-        const dependencyContent = generatedCodeByComponent.get(dependency);
-        if (dependencyContent) {
-          dependenciesWithContent.push(dependencyContent);
-        }
-      }
+      // Just include all the previously generated components
+      const dependenciesWithContent: ZGenerateCodeForComponentResponseType[] =
+        Array.from(generatedCodeByComponent.values());
+
       // Generate code for the component
       const codeGenerationPrompt = new GenerateCodeForWebComponentPrompt({
         name: component.name,
         path: component.path,
         type: component.type as ComponetType,
         purpose: component.purpose,
-        dependencies: dependenciesWithContent,
+        dependencies: [...dependenciesWithContent, ...predefinedDependencies],
         design,
-        techStack: getPromptForStack(
-          this.getTechStackOptions() as WebTechStackOptions,
-        ),
+        techStack: this.getTechStackOptions(),
       });
       const messages = [
         ...codeGenerationMessages,
@@ -283,7 +236,9 @@ export class WebApp extends App {
       let codeGenerationResponse, codeGenerationResponseObj;
       try {
         this.logProgress(
-          `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
+          `Generating code ${
+            componentIndex + 1
+          }/${totalComponents} for component ${component.name}`,
         );
         const { response, object } =
           await this.languageModelService.generateObject<ZGenerateCodeForComponentResponseType>(
@@ -335,21 +290,9 @@ export class WebApp extends App {
           content: codeGenerationResponseObj.content,
         },
       ];
-      // Check for updated dependencies
-      // if (
-      //   codeGenerationResponseObj.updatedDependencies &&
-      //   codeGenerationResponseObj.updatedDependencies.length > 0
-      // ) {
-      //   console.warn('*** Updated dependencies found ***');
-      //   for (const updatedDependency of codeGenerationResponseObj.updatedDependencies) {
-      //     files.push({
-      //       path: updatedDependency.filePath,
-      //       content: updatedDependency.content,
-      //     });
-      //   }
-      // }
+
       // Create files
-      await FileParser.parseAndCreateFiles(files, appName);
+      await FileUtil.parseAndCreateFiles(files, appName);
 
       // Install npm dependencies
       this.logProgress('Installing npm dependencies');
@@ -374,7 +317,44 @@ export class WebApp extends App {
     };
   }
 
-  getTechStackOptions(): WebTechStackOptions {
-    return this.techStackOptions as WebTechStackOptions;
+  async getCommonDependenciesForCodeGeneration(): Promise<
+    IGenerateCodeForComponentResponse[]
+  > {
+    const commonDependencies: IGenerateCodeForComponentResponse[] =
+      await super.getCommonDependenciesForCodeGeneration();
+
+    const techStackOptions = this.getTechStackOptions();
+    if (techStackOptions.framework === WebFramework.NEXT) {
+      // This file is generated during project creation
+      const NEXT_CSS_FILE = 'src/app/globals.css';
+      const glocalCSSPath = await this.getFilePathUri(NEXT_CSS_FILE);
+      const globalCSSContent = await FileUtil.readFile(glocalCSSPath.fsPath);
+      // add the global.css file path
+      commonDependencies.push({
+        componentName: 'global.css',
+        filePath: NEXT_CSS_FILE,
+        content: globalCSSContent,
+        libraries: [],
+        summary: 'Global CSS file',
+      });
+    }
+
+    return commonDependencies;
+  }
+
+  getTechStackOptions(): IWebTechStackOptions {
+    return this.techStackOptions as IWebTechStackOptions;
+  }
+
+  getSupaTypesFilePath(): string {
+    return SUPA_TYPES_WEB_FILE_PATH;
+  }
+
+  getSupaEnvFile(supaUrl: string, supaAnonKey: string): string {
+    const envLocalContent = `
+    NEXT_PUBLIC_SUPABASE_URL=${supaUrl}
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=${supaAnonKey}
+    `;
+    return envLocalContent;
   }
 }

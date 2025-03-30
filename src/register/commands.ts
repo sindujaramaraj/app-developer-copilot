@@ -41,6 +41,7 @@ function registerMobileCommands(context: vscode.ExtensionContext) {
           });
           // Handle create mobile app
           await handleCreateMobileApp(
+            context,
             userInput,
             'command',
             modelService,
@@ -76,6 +77,7 @@ function registerWebCommands(context: vscode.ExtensionContext) {
           });
           // Handle create mobile app
           await handleCreateWebApp(
+            context,
             userInput,
             'command',
             modelService,

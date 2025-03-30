@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import {
-  WebTechStackOptions,
-  StateManagement,
-  UILibrary,
-  getDefaultWebTechStack,
   BuildTools,
+  getDefaultWebTechStack,
+  StateManagement,
   Styling,
+  UILibrary,
+  IWebTechStackOptions,
 } from '../builder/web/webTechStack';
+import { AuthenticationMethod, Backend } from '../builder/backend/serviceStack';
+import { ENABLE_AUTHENTICATION, ENABLE_BACKEND } from '../builder/constants';
 
 export class WebTechStackWebviewProvider {
   public static viewType = 'webTechStack.webview';
@@ -28,7 +30,7 @@ export class WebTechStackWebviewProvider {
     webviewView.webview.html = WebTechStackWebviewProvider._getHtmlForWebview();
   }
 
-  public static async createOrShow(): Promise<WebTechStackOptions> {
+  public static async createOrShow(): Promise<IWebTechStackOptions> {
     WebTechStackWebviewProvider._panel?.dispose();
 
     const panel = vscode.window.createWebviewPanel(
@@ -39,9 +41,9 @@ export class WebTechStackWebviewProvider {
         enableScripts: true,
       },
     );
-    let result: WebTechStackOptions;
+    let result: IWebTechStackOptions;
 
-    const onSubmitCallback = async (options: WebTechStackOptions) => {
+    const onSubmitCallback = async (options: IWebTechStackOptions) => {
       result = options;
       panel.dispose();
     };
@@ -52,7 +54,7 @@ export class WebTechStackWebviewProvider {
     );
 
     panel.webview.html = WebTechStackWebviewProvider._getHtmlForWebview();
-    const promise = new Promise<WebTechStackOptions>((resolve) => {
+    const promise = new Promise<IWebTechStackOptions>((resolve) => {
       panel.onDidDispose(() => {
         resolve(result);
       });
@@ -64,7 +66,7 @@ export class WebTechStackWebviewProvider {
   }
 
   private static _getHtmlForWebview() {
-    const defaultOptions: WebTechStackOptions = getDefaultWebTechStack();
+    const defaultOptions: IWebTechStackOptions = getDefaultWebTechStack();
     return `
       <!DOCTYPE html>
       <html>
@@ -83,7 +85,9 @@ export class WebTechStackWebviewProvider {
             ${Object.values(StateManagement)
               .map(
                 (value) =>
-                  `<option value="${value}" ${defaultOptions.stateManagement === value ? 'selected' : ''} >${value}</option>`,
+                  `<option value="${value}" ${
+                    defaultOptions.stateManagement === value ? 'selected' : ''
+                  } >${value}</option>`,
               )
               .join('')}
           </select>
@@ -93,7 +97,9 @@ export class WebTechStackWebviewProvider {
             ${Object.values(UILibrary)
               .map(
                 (value) =>
-                  `<option value="${value}" ${defaultOptions.uiLibrary === value ? 'selected' : ''}>${value}</option>`,
+                  `<option value="${value}" ${
+                    defaultOptions.uiLibrary === value ? 'selected' : ''
+                  }>${value}</option>`,
               )
               .join('')}
           </select>
@@ -102,7 +108,9 @@ export class WebTechStackWebviewProvider {
             <select id="styling">
             ${Object.values(Styling).map(
               (value) =>
-                `<option value="${value}" ${defaultOptions.styling === value ? 'selected' : ''}>${value}</option>`,
+                `<option value="${value}" ${
+                  defaultOptions.styling === value ? 'selected' : ''
+                }>${value}</option>`,
             )}
             </select>
 
@@ -111,10 +119,44 @@ export class WebTechStackWebviewProvider {
           ${Object.values(BuildTools)
             .map(
               (value) =>
-                `<option value="${value}" ${defaultOptions.buildTool === value ? 'selected' : ''}>${value}</option>`,
+                `<option value="${value}" ${
+                  defaultOptions.buildTool === value ? 'selected' : ''
+                }>${value}</option>`,
             )
             .join('')}
           </select>
+          
+          ${
+            ENABLE_BACKEND
+              ? `
+          <label>Backend:</label>
+          <select id="backend">
+          ${Object.values(Backend).map(
+            (value) =>
+              `<option value="${value}" ${
+                defaultOptions.backend === value ? 'selected' : ''
+              }>${value}</option>`,
+          )}
+          </select>`
+              : ''
+          }
+
+          ${
+            ENABLE_BACKEND && ENABLE_AUTHENTICATION
+              ? `
+                    <label>Authentication: Experimental</label>
+                    <select id="authentication">
+                      ${Object.values(AuthenticationMethod)
+                        .map(
+                          (value) =>
+                            `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
+                        )
+                        .join('')}
+                    </select>`
+              : ''
+          }
+
+          
 
           <button id="techstack-button-submit">Done</button>
 
@@ -127,11 +169,15 @@ export class WebTechStackWebviewProvider {
             });
 
             function submit() {
+              const authentication = document.getElementById('authentication');
+              const backend = document.getElementById('backend');
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 styling: document.getElementById('styling').value,
                 buildTool: document.getElementById('buildTool').value,
+                backend: backend? backend.value : 'none',
+                authentication: authentication ? authentication.value : 'none',
               };
               vscode.postMessage({ type: 'submit', options });
             }
@@ -144,10 +190,10 @@ export class WebTechStackWebviewProvider {
 
   private static setWebviewMessageListener(
     webview: vscode.Webview,
-    onSubmit: (options: WebTechStackOptions) => void,
+    onSubmit: (options: IWebTechStackOptions) => void,
   ) {
     webview.onDidReceiveMessage(
-      (message: { type: string; options: WebTechStackOptions }) => {
+      (message: { type: string; options: IWebTechStackOptions }) => {
         switch (message.type) {
           case 'submit':
             onSubmit(message.options);

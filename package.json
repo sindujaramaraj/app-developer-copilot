@@ -3,8 +3,8 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "1.0.6",
-  "preview": false,
+  "version": "1.0.7",
+  "preview": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"
@@ -36,6 +36,10 @@
     "react",
     "web",
     "react-native",
+    "nextjs",
+    "supabase",
+    "typescript",
+    "javascript",
     "mobile",
     "Claude",
     "OpenRouter",
@@ -251,6 +255,10 @@
     "@openrouter/ai-sdk-provider": "^0.0.6",
     "@vscode/extension-telemetry": "^0.9.8",
     "ai": "^4.0.18",
-    "openai": "^4.76.3"
+    "client-oauth2": "^4.3.3",
+    "openai": "^4.76.3",
+    "repomix": "^0.3.0",
+    "supabase": "^2.19.5",
+    "supabase-management-js": "^1.0.0"
   }
 }

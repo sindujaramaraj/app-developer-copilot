@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.0.7] - 2025-03-29
+
+### Added
+
+- Support for database connection using Supabase
+- Support for authentication using Supabase
+- Support for storage using Supabase
+
+### Changed
+
+- Updated prompts for web and mobile app creation
+
 ## [1.0.6] - 2025-03-04
 
 ### Added

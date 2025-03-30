@@ -57,11 +57,24 @@ export class StreamHandlerService {
     }
   }
 
+  error(text: string): void {
+    if (this.useChatStream && this.chatStream) {
+      this.chatStream.markdown(`**Error:** ${text}`);
+      this.chatStream.markdown('\n');
+    } else if (this.statusBarItem) {
+      this.statusBarItem.text = `Error: ${text}`;
+      this.outputChannel?.show();
+      this.outputChannel?.appendLine(`Error: ${text}`);
+    } else {
+      console.error(text);
+    }
+  }
+
   messages(messages: string[], title?: string): void {
     if (this.useChatStream && this.chatStream) {
       // convert list of messages to markdown
       if (title) {
-        this.chatStream.markdown(`### ${title}`);
+        this.chatStream.markdown(`### ${title}\n`);
       }
       const markdown = messages.map((message) => `- ${message}`).join('\n');
       this.chatStream.markdown(markdown);

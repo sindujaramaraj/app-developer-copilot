@@ -1,25 +1,39 @@
 import * as vscode from 'vscode';
-
 import {
   APP_CONFIG_FILE,
   ENABLE_WEB_APP,
   ENABLE_WEB_STACK_CONFIG,
 } from '../builder/constants';
 import { TelemetryService } from '../service/telemetry/telemetry';
-import { readAppConfigFromFile } from '../builder/utils/appconfigHelper';
-import { runExpoProject } from '../builder/terminalHelper';
+import {
+  AppConfig,
+  AppType,
+  readAppConfigFromFile,
+} from '../builder/utils/appconfigHelper';
+import { runExpoProject, runNextProject } from '../builder/terminalHelper';
 import { MobileTechStackWebviewProvider } from '../webview/mobileTechStackWebview';
-import { getDefaultMobileTechStack } from '../builder/mobile/mobileTechStack';
+import {
+  getDefaultMobileTechStack,
+  getPromptForMobileStack,
+} from '../builder/mobile/mobileTechStack';
 import { MobileApp } from '../builder/mobile/mobileApp';
-import { FileParser } from '../builder/utils/fileParser';
+import { FileUtil } from '../builder/utils/fileUtil';
 import { LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { WebApp } from '../builder/web/webApp';
 import {
   getDefaultWebTechStack,
-  getPromptForStack,
+  getPromptForWebStack,
 } from '../builder/web/webTechStack';
 import { WebTechStackWebviewProvider } from '../webview/webTechStackWebview';
+import { Backend } from '../builder/backend/serviceStack';
+import { IGenericStack } from '../builder/types';
+import { SupabaseService } from '../builder/backend/supabase/service';
+import {
+  clearSupabaseTokens,
+  connectToSupabase,
+  isConnectedToSupabase,
+} from '../builder/backend/supabase/oauth';
 
 enum ChatCommands {
   Create = 'create',
@@ -43,6 +57,12 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
+    // Create a new stream handler service
+    const streamService = new StreamHandlerService({
+      useChatStream: true,
+      chatStream: stream,
+    });
+    // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
@@ -55,12 +75,10 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       }
       // Initialize model and stream services
       const modelService = new LanguageModelService(request.model, token);
-      const streamService = new StreamHandlerService({
-        useChatStream: true,
-        chatStream: stream,
-      });
+
       // Handle create mobile app
       return await handleCreateMobileApp(
+        context,
         request.prompt,
         'chat',
         modelService,
@@ -68,7 +86,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         telemetry,
       );
     } else if (request.command === ChatCommands.Run) {
-      return await handleRunMobileApp(stream, telemetry);
+      return await handleRunMobileApp(streamService, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('mobile.help', {});
@@ -107,6 +125,12 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> => {
+    // Create a new stream handler service
+    const streamService = new StreamHandlerService({
+      useChatStream: true,
+      chatStream: stream,
+    });
+    // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
       if (!request.prompt) {
@@ -119,12 +143,10 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       }
       // Initialize model and stream services
       const modelService = new LanguageModelService(request.model, token);
-      const streamService = new StreamHandlerService({
-        useChatStream: true,
-        chatStream: stream,
-      });
+
       // Handle create web app
       return await handleCreateWebApp(
+        context,
         request.prompt,
         'chat',
         modelService,
@@ -132,7 +154,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         telemetry,
       );
     } else if (request.command === ChatCommands.Run) {
-      return await handleRunMobileApp(stream, telemetry);
+      return await handleRunWebApp(streamService, telemetry);
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('web.help', {});
@@ -163,6 +185,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
 }
 
 export async function handleCreateMobileApp(
+  context: vscode.ExtensionContext,
   userInput: string,
   source: 'chat' | 'command',
   modelService: LanguageModelService,
@@ -181,11 +204,12 @@ export async function handleCreateMobileApp(
   if (!techStackOptions) {
     techStackOptions = getDefaultMobileTechStack();
     streamService.message(
-      'Using default tech stack options: ' + JSON.stringify(techStackOptions),
+      'Using default tech stack options: ' +
+        getPromptForMobileStack(techStackOptions),
     );
   } else {
     streamService.message(
-      'Chosen tech stack options: ' + JSON.stringify(techStackOptions),
+      'Chosen tech stack options: ' + getPromptForMobileStack(techStackOptions),
     );
     // Merge with default stack options
     techStackOptions = {
@@ -195,11 +219,17 @@ export async function handleCreateMobileApp(
   }
 
   try {
+    // Check for backend
+    const backend = await getBackend(context, techStackOptions);
+    if (techStackOptions.backend === Backend.None || !backend) {
+      streamService.message('Continuing app creation without backend');
+    }
     app = new MobileApp(
       modelService,
       streamService,
       userInput,
       techStackOptions,
+      backend,
     );
     await app.execute();
     telemetry.trackAppCreation(
@@ -208,6 +238,7 @@ export async function handleCreateMobileApp(
         success: true,
         source,
         appType: 'mobile',
+        techStack: JSON.stringify(techStackOptions),
         ...modelService.getModelConfig(),
       },
       {
@@ -223,6 +254,7 @@ export async function handleCreateMobileApp(
         success: false,
         source,
         appType: 'mobile',
+        techStack: JSON.stringify(techStackOptions),
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -247,82 +279,71 @@ export async function handleCreateMobileApp(
 }
 
 async function handleRunMobileApp(
-  stream: vscode.ChatResponseStream,
+  streamService: StreamHandlerService,
   telemetry: TelemetryService,
 ) {
   telemetry.trackChatInteraction('mobile.run');
   const startTime = Date.now();
+  let appConfig: AppConfig;
 
   try {
-    const workspaceFolder = await FileParser.getWorkspaceFolder();
-    if (!workspaceFolder) {
-      stream.markdown('No workspace folder selected');
-      telemetry.trackError(
-        'mobile.run',
-        'mobile',
-        'chat',
-        undefined,
-        {
-          error: 'no_workspace_folder',
-        },
-        {
-          duration: Date.now() - startTime,
-        },
-      );
-      return {
-        errorDetails: {
-          message: 'No workspace folder selected',
-        },
-        metadata: { command: 'run' },
-      };
-    }
-
-    const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
-    if (files.length === 0) {
-      stream.markdown('Not able to locate a appdev.json file');
-      telemetry.trackError(
-        'mobile.run',
-        'mobile',
-        'chat',
-        undefined,
-        {
-          error: 'no_app_json',
-        },
-        {
-          duration: Date.now() - startTime,
-        },
-      );
-      return {
-        errorDetails: {
-          message: 'No app.json found',
-        },
-        metadata: { command: 'run' },
-      };
-    }
-
-    const appJsonPath = files[0].fsPath;
-    const appJson = await readAppConfigFromFile(appJsonPath);
-    const appName = appJson.name;
-    stream.markdown(`Running app ${appName}`);
-    runExpoProject(appName);
-
-    telemetry.trackChatInteraction('mobile.run', {
-      success: String(true),
-      duration: String(Date.now() - startTime),
-    });
-
-    return {
-      metadata: { command: 'run' },
-    };
-  } catch (error) {
+    appConfig = await getAppToRun(AppType.MOBILE, streamService);
+  } catch (error: any) {
     telemetry.trackError('mobile.run', 'mobile', 'chat', error as Error);
     return {
       errorDetails: {
-        message: (error as Error).message,
+        message: error.message ? error.message : 'Something went wrong',
       },
       metadata: { command: 'run' },
     };
   }
+
+  const appName = appConfig.name;
+  streamService.message(`Running app ${appName}`);
+  runExpoProject(appName);
+
+  telemetry.trackChatInteraction('mobile.run', {
+    success: String(true),
+    duration: String(Date.now() - startTime),
+  });
+
+  return {
+    metadata: { command: 'run' },
+  };
+}
+
+async function handleRunWebApp(
+  streamService: StreamHandlerService,
+  telemetry: TelemetryService,
+) {
+  telemetry.trackChatInteraction('web.run');
+  const startTime = Date.now();
+  let appConfig: AppConfig;
+
+  try {
+    appConfig = await getAppToRun(AppType.WEB, streamService);
+  } catch (error) {
+    telemetry.trackError('web.run', 'web', 'chat', error as Error);
+    return {
+      errorDetails: {
+        message: 'No workspace folder selected',
+      },
+      metadata: { command: 'run' },
+    };
+  }
+
+  const appName = appConfig.name;
+  streamService.message(`Running app ${appName}`);
+  runNextProject(appName); // TODO: check for framework
+
+  telemetry.trackChatInteraction('web.run', {
+    success: String(true),
+    duration: String(Date.now() - startTime),
+  });
+
+  return {
+    metadata: { command: 'run' },
+  };
 }
 
 function getFollowUpProvider() {
@@ -362,6 +383,7 @@ function getFollowUpProvider() {
 }
 
 export async function handleCreateWebApp(
+  context: vscode.ExtensionContext,
   userInput: string,
   source: 'chat' | 'command',
   modelService: LanguageModelService,
@@ -384,21 +406,32 @@ export async function handleCreateWebApp(
     techStackOptions = getDefaultWebTechStack();
     streamService.message(
       'Using default tech stack options: ' +
-        getPromptForStack(techStackOptions),
+        getPromptForWebStack(techStackOptions),
     );
   } else {
-    streamService.message(
-      'Chosen tech stack options: ' + getPromptForStack(techStackOptions),
-    );
     // Merge with default stack options
     techStackOptions = {
       ...getDefaultWebTechStack(),
       ...techStackOptions,
     };
+    streamService.message(
+      'Chosen tech stack options: ' + getPromptForWebStack(techStackOptions),
+    );
   }
 
   try {
-    app = new WebApp(modelService, streamService, userInput, techStackOptions);
+    // Check for backend
+    const backend = await getBackend(context, techStackOptions);
+    if (techStackOptions.backend === Backend.None || !backend) {
+      streamService.message('Continuing app creation without backend');
+    }
+    app = new WebApp(
+      modelService,
+      streamService,
+      userInput,
+      techStackOptions,
+      backend,
+    );
     await app.execute();
     telemetry.trackAppCreation(
       {
@@ -406,6 +439,7 @@ export async function handleCreateWebApp(
         success: true,
         source,
         appType: 'web',
+        techStack: JSON.stringify(techStackOptions),
         ...modelService.getModelConfig(),
       },
       {
@@ -414,13 +448,16 @@ export async function handleCreateWebApp(
         createdFilesCount: app.getGeneratedFilesCount(),
       },
     );
+    console.log('App created successfully');
   } catch (error: any) {
+    console.error('Error creating app', error);
     telemetry.trackAppCreation(
       {
         input: userInput,
         success: false,
         source,
         appType: 'web',
+        techStack: JSON.stringify(techStackOptions),
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -442,4 +479,115 @@ export async function handleCreateWebApp(
       : undefined,
     metadata: { command: 'create' },
   };
+}
+
+async function getBackend(
+  context: vscode.ExtensionContext,
+  techStackOptions: IGenericStack,
+): Promise<SupabaseService | null> {
+  const backend = techStackOptions.backend;
+
+  if (backend === Backend.SUPABASE) {
+    try {
+      // await clearSupabaseTokens(context);
+      const isConnected = await isConnectedToSupabase(context);
+      if (!isConnected) {
+        console.log('Not connected to Supabase. Will try connecting first.');
+        await connectToSupabase(context);
+      }
+      const supabaseService = await SupabaseService.getInstance(context);
+      if (!supabaseService) {
+        throw new Error('Failed to get instance of Supabase service');
+      }
+      return supabaseService;
+    } catch (error) {
+      console.error('Failed to get Supabase service', error);
+
+      // Try again
+      const options: vscode.MessageOptions = {
+        detail: 'Message Description',
+        modal: true,
+      };
+      const userResponse = await vscode.window.showInformationMessage(
+        'Failed to get Supabase service. Would you like to try connecting to Supabase again?',
+        options,
+        'Yes',
+        'No',
+      );
+      if (userResponse === 'Yes') {
+        // Clear supabase tokens. Caution: This will clear all tokens
+        console.log('Clearing Supabase tokens before retrying');
+        await clearSupabaseTokens(context);
+        return getBackend(context, techStackOptions);
+      } else {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+async function getAppToRun(
+  appType: AppType,
+  streamService: StreamHandlerService,
+): Promise<AppConfig> {
+  try {
+    const workspaceFolder = await FileUtil.getWorkspaceFolder();
+    if (!workspaceFolder) {
+      streamService.error('No workspace folder selected');
+      throw new Error('No workspace folder selected');
+    }
+    streamService.progress('Searching for app to run');
+    const files = await vscode.workspace.findFiles(`**/${APP_CONFIG_FILE}`);
+    if (files.length === 0) {
+      streamService.error(
+        'Not able to locate a appdev.json file. Have you created an app yet?',
+      );
+      throw new Error('No app.json found');
+    }
+
+    // filter for appType
+    const appConfigs = await Promise.all(
+      files.map(async (file) => {
+        const appConfig = await readAppConfigFromFile(file.fsPath);
+        return appConfig;
+      }),
+    );
+    const filteredAppConfigs = appConfigs.filter(
+      (appConfig) => appConfig.type === appType,
+    );
+    if (filteredAppConfigs.length === 0) {
+      streamService.error(
+        'Not able to locate a appdev.json file for the selected app type',
+      );
+      throw new Error('No appdev.json found for the selected app type');
+    }
+    if (filteredAppConfigs.length === 1) {
+      return filteredAppConfigs[0];
+    }
+    // Show quick pick for multiple app configs
+    streamService.progress('Waiting for user to select app to run');
+    const quickPickItems = filteredAppConfigs.map((appConfig) => ({
+      label: appConfig.name,
+      description: appConfig.title,
+    }));
+
+    const selectedFile = await vscode.window.showQuickPick(quickPickItems, {
+      placeHolder: 'Select the app to run',
+    });
+    if (!selectedFile) {
+      streamService.error('No appdev.json file selected');
+      throw new Error('No appdev.json file selected');
+    }
+    return (
+      filteredAppConfigs.find(
+        (appConfig) => appConfig.name === selectedFile.label,
+      ) || filteredAppConfigs[0]
+    );
+  } catch (error: any) {
+    streamService.error(
+      'Error getting app to run: ' + error.message ? error.message : error,
+    );
+    throw error;
+  }
 }

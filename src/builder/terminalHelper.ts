@@ -42,6 +42,10 @@ export async function runExpoProject(folderName: string): Promise<void> {
   return runCommandWithPromise(`npm run start`, folderName);
 }
 
+export async function runNextProject(folderName: string): Promise<void> {
+  return runCommandWithPromise(`npm run dev`, folderName);
+}
+
 export function runCommandWithPromise(
   command: string,
   folder?: string,

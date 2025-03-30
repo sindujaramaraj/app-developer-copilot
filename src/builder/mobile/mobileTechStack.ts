@@ -1,4 +1,9 @@
+import { AuthenticationMethod, Backend } from '../backend/serviceStack';
 import { IGenericStack } from '../types';
+
+export enum MobilePlatform {
+  expo = 'expo',
+}
 
 export enum MobileFramework {
   REACT_NATIVE = 'react-native',
@@ -25,13 +30,6 @@ export enum Navigation {
   REACT_NAVIGATION = '@react-navigation/native',
 }
 
-export enum DataFetching {
-  REACT_QUERY = '@tanstack/react-query',
-  APOLLO = '@apollo/client',
-  RTK_QUERY = '@reduxjs/toolkit/query',
-  SWR = 'swr',
-}
-
 export enum Testing {
   JEST = 'jest',
   TESTING_LIBRARY = '@testing-library/react-native',
@@ -44,42 +42,35 @@ export enum Storage {
   REALM = '@realm/react',
 }
 
-export enum Authentication {
-  None = 'none',
-  EXPO_AUTH = 'expo-auth-session',
-  FIREBASE = '@react-native-firebase/auth',
-  CLERK = '@clerk/clerk-expo',
-  SUPABASE = '@supabase/supabase-js',
-}
-
-export interface MobileTechStackOptions extends IGenericStack {
+export interface IMobileTechStackOptions extends IGenericStack {
+  platform: MobilePlatform;
   framework: MobileFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
   navigation: Navigation;
-  dataFetching?: DataFetching;
   testing: Testing[];
   storage: Storage;
-  authentication: Authentication;
+  authentication: AuthenticationMethod;
 }
 
-export const DEFAULT_MOBILE_STACK: MobileTechStackOptions = {
+export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
+  platform: MobilePlatform.expo,
   framework: MobileFramework.REACT_NATIVE,
   stateManagement: StateManagement.ZUSTAND,
   uiLibrary: UILibrary.REACT_NATIVE_PAPER,
-  dataFetching: DataFetching.REACT_QUERY,
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
-  authentication: Authentication.None,
+  authentication: AuthenticationMethod.None,
+  backend: Backend.SUPABASE,
 };
 
-export const getDefaultMobileTechStack = (): MobileTechStackOptions => {
+export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {
   return DEFAULT_MOBILE_STACK;
 };
 
 export const getLibsToInstallForStack = (
-  stack: MobileTechStackOptions,
+  stack: IMobileTechStackOptions,
 ): string[] => {
   const libs = [];
   switch (stack.stateManagement) {
@@ -126,18 +117,11 @@ export const getLibsToInstallForStack = (
       break;
   }
 
-  switch (stack.dataFetching) {
-    case DataFetching.REACT_QUERY:
-      libs.push('@tanstack/react-query');
-      break;
-    case DataFetching.APOLLO:
-      libs.push('@apollo/client');
-      break;
-    case DataFetching.RTK_QUERY:
-      libs.push('@reduxjs/toolkit/query');
-      break;
-    case DataFetching.SWR:
-      libs.push('swr');
+  switch (stack.backend) {
+    case Backend.SUPABASE:
+      libs.push('@supabase/supabase-js');
+      libs.push('@react-native-async-storage/async-storage');
+      libs.push('react-native-url-polyfill');
       break;
   }
 
@@ -146,57 +130,13 @@ export const getLibsToInstallForStack = (
   return libs;
 };
 
-export const getPromptForStack = (stack: MobileTechStackOptions): string => {
-  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
-   ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
-   and ${stack.storage} for storage. \
-   ${stack.authentication !== Authentication.None ? ` Use ${stack.authentication} for authentication.` : 'Do not add authentication.'}`;
+export const getPromptForMobileStack = (
+  stack: IMobileTechStackOptions,
+): string => {
+  return `For the expo app, use ${stack.stateManagement} for state management,\
+   ${stack.uiLibrary} for UI components library, \
+   ${stack.navigation} for navigation, \
+   and ${stack.storage} for local device storage.\
+   ${stack.backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
+   `;
 };
-
-export class MobileTechStack {
-  private stateManagement: StateManagement;
-  private uiLibrary: UILibrary;
-  private navigation: Navigation;
-  private dataFetching?: DataFetching;
-  private testing: Testing[];
-  private storage: Storage;
-  private authentication: Authentication;
-
-  constructor(options: MobileTechStackOptions) {
-    this.stateManagement = options.stateManagement;
-    this.uiLibrary = options.uiLibrary;
-    this.navigation = options.navigation;
-    this.dataFetching = options.dataFetching;
-    this.testing = options.testing;
-    this.storage = options.storage;
-    this.authentication = options.authentication;
-  }
-
-  public getStateManagement(): StateManagement {
-    return this.stateManagement;
-  }
-
-  public getUILibrary(): UILibrary {
-    return this.uiLibrary;
-  }
-
-  public getNavigation(): Navigation {
-    return this.navigation;
-  }
-
-  public getDataFetching(): DataFetching | undefined {
-    return this.dataFetching;
-  }
-
-  public getTesting(): Testing[] {
-    return this.testing;
-  }
-
-  public getStorage(): Storage {
-    return this.storage;
-  }
-
-  public getAuthentication(): Authentication | undefined {
-    return this.authentication;
-  }
-}
