@@ -124,22 +124,24 @@ export class MobileTechStackWebviewProvider {
           ${
             ENABLE_BACKEND
               ? `
-                    <label>Backend:</label>
-                    <select id="backend">
-                    ${Object.values(Backend).map(
-                      (value) =>
-                        `<option value="${value}" ${
-                          defaultOptions.backend === value ? 'selected' : ''
-                        }>${value}</option>`,
-                    )}
-                    </select>`
+              <div>      
+                <label>Backend:</label>
+                <select id="backend">
+                ${Object.values(Backend).map(
+                  (value) =>
+                    `<option value="${value}" ${
+                      defaultOptions.backend === value ? 'selected' : ''
+                    }>${value}</option>`,
+                )}
+                </select>
+              </div>`
               : ''
           }
               
           ${
             ENABLE_BACKEND && ENABLE_AUTHENTICATION
               ? `
-          <label>Authentication:</label>
+          <label>Authentication: Experimental</label>
           <select id="authentication">
             ${Object.values(AuthenticationMethod)
               .map(

@@ -208,7 +208,6 @@ export type ZGenerateCodeResponseType = z.infer<
 export interface IGenericStack {
   stateManagement: string;
   uiLibrary: string;
-  dataFetching?: string;
   testing: string[];
   backend: Backend;
   authentication: AuthenticationMethod;

@@ -19,17 +19,7 @@ export enum StateManagement {
 export enum UILibrary {
   MATERIAL_UI = '@mui/material',
   CHAKRA = '@chakra-ui/react',
-  TAILWIND = 'tailwindcss',
   SHADCN = 'shadcn',
-  RADIX = '@radix-ui/react',
-}
-
-export enum DataFetching {
-  REACT_QUERY = '@tanstack/react-query',
-  APOLLO = '@apollo/client',
-  RTK_QUERY = '@reduxjs/toolkit/query',
-  SWR = 'swr',
-  AXIOS = 'axios',
 }
 
 export enum Testing {
@@ -60,7 +50,6 @@ export interface IWebTechStackOptions extends IGenericStack {
   framework: WebFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
-  dataFetching?: DataFetching;
   testing: Testing[];
   styling: Styling;
   buildTool: BuildTools;
@@ -71,11 +60,10 @@ export const DEFAULT_WEB_STACK: IWebTechStackOptions = {
   framework: WebFramework.NEXT,
   stateManagement: StateManagement.ZUSTAND,
   uiLibrary: UILibrary.SHADCN,
-  dataFetching: DataFetching.REACT_QUERY,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
-  backend: Backend.None,
+  backend: Backend.SUPABASE,
   authentication: AuthenticationMethod.None,
 };
 
@@ -129,6 +117,20 @@ export const getLibsToInstallForStack = (
       libs.push('recoil');
       break;
   }
+
+  switch (stack.uiLibrary) {
+    case UILibrary.CHAKRA:
+      libs.push('@chakra-ui/react');
+      libs.push('@emotion/react');
+      break;
+    case UILibrary.MATERIAL_UI:
+      libs.push('@mui/material');
+      libs.push('@emotion/react');
+      libs.push('@emotion/styled');
+      libs.push('@fontsource/roboto');
+      libs.push('@mui/icons-material');
+      break;
+  }
   switch (stack.backend) {
     case Backend.SUPABASE:
       libs.push('@supabase/ssr');
@@ -139,14 +141,13 @@ export const getLibsToInstallForStack = (
 };
 
 export const getPromptForWebStack = (stack: IWebTechStackOptions): string => {
-  let prompt = `Use ${stack.framework} for the web app framework,
+  return `Use ${stack.framework} for the web app framework,
   ${stack.uiLibrary} for UI component library,\
   ${stack.stateManagement} for state management,\
   ${stack.styling} for styling,\
   and ${stack.buildTool} for build tool.\
   ${stack.backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
   `;
-  return prompt;
 };
 
 export function getBestPracticesPromptForWebFramework(

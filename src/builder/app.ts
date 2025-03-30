@@ -12,9 +12,11 @@ import {
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
-import { APP_CONVERSATION_FILE, SUPA_TYPES_FILE } from './constants';
+import { APP_CONVERSATION_FILE } from './constants';
 import { Backend } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
+import { checkNodeInstallation } from './utils/nodeUtil';
+import { get } from 'http';
 
 export enum AppStage {
   None,
@@ -145,7 +147,7 @@ export class App {
       }
     } catch (error: any) {
       console.error('Error creating app:', error);
-      this.logMessage('Error creating app');
+      this.logError('Error creating app');
       error.message && this.logMessage(error.message);
       this.stage = AppStage.Cancelled;
       throw error;
@@ -166,9 +168,25 @@ export class App {
     }
   }
 
-  precheck(): Promise<boolean> {
-    // Check for pre-requisites
-    throw new Error('Method not implemented.');
+  async precheck(): Promise<boolean> {
+    this.setStage(AppStage.PreCheck);
+    // Check if node is installed
+    const nodeCheck = await checkNodeInstallation();
+    if (!nodeCheck.installed) {
+      this.logMessage(
+        'Node.js is not installed. Please install Node.js to proceed',
+      );
+      this.setStage(AppStage.Cancelled);
+      return false;
+    }
+    if (!nodeCheck.meetsMinimum) {
+      this.logMessage(
+        `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
+      );
+      this.setStage(AppStage.Cancelled);
+      return false;
+    }
+    return true;
   }
 
   initialize(
@@ -195,7 +213,7 @@ export class App {
           throw new Error('No organizations found in supabase');
         }
 
-        this.logMessage('Select organization to create project in');
+        this.logProgress('Select organization to create project in');
         const selectedOrg = await vscode.window.showQuickPick(
           orgs.map((org) => org.id + '-' + org.name),
           {
@@ -215,7 +233,7 @@ export class App {
           selectedOrgId,
         );
         if (!newProject) {
-          this.logMessage('Failed to create project in supabase');
+          this.logError('Failed to create project in supabase');
           throw new Error('Failed to create project in supabase');
         }
         this.logMessage(`Project ${newProject.name} created in supabase`);
@@ -238,8 +256,7 @@ export class App {
         const anonKey = await this.backendService.getProjectAnonKey(projectId);
         const projectUrl = this.backendService.getProjectUrl(projectId);
         // Create env.local file with keys
-        const envLocalContent = `NEXT_PUBLIC_SUPABASE_URL=${projectUrl}
-NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
+        const envLocalContent = this.getSupaEnvFile(projectUrl, anonKey);
         this.logMessage('Types generated for project');
         if (
           generatedTypes &&
@@ -250,7 +267,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
           FileUtil.parseAndCreateFiles(
             [
               {
-                path: SUPA_TYPES_FILE,
+                path: this.getSupaTypesFilePath(),
                 content: generatedTypes.types,
               },
               {
@@ -281,14 +298,27 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
       // Add generated types to the dependencies
       const workspaceFolder = await FileUtil.getWorkspaceFolder();
       if (workspaceFolder) {
-        const typesFilePath = await this.getFilePathUri(SUPA_TYPES_FILE);
+        const typesFilePath = await this.getFilePathUri(
+          this.getSupaTypesFilePath(),
+        );
         const typesFileContent = await FileUtil.readFile(typesFilePath.fsPath);
         predefinedDependencies.push({
           componentName: 'database',
-          filePath: SUPA_TYPES_FILE,
+          filePath: this.getSupaTypesFilePath(),
           content: typesFileContent,
           libraries: [],
           summary: 'Generated types for the database',
+        });
+
+        // add env.local file to the dependencies
+        const envFilePath = await this.getFilePathUri('.env.local');
+        const envFileContent = await FileUtil.readFile(envFilePath.fsPath);
+        predefinedDependencies.push({
+          componentName: 'env.local',
+          filePath: '.env.local',
+          content: envFileContent,
+          libraries: [],
+          summary: 'Environment variables for the database',
         });
       } else {
         console.error('WebBuilder: Error getting workspace folder');
@@ -341,6 +371,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
 
   getTechStackOptions(): IGenericStack {
     return this.techStackOptions;
+  }
+
+  getSupaTypesFilePath(): string {
+    throw new Error('Method not implemented.');
   }
 
   hasBacked(): boolean {
@@ -491,5 +525,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}`;
       this.getAppName(),
       relativePath,
     );
+  }
+
+  getSupaEnvFile(_supaUrl: string, _supaAnonKey: string): string {
+    throw new Error('Method not implemented.');
   }
 }

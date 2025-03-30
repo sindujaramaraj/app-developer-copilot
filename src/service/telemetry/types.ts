@@ -42,6 +42,7 @@ export interface ITelemetryAppCreationEventProperties
   source: 'chat' | 'command';
   appType: 'mobile' | 'web';
   success: boolean;
+  techStack: string;
   error?: string;
   errorMessage?: string;
   errorReason?: string;

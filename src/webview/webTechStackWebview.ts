@@ -144,7 +144,7 @@ export class WebTechStackWebviewProvider {
           ${
             ENABLE_BACKEND && ENABLE_AUTHENTICATION
               ? `
-                    <label>Authentication:</label>
+                    <label>Authentication: Experimental</label>
                     <select id="authentication">
                       ${Object.values(AuthenticationMethod)
                         .map(

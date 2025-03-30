@@ -1,6 +1,10 @@
 import { AuthenticationMethod, Backend } from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
+export enum MobilePlatform {
+  expo = 'expo',
+}
+
 export enum MobileFramework {
   REACT_NATIVE = 'react-native',
   FLUTTER = 'flutter',
@@ -26,13 +30,6 @@ export enum Navigation {
   REACT_NAVIGATION = '@react-navigation/native',
 }
 
-export enum DataFetching {
-  REACT_QUERY = '@tanstack/react-query',
-  APOLLO = '@apollo/client',
-  RTK_QUERY = '@reduxjs/toolkit/query',
-  SWR = 'swr',
-}
-
 export enum Testing {
   JEST = 'jest',
   TESTING_LIBRARY = '@testing-library/react-native',
@@ -46,26 +43,26 @@ export enum Storage {
 }
 
 export interface IMobileTechStackOptions extends IGenericStack {
+  platform: MobilePlatform;
   framework: MobileFramework;
   stateManagement: StateManagement;
   uiLibrary: UILibrary;
   navigation: Navigation;
-  dataFetching?: DataFetching;
   testing: Testing[];
   storage: Storage;
   authentication: AuthenticationMethod;
 }
 
 export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
+  platform: MobilePlatform.expo,
   framework: MobileFramework.REACT_NATIVE,
   stateManagement: StateManagement.ZUSTAND,
   uiLibrary: UILibrary.REACT_NATIVE_PAPER,
-  dataFetching: DataFetching.REACT_QUERY,
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
   authentication: AuthenticationMethod.None,
-  backend: Backend.None,
+  backend: Backend.SUPABASE,
 };
 
 export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {
@@ -120,18 +117,11 @@ export const getLibsToInstallForStack = (
       break;
   }
 
-  switch (stack.dataFetching) {
-    case DataFetching.REACT_QUERY:
-      libs.push('@tanstack/react-query');
-      break;
-    case DataFetching.APOLLO:
-      libs.push('@apollo/client');
-      break;
-    case DataFetching.RTK_QUERY:
-      libs.push('@reduxjs/toolkit/query');
-      break;
-    case DataFetching.SWR:
-      libs.push('swr');
+  switch (stack.backend) {
+    case Backend.SUPABASE:
+      libs.push('@supabase/supabase-js');
+      libs.push('@react-native-async-storage/async-storage');
+      libs.push('react-native-url-polyfill');
       break;
   }
 
@@ -143,7 +133,10 @@ export const getLibsToInstallForStack = (
 export const getPromptForMobileStack = (
   stack: IMobileTechStackOptions,
 ): string => {
-  return `Use ${stack.stateManagement} for state management, ${stack.uiLibrary} for UI components library, \
-   ${stack.navigation} for navigation, ${stack.dataFetching} for data fetching, \
-   and ${stack.storage} for storage.`;
+  return `For the expo app, use ${stack.stateManagement} for state management,\
+   ${stack.uiLibrary} for UI components library, \
+   ${stack.navigation} for navigation, \
+   and ${stack.storage} for local device storage.\
+   ${stack.backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
+   `;
 };

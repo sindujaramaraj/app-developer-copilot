@@ -39,6 +39,10 @@ export class PromptBase<TInput, TOutput> {
     return this.instructions;
   }
 
+  getResponseFormatSchema(): z.ZodSchema<TOutput> {
+    return this.responseSchema;
+  }
+
   getResponseFormatPrompt(): string {
     const responseSchema = zodResponseFormat(this.responseSchema, 'json');
     return `I need you to generate a JSON response based on the following schema:
@@ -50,30 +54,53 @@ export class PromptBase<TInput, TOutput> {
   }
 }
 
+export class InitializeMobileAppWithBackendPrompt extends PromptBase<
+  IInitializeAppInput,
+  ZInitializeAppWithBackendResponseType
+> {
+  constructor(input: IInitializeAppInput) {
+    const instructions = `
+    You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
+    Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
+    You will first design the app using database, data and UI components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
+    Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+    
+    Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
+    This is the tech stack that will be used: ${getPromptForMobileStack(
+      input.techStack as IMobileTechStackOptions,
+    )}
+
+    Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
+
+    ${getPromptForComponentDesign(input.techStack.framework)}
+
+    User will first request design for the app and request code the components one by one sequentially.
+    If the user asks a non-programming question, politely decline to respond.
+    `;
+    super(input, instructions, ZInitializeAppWithBackendResponseSchema);
+  }
+}
+
 export class InitializeMobileAppPrompt extends PromptBase<
   IInitializeAppInput,
   ZInitializeAppResponseType
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-    You are an expert at building mobile apps using react native and expo based on the requested tech stack.
-    You will write a very long answer. Make sure that every detail of the architecture is, in the end, implemented as code.
-    Make sure the architecure is simple and straightforward. Do not respond until you receive the request.
-    User will first request app design and then code generation.
-    If the user asks a non-programming question, politely decline to respond.
+    You are an expert at building mobile apps using react native and expo. For simplicity, we are not using a backend for this app.
+    Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
+    You will first design the app components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
+    Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
     
-    First think through the problem and design the mobile app. Use expo-router for navigation.
-    The app will be initialized using 'npx create-expo-app' and uses expo-router with typescript template.
-    Tech stack: ${getPromptForMobileStack(
+    Assume the project code will be initialized using 'npx create-expo-app' and uses expo-router with typescript template.
+    This is the tech stack that will be used: ${getPromptForMobileStack(
       input.techStack as IMobileTechStackOptions,
     )}
-    First, analyse the problem. Decide on features and design the architecture of the app as a mermaid diagram.
-    Then to implement the app, think through and create components for the app.
-    Make sure there are no circular dependencies between components.
-    Make sure the app uses expo-router for navigation and file path of the components are consistent.
-    Make sure that app/index.tsx is the entry point of the app.
-    Use the best practices suggested by the ${input.techStack.framework} framework.
-    Do not create too many components. Use default theme for UI if available. Keep it simple and functional.`;
+
+    ${getPromptForComponentDesign(input.techStack.framework)}
+
+    User will first request design for the app and request code the components one by one sequentially.
+    If the user asks a non-programming question, politely decline to respond.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
 }
@@ -84,7 +111,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 > {
   constructor(input: IInitializeAppInput) {
     const instructions = `
-      You are an expert at building web applications using Supabase as the backend and Next.js as the web framweork.
+      You are an expert at building fullstack web applications using Supabase as the backend and Next.js as the web framweork.
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first design the app using database, server and client components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
       Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
@@ -94,13 +121,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 
       Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
       
-      Things to keep in mind when designing the app:
-      1. Code for components will be requested later so all components must be listed in the response.
-      2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
-      3. There should be no circular dependencies between components.
-      4. Make sure the app has a home page which acts as the entry point of the app.
-      5. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
-      6. Use the best practices suggested by the ${input.techStack.framework} framework.
+      ${getPromptForComponentDesign(input.techStack.framework)}
     
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
@@ -123,12 +144,7 @@ export class InitializeWebAppPrompt extends PromptBase<
       Assume the webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
 
-      Things to keep in mind when designing the app:
-      1. Code for components will be requested later so all components must be listed in the response.
-      2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
-      3. There should be no circular dependencies between components.
-      4. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
-      6. Use the best practices suggested by the ${input.techStack.framework} framework.
+      ${getPromptForComponentDesign(input.techStack.framework)}
       
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
@@ -192,4 +208,16 @@ function getPromptForDependentCode(
         ${dependency.content}`,
     )
     .join('\n');
+}
+
+function getPromptForComponentDesign(framework: string) {
+  return `
+  Things to keep in mind when designing the app:
+  1. Code for components will be requested later so all components must be listed in the response.
+  2. A component can be dependent on another component. If a component is dependent on another component, make sure to list the components as dependents in the response.
+  3. There should be no circular dependencies between components.
+  4. Make sure the app has a home page which acts as the entry point of the app.
+  5. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
+  6. Use the best practices suggested by the ${framework} framework.
+  `;
 }

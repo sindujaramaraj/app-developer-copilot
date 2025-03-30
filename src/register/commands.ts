@@ -1,9 +1,9 @@
-import * as vscode from "vscode";
-import { LanguageModelService } from "../service/languageModel";
-import { StreamHandlerService } from "../service/streamHandler";
-import { TelemetryService } from "../service/telemetry/telemetry";
-import { APP_DISPLAY_NAME } from "../builder/constants";
-import { handleCreateMobileApp, handleCreateWebApp } from "./chatParticipants";
+import * as vscode from 'vscode';
+import { LanguageModelService } from '../service/languageModel';
+import { StreamHandlerService } from '../service/streamHandler';
+import { TelemetryService } from '../service/telemetry/telemetry';
+import { APP_DISPLAY_NAME } from '../builder/constants';
+import { handleCreateMobileApp, handleCreateWebApp } from './chatParticipants';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -20,17 +20,17 @@ export function registerCommands(context: vscode.ExtensionContext) {
 function registerMobileCommands(context: vscode.ExtensionContext) {
   const telemetry = TelemetryService.getInstance(context);
   context.subscriptions.push(
-    vscode.commands.registerCommand("app-developer.mobile.create", () => {
-      telemetry.trackCommandPanelInteraction("mobile.create");
+    vscode.commands.registerCommand('app-developer.mobile.create', () => {
+      telemetry.trackCommandPanelInteraction('mobile.create');
 
       vscode.window
         .showInputBox({
-          prompt: "What would you like to create?",
-          placeHolder: "A notes app",
+          prompt: 'What would you like to create?',
+          placeHolder: 'A notes app',
         })
         .then(async (userInput) => {
           if (!userInput) {
-            vscode.window.showErrorMessage("Enter a valid prompt");
+            vscode.window.showErrorMessage('Enter a valid prompt');
             return;
           }
           // Initialize model and stream services
@@ -41,8 +41,9 @@ function registerMobileCommands(context: vscode.ExtensionContext) {
           });
           // Handle create mobile app
           await handleCreateMobileApp(
+            context,
             userInput,
-            "command",
+            'command',
             modelService,
             streamService,
             telemetry,
@@ -55,17 +56,17 @@ function registerMobileCommands(context: vscode.ExtensionContext) {
 function registerWebCommands(context: vscode.ExtensionContext) {
   const telemetry = TelemetryService.getInstance(context);
   context.subscriptions.push(
-    vscode.commands.registerCommand("app-developer.web.create", () => {
-      telemetry.trackCommandPanelInteraction("web.create");
+    vscode.commands.registerCommand('app-developer.web.create', () => {
+      telemetry.trackCommandPanelInteraction('web.create');
 
       vscode.window
         .showInputBox({
-          prompt: "What would you like to create?",
-          placeHolder: "A notes app",
+          prompt: 'What would you like to create?',
+          placeHolder: 'A notes app',
         })
         .then(async (userInput) => {
           if (!userInput) {
-            vscode.window.showErrorMessage("Enter a valid prompt");
+            vscode.window.showErrorMessage('Enter a valid prompt');
             return;
           }
           // Initialize model and stream services
@@ -78,7 +79,7 @@ function registerWebCommands(context: vscode.ExtensionContext) {
           await handleCreateWebApp(
             context,
             userInput,
-            "command",
+            'command',
             modelService,
             streamService,
             telemetry,

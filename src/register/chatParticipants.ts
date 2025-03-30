@@ -78,6 +78,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
 
       // Handle create mobile app
       return await handleCreateMobileApp(
+        context,
         request.prompt,
         'chat',
         modelService,
@@ -184,6 +185,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
 }
 
 export async function handleCreateMobileApp(
+  context: vscode.ExtensionContext,
   userInput: string,
   source: 'chat' | 'command',
   modelService: LanguageModelService,
@@ -217,12 +219,17 @@ export async function handleCreateMobileApp(
   }
 
   try {
+    // Check for backend
+    const backend = await getBackend(context, techStackOptions);
+    if (techStackOptions.backend === Backend.None || !backend) {
+      streamService.message('Continuing app creation without backend');
+    }
     app = new MobileApp(
       modelService,
       streamService,
       userInput,
       techStackOptions,
-      null,
+      backend,
     );
     await app.execute();
     telemetry.trackAppCreation(
@@ -231,6 +238,7 @@ export async function handleCreateMobileApp(
         success: true,
         source,
         appType: 'mobile',
+        techStack: JSON.stringify(techStackOptions),
         ...modelService.getModelConfig(),
       },
       {
@@ -246,6 +254,7 @@ export async function handleCreateMobileApp(
         success: false,
         source,
         appType: 'mobile',
+        techStack: JSON.stringify(techStackOptions),
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -430,6 +439,7 @@ export async function handleCreateWebApp(
         success: true,
         source,
         appType: 'web',
+        techStack: JSON.stringify(techStackOptions),
         ...modelService.getModelConfig(),
       },
       {
@@ -447,6 +457,7 @@ export async function handleCreateWebApp(
         success: false,
         source,
         appType: 'web',
+        techStack: JSON.stringify(techStackOptions),
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',

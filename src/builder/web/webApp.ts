@@ -14,9 +14,7 @@ import {
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
-  ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
-  ZInitializeAppWithBackendResponseSchema,
   ZInitializeAppWithBackendResponseType,
 } from '../types';
 import {
@@ -24,8 +22,11 @@ import {
   runCommandWithPromise,
 } from '../terminalHelper';
 import { FileUtil, IFile } from '../utils/fileUtil';
-import { APP_ARCHITECTURE_DIAGRAM_FILE, SUPA_SQL_FILE } from '../constants';
-import { checkNodeInstallation } from '../utils/nodeUtil';
+import {
+  APP_ARCHITECTURE_DIAGRAM_FILE,
+  SUPA_SQL_FILE_PATH,
+  SUPA_TYPES_WEB_FILE_PATH,
+} from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
@@ -38,27 +39,6 @@ import {
  * Web app builder
  */
 export class WebApp extends App {
-  async precheck(): Promise<boolean> {
-    this.setStage(AppStage.PreCheck);
-    // Check if node is installed
-    const nodeCheck = await checkNodeInstallation();
-    if (!nodeCheck.installed) {
-      this.logMessage(
-        'Node.js is not installed. Please install Node.js to proceed',
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    if (!nodeCheck.meetsMinimum) {
-      this.logMessage(
-        `Node.js version ${nodeCheck.version} is not supported. Please install Node.js version 16.0.0 or higher to proceed`,
-      );
-      this.setStage(AppStage.Cancelled);
-      return false;
-    }
-    return true;
-  }
-
   async initialize(
     userMessage?: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
@@ -75,10 +55,6 @@ export class WebApp extends App {
     const promptClass = this.hasBacked()
       ? InitializeWebAppWithBackendPrompt
       : InitializeWebAppPrompt;
-
-    const responseSchema = this.hasBacked()
-      ? ZInitializeAppWithBackendResponseSchema
-      : ZInitializeAppResponseSchema;
 
     const initializeAppPrompt = new promptClass({
       techStack: this.getTechStackOptions(),
@@ -98,7 +74,7 @@ export class WebApp extends App {
           ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
         >({
           messages: initializeAppMessages,
-          schema: responseSchema,
+          schema: initializeAppPrompt.getResponseFormatSchema(),
           responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
         });
       initializeAppMessages.push(
@@ -181,9 +157,9 @@ export class WebApp extends App {
       content: designDiagram,
     });
     // SQL scripts
-    if (createAppResponseObj.sqlScripts) {
+    if (this.hasBacked() && createAppResponseObj.sqlScripts) {
       files.push({
-        path: SUPA_SQL_FILE,
+        path: SUPA_SQL_FILE_PATH,
         content: createAppResponseObj.sqlScripts,
       });
     }
@@ -368,5 +344,17 @@ export class WebApp extends App {
 
   getTechStackOptions(): IWebTechStackOptions {
     return this.techStackOptions as IWebTechStackOptions;
+  }
+
+  getSupaTypesFilePath(): string {
+    return SUPA_TYPES_WEB_FILE_PATH;
+  }
+
+  getSupaEnvFile(supaUrl: string, supaAnonKey: string): string {
+    const envLocalContent = `
+    NEXT_PUBLIC_SUPABASE_URL=${supaUrl}
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=${supaAnonKey}
+    `;
+    return envLocalContent;
   }
 }
