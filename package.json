@@ -3,8 +3,8 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "1.0.6",
-  "preview": false,
+  "version": "1.0.7",
+  "preview": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/sindujaramaraj/app-developer-copilot.git"
@@ -36,6 +36,10 @@
     "react",
     "web",
     "react-native",
+    "nextjs",
+    "supabase",
+    "typescript",
+    "javascript",
     "mobile",
     "Claude",
     "OpenRouter",
