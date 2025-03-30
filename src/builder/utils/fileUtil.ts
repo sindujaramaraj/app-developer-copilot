@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { pack } from 'repomix';
-import repomixConfig from './repomix.config';
+//import repomixConfig from './repomix.config';
 import {
   extractCodeFromMarkdown,
   isCodeBlock,
@@ -152,16 +151,16 @@ export class FileUtil {
     });
   }
 
-  static async packMyCode(projectFolder: string) {
-    const wsFolder = await FileUtil.getWorkspaceFolder();
-    if (!wsFolder) {
-      throw new Error('No workspace folder selected');
-    }
-    const projectPath = vscode.Uri.joinPath(
-      vscode.Uri.file(wsFolder),
-      projectFolder,
-    ).fsPath;
+  //   static async packMyCode(projectFolder: string) {
+  //     const wsFolder = await FileUtil.getWorkspaceFolder();
+  //     if (!wsFolder) {
+  //       throw new Error('No workspace folder selected');
+  //     }
+  //     const projectPath = vscode.Uri.joinPath(
+  //       vscode.Uri.file(wsFolder),
+  //       projectFolder,
+  //     ).fsPath;
 
-    return await pack([projectPath], repomixConfig as any);
-  }
+  //     return await pack([projectPath], repomixConfig as any);
+  //   }
 }

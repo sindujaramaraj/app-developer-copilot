@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.0.0] - 2025-03-30
+
+## Changed
+
+- Making release 2.0.0 as public
+- Fixed package bundling issue when using repomix
+
 ## [1.0.7] - 2025-03-29
 
 ### Added
