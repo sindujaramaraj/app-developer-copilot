@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.0.1] - 2025-04-02
+
+### Added
+
+- Added telemetry for tracking backend connection success/failure
+
 ## [2.0.0] - 2025-03-30
 
 ## Changed

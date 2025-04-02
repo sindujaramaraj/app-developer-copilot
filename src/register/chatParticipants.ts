@@ -34,6 +34,7 @@ import {
   connectToSupabase,
   isConnectedToSupabase,
 } from '../builder/backend/supabase/oauth';
+import { ConnectionTarget } from '../service/telemetry/types';
 
 enum ChatCommands {
   Create = 'create',
@@ -220,7 +221,7 @@ export async function handleCreateMobileApp(
 
   try {
     // Check for backend
-    const backend = await getBackend(context, techStackOptions);
+    const backend = await getBackend(context, techStackOptions, telemetry);
     if (techStackOptions.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
@@ -239,6 +240,7 @@ export async function handleCreateMobileApp(
         source,
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
+        hasBackend: techStackOptions.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
       },
       {
@@ -255,6 +257,7 @@ export async function handleCreateMobileApp(
         source,
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
+        hasBackend: techStackOptions.backend !== Backend.None,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -421,7 +424,7 @@ export async function handleCreateWebApp(
 
   try {
     // Check for backend
-    const backend = await getBackend(context, techStackOptions);
+    const backend = await getBackend(context, techStackOptions, telemetry);
     if (techStackOptions.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
@@ -440,6 +443,7 @@ export async function handleCreateWebApp(
         source,
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
+        hasBackend: techStackOptions.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
       },
       {
@@ -458,6 +462,7 @@ export async function handleCreateWebApp(
         source,
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
+        hasBackend: techStackOptions.backend !== Backend.None,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -484,6 +489,8 @@ export async function handleCreateWebApp(
 async function getBackend(
   context: vscode.ExtensionContext,
   techStackOptions: IGenericStack,
+  telemetry: TelemetryService,
+  retryCount = 0,
 ): Promise<SupabaseService | null> {
   const backend = techStackOptions.backend;
 
@@ -499,8 +506,13 @@ async function getBackend(
       if (!supabaseService) {
         throw new Error('Failed to get instance of Supabase service');
       }
+      telemetry.trackConnection({
+        target: ConnectionTarget.Supabase,
+        success: true,
+        retryCount,
+      });
       return supabaseService;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get Supabase service', error);
 
       // Try again
@@ -518,8 +530,14 @@ async function getBackend(
         // Clear supabase tokens. Caution: This will clear all tokens
         console.log('Clearing Supabase tokens before retrying');
         await clearSupabaseTokens(context);
-        return getBackend(context, techStackOptions);
+        return getBackend(context, techStackOptions, telemetry, retryCount + 1);
       } else {
+        telemetry.trackConnection({
+          target: ConnectionTarget.Supabase,
+          success: false,
+          retryCount,
+          error: error.message ? error.message : error,
+        });
         return null;
       }
     }
