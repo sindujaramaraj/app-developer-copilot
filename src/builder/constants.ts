@@ -12,7 +12,7 @@ export const CLASS_DIAGRAM_FILE = 'classDiagram.md';
 export const PROJECT_TREE_DIAGRAM_FILE = 'projectTreeDiagram.md';
 export const MAX_RETRY_COUNT = 1;
 
-export const ENABLE_TELEMETRY = false; // Config to enable or disable telemetry collection
+export const ENABLE_TELEMETRY = true; // Config to enable or disable telemetry collection
 export const ENABLE_WEB_APP = true; // Config to enable or disable web app creation
 export const ENABLE_WEB_STACK_CONFIG = true; // Config to enable or disable web stack configuration
 export const ENABLE_BACKEND = true; // Config to enable or disable backend creation
