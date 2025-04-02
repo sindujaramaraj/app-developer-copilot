@@ -25,7 +25,7 @@ export class TelemetryService {
         console.log('Telemetry is disabled');
       };
       this.reporter.sendTelemetryEvent = () => {
-        console.log('Telemetry error log is disabled');
+        console.log('Telemetry event log is disabled');
       };
     }
 
