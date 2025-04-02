@@ -7,6 +7,15 @@ export enum TelemetryEvent {
   Error = 'error',
   AppCreation = 'appCreation',
   Performance = 'performance',
+  Connection = 'connection',
+}
+
+export enum ConnectionTarget {
+  Supabase = 'supabase',
+  Firebase = 'firebase',
+  AWS = 'aws',
+  Google = 'google',
+  Github = 'github',
 }
 
 export enum ErrorType {
@@ -43,6 +52,7 @@ export interface ITelemetryAppCreationEventProperties
   appType: 'mobile' | 'web';
   success: boolean;
   techStack: string;
+  hasBackend: boolean;
   error?: string;
   errorMessage?: string;
   errorReason?: string;
@@ -59,4 +69,11 @@ export interface ITelemetryErrorEventProperties
   errorType: ErrorType;
   errorReason: ErrorReason;
   errorMessage: string;
+}
+
+export interface ITelemetryConnectionEventProperties {
+  target: ConnectionTarget;
+  success: boolean;
+  retryCount: number;
+  error?: string;
 }

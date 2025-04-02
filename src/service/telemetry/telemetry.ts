@@ -3,7 +3,7 @@ import TelemetryReporter from '@vscode/extension-telemetry';
 import {
   ITelemetryAppCreationEventMeasurements,
   ITelemetryAppCreationEventProperties,
-  ITelemetryEventCommonProperties,
+  ITelemetryConnectionEventProperties,
   TelemetryEvent,
 } from './types';
 import { ENABLE_TELEMETRY } from '../../builder/constants';
@@ -69,13 +69,14 @@ export class TelemetryService {
     properties: ITelemetryAppCreationEventProperties,
     measurements: ITelemetryAppCreationEventMeasurements,
   ): void {
-    const { success, ...otherProps } = properties;
-    if (properties.success) {
+    const { success, hasBackend, ...otherProps } = properties;
+    if (success) {
       this.reporter.sendTelemetryEvent(
         TelemetryEvent.AppCreation,
         {
           ...otherProps,
-          success: String(properties.success),
+          success: String(success),
+          hasBackend: String(hasBackend),
         },
         {
           ...measurements,
@@ -88,7 +89,7 @@ export class TelemetryService {
         otherProps.appType,
         otherProps.source,
         undefined,
-        otherProps,
+        { ...otherProps, hasBackend: String(hasBackend) },
         {
           ...measurements,
         },
@@ -154,6 +155,16 @@ export class TelemetryService {
         duration,
       },
     );
+  }
+
+  public trackConnection(
+    properties: ITelemetryConnectionEventProperties,
+  ): void {
+    this.reporter.sendTelemetryEvent(TelemetryEvent.Connection, {
+      ...properties,
+      success: String(properties.success),
+      retryCount: String(properties.retryCount),
+    });
   }
 
   /**
