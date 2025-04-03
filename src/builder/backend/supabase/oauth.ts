@@ -10,7 +10,7 @@ const SUPA_EDGE_FUNCTION_BASE_URL = isLocal
 const SUPA_LOGIN_URI = `${SUPA_EDGE_FUNCTION_BASE_URL}/supabase/login`;
 const SUPA_REFRESH_TOKEN_URI = `${SUPA_EDGE_FUNCTION_BASE_URL}/supabase/refresh-token`;
 
-const SUPABASE_CONNECTION_WAIT_TIME = 120 * 1000; // 2 mins
+const SUPABASE_CONNECTION_WAIT_TIME = 300 * 1000; // 5 mins
 
 export async function isConnectedToSupabase(context: vscode.ExtensionContext) {
   const accessToken = await getSupabaseAccessToken(context);
@@ -47,14 +47,14 @@ export async function connectToSupabase(context: vscode.ExtensionContext) {
           }
         },
       });
-      setTimeout(async () => {
-        // Check if the connection is successful
-        const isConnected = await isConnectedToSupabase(context);
-        if (!isConnected) {
-          reject('Connection to Supabase timed out');
-          disposable.dispose();
-        }
-      }, SUPABASE_CONNECTION_WAIT_TIME);
+      // setTimeout(async () => {
+      //   // Check if the connection is successful
+      //   const isConnected = await isConnectedToSupabase(context);
+      //   if (!isConnected) {
+      //     reject('Connection to Supabase timed out');
+      //     disposable.dispose();
+      //   }
+      // }, SUPABASE_CONNECTION_WAIT_TIME);
     });
   } catch (error) {
     console.error('Failed to connect to Supabase:', error);

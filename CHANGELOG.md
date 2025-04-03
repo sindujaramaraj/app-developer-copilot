@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.0.2] - 2025-04-03
+
+### Removed
+
+- Removed timeout for backend connection
+
 ## [2.0.1] - 2025-04-02
 
 ### Added
