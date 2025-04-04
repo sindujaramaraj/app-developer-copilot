@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-import { APP_CONFIG_FILE, APP_VERISON } from '../constants';
+import { APP_CONFIG_FILE, APP_VERSION } from '../constants';
 import { FileUtil } from './fileUtil';
 import { LLMCodeModel, LLMProvider } from '../../service/types';
 import { IMobileTechStackOptions } from '../mobile/mobileTechStack';
@@ -33,7 +33,7 @@ export async function createAppConfig(
   // create a file with the app manifest
   const appManifest: AppConfig = {
     ...app,
-    version: APP_VERISON,
+    version: APP_VERSION,
   };
   const content = JSON.stringify(appManifest, null, 2);
   await FileUtil.parseAndCreateFiles(

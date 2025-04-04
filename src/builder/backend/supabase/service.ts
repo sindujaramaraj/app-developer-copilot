@@ -87,8 +87,8 @@ export class SupabaseService {
       },
     );
     if (response.status !== 200) {
-      console.error('Error updating update project auth config', response);
-      throw Error('Error updating update project auth config');
+      console.error('Error updating project auth config', response);
+      throw Error('Error updating project auth config');
     }
     return data;
   }
