@@ -1,4 +1,8 @@
-import { AuthenticationMethod, Backend } from '../backend/serviceStack';
+import {
+  AuthenticationMethod,
+  Backend,
+  getPromptForBackend,
+} from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
 export enum WebFramework {
@@ -145,13 +149,12 @@ export const getLibsToInstallForStack = (
 };
 
 export const getPromptForWebStack = (stack: IWebTechStackOptions): string => {
-  const { backend } = stack.backendConfig;
   return `Use ${stack.framework} for the web app framework,
   ${stack.uiLibrary} for UI component library,\
   ${stack.stateManagement} for state management,\
   ${stack.styling} for styling,\
   and ${stack.buildTool} for build tool.\
-  ${backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
+  ${getPromptForBackend(stack.backendConfig)}
   `;
 };
 

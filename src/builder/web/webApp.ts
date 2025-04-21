@@ -52,6 +52,21 @@ export class WebApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a web app');
 
+    const useExistingBackend =
+      this.getTechStackOptions().backendConfig.useExisting;
+
+    if (useExistingBackend) {
+      try {
+        const backendDetails = await this.getExistingBackendDetails();
+        this.techStackOptions.backendConfig.details = backendDetails;
+      } catch (error) {
+        console.error('Error getting backend details', error);
+        this.logMessage(
+          'Error getting backend details. Will continue without backend.',
+        );
+      }
+    }
+
     const promptClass = this.hasBacked()
       ? InitializeWebAppWithBackendPrompt
       : InitializeWebAppPrompt;

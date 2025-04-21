@@ -143,6 +143,6 @@ export const getPromptForMobileStack = (
    ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, \
    and ${stack.storage} for local device storage.\
-   ${getPromptForBackend(stack.backendConfig)}\
+   ${getPromptForBackend(stack.backendConfig)}
    `;
 };
