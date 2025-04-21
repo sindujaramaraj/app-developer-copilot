@@ -105,4 +105,8 @@ export class SupabaseService {
   public getProjectUrl(projectId: string) {
     return `https://${projectId}.supabase.co`;
   }
+
+  public async getProjectAuthConfig(projectId: string) {
+    return await this.client.getProjectAuthConfig(projectId);
+  }
 }

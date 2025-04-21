@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
+  IBackendDetails,
   IGenerateCodeForComponentInput,
   IGenerateCodeForComponentResponse,
   IInitializeAppInput,
@@ -59,26 +60,67 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
   ZInitializeAppWithBackendResponseType
 > {
   constructor(input: IInitializeAppInput) {
-    const instructions = `
-    You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
-    Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
-    You will first design the app using database, data and UI components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
-    Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
-    
-    Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
-    This is the tech stack that will be used: ${getPromptForMobileStack(
-      input.techStack as IMobileTechStackOptions,
-    )}
+    const backendConfig = input.techStack.backendConfig;
+    let instructions;
+    if (backendConfig.useExisting && backendConfig.details) {
+      instructions = `
+      You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
+      User has an existing backend and wants to build a mobile app using the existing backend. Here are the backend details:
+      ${getPromptForExistingBackend(backendConfig.details)}
 
-    Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
-
-    ${getPromptForComponentDesign(input.techStack.framework)}
-
-    User will first request design for the app and request code the components one by one sequentially.
-    If the user asks a non-programming question, politely decline to respond.
-    `;
+      Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
+      Now design the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
+      Represent the design as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
+      
+      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      
+      Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
+      This is the tech stack that will be used: ${getPromptForMobileStack(
+        input.techStack as IMobileTechStackOptions,
+      )}
+  
+      Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
+  
+      ${getPromptForComponentDesign(input.techStack.framework)}
+  
+      User will first request design for the app and request code the components one by one sequentially.
+      If the user asks a non-programming question, politely decline to respond.
+      `;
+    } else {
+      instructions = `
+      You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
+      Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
+      You will first design the app using database, data and UI components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
+      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      
+      Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
+      This is the tech stack that will be used: ${getPromptForMobileStack(
+        input.techStack as IMobileTechStackOptions,
+      )}
+  
+      Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
+  
+      ${getPromptForComponentDesign(input.techStack.framework)}
+  
+      User will first request design for the app and request code the components one by one sequentially.
+      If the user asks a non-programming question, politely decline to respond.
+      `;
+    }
     super(input, instructions, ZInitializeAppWithBackendResponseSchema);
   }
+}
+
+function getPromptForExistingBackend(backendDetails: IBackendDetails) {
+  // TODO
+  return `The backend uses ${backendDetails.type} as the backend. Here are the details:\
+  ----------------------------------------\
+  authConfig: ${backendDetails.authConfig || 'none'}\
+  -----------------------------------------\
+  types: ${backendDetails.types || 'none'}\
+  -----------------------------------------\
+  docs: ${backendDetails.docs || 'none'}\
+  -----------------------------------------\
+  `;
 }
 
 export class InitializeMobileAppPrompt extends PromptBase<
@@ -110,7 +152,32 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
   ZInitializeAppWithBackendResponseType
 > {
   constructor(input: IInitializeAppInput) {
-    const instructions = `
+    const backendConfig = input.techStack.backendConfig;
+    let instructions;
+    if (backendConfig.useExisting && backendConfig.details) {
+      instructions = `
+      You are an expert at building fullstack web applications using Supabase as backend and Next.js as the web framweork.
+      User has an existing backend and wants to build a web app using the existing backend. Here are the backend details:
+      ${getPromptForExistingBackend(backendConfig.details)}
+      
+      Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
+      Now design the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
+      Represent the design as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
+      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      
+      Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
+      This is the tech stack that will be used: ${getPromptForWebStack(
+        input.techStack as IWebTechStackOptions,
+      )}.
+
+      Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
+
+      ${getPromptForComponentDesign(input.techStack.framework)}
+      
+      User will first request design for the app and request code the components one by one sequentially.
+      If the user asks a non-programming question, politely decline to respond.`;
+    } else {
+      instructions = `
       You are an expert at building fullstack web applications using Supabase as the backend and Next.js as the web framweork.
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first design the app using database, server and client components that will enable the functionality of the app. Represent the design as a mermaid diagram. Keep it simple and functional.
@@ -125,6 +192,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
     
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
+    }
 
     super(input, instructions, ZInitializeAppWithBackendResponseSchema);
   }

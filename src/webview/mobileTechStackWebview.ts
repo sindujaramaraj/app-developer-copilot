@@ -68,6 +68,7 @@ export class MobileTechStackWebviewProvider {
 
   private static _getHtmlForWebview() {
     const defaultOptions: IMobileTechStackOptions = getDefaultMobileTechStack();
+    const backendConfig = defaultOptions.backendConfig;
     return `
       <!DOCTYPE html>
       <html>
@@ -130,11 +131,16 @@ export class MobileTechStackWebviewProvider {
                 ${Object.values(Backend).map(
                   (value) =>
                     `<option value="${value}" ${
-                      defaultOptions.backend === value ? 'selected' : ''
+                      backendConfig.backend === value ? 'selected' : ''
                     }>${value}</option>`,
                 )}
                 </select>
-              </div>`
+              </div>
+              <div>
+                <input type="checkbox" id="useExistingBackend" ${backendConfig.useExisting ? 'checked' : ''}>
+                <label for="useExistingBackend">Use Existing Backend</label>
+              </div>
+              `
               : ''
           }
               
@@ -146,7 +152,7 @@ export class MobileTechStackWebviewProvider {
             ${Object.values(AuthenticationMethod)
               .map(
                 (value) =>
-                  `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
+                  `<option value="${value}" ${backendConfig.authentication === value ? 'selected' : ''}>${value}</option>`,
               )
               .join('')}
           </select>`
@@ -166,13 +172,17 @@ export class MobileTechStackWebviewProvider {
             function submit() {
               const authentication = document.getElementById('authentication');
               const backend = document.getElementById('backend');
+              const useExistingBackend = document.getElementById('useExistingBackend');
 
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 storage: document.getElementById('storage').value,
-                backend: backend ? backend.value : 'none',
-                authentication: authentication ? authentication.value : 'none',
+                backendConfig: {
+                  backend: backend ? backend.value : 'none',
+                  authentication: authentication ? authentication.value : 'none',
+                  useExisting: useExistingBackend ? useExistingBackend.checked : false,
+            } 
               };
               vscode.postMessage({ type: 'submit', options });
             }

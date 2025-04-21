@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  IBackendDetails,
   IGenerateCodeForComponentResponse,
   IGenericStack,
   ZCodeComponentType,
@@ -17,6 +18,7 @@ import { Backend } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
 import { get } from 'http';
+import { createSupaFiles } from './backend/supabase/helper';
 
 export enum AppStage {
   None,
@@ -196,99 +198,184 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
+  // Construct details for existing backend
+  async getExistingBackendDetails(): Promise<IBackendDetails> {
+    // Construct details for existing backend
+
+    if (!this.backendService) {
+      throw new Error('Backend service not initialized');
+    }
+    // Check for connection
+    const isConnected = await this.backendService.isConnected();
+    if (!isConnected) {
+      throw new Error('Connection is not established');
+    }
+    // Select projects
+    const projects = await this.backendService.getProjects();
+    if (!projects || projects.length === 0) {
+      this.logError('No projects found in supabase');
+      throw new Error('No projects found in supabase');
+    }
+    this.logProgress('Select the Supabase project you want to use as backend');
+    const selectedProject = await vscode.window.showQuickPick(
+      projects.map((prj) => prj.id + '-' + prj.name),
+      {
+        placeHolder: 'Select the Supabase project you want to use as backend',
+      },
+    );
+    if (!selectedProject) {
+      throw new Error('Project not selected');
+    }
+    const selectedProjectId = selectedProject.split('-')[0];
+    // Get project details
+    const projectUrl = this.backendService.getProjectUrl(selectedProjectId);
+    const projectAnonKey =
+      await this.backendService.getProjectAnonKey(selectedProjectId);
+    const projectAuthConfig =
+      await this.backendService.getProjectAuthConfig(selectedProjectId);
+    const projectTypes =
+      await this.backendService.generateTypesForProject(selectedProjectId);
+    return {
+      type: Backend.SUPABASE,
+      url: projectUrl,
+      key: projectAnonKey,
+      authConfig: projectAuthConfig,
+      types: projectTypes?.types,
+    };
+  }
+
   async handleBackend(createAppResponseObj: ZInitializeAppResponseType) {
     this.logProgress('Setting up backend');
-    if (
-      this.getTechStackOptions().backend === Backend.SUPABASE &&
-      this.backendService &&
-      createAppResponseObj.sqlScripts
-    ) {
-      // Check for backend connectivity
-      const isConnected = await this.backendService.isConnected();
-      if (isConnected) {
-        // Create project
-        // Select organization to create project in
-        const orgs = await this.backendService.getOrgs();
-        if (!orgs || orgs.length === 0) {
-          throw new Error('No organizations found in supabase');
-        }
-
-        this.logProgress('Select organization to create project in');
-        const selectedOrg = await vscode.window.showQuickPick(
-          orgs.map((org) => org.id + '-' + org.name),
-          {
-            placeHolder: 'Select organization to create project in',
-          },
-        );
-        if (!selectedOrg) {
-          throw new Error('Organization not selected');
-        }
-        const selectedOrgId = selectedOrg.split('-')[0];
-        // Create project in the selected org
-        this.logProgress('Creating project in supabase');
-        const projectName = createAppResponseObj.name + '-backend';
-        const newProject = await this.backendService.createProject(
-          projectName,
-          'db123456', // TODO: use a random password
-          selectedOrgId,
-        );
-        if (!newProject) {
-          this.logError('Failed to create project in supabase');
-          throw new Error('Failed to create project in supabase');
-        }
-        this.logMessage(`Project ${newProject.name} created in supabase`);
-
-        const projectId = newProject.id;
-
-        // Create tables
-        this.logProgress('Creating tables in supabase');
-        await this.backendService.runQuery(
-          projectId,
-          createAppResponseObj.sqlScripts,
-        );
-        this.logMessage('Tables created in supabase');
-
-        // Generate types
-        this.logProgress('Generating types for project');
-        const generatedTypes =
-          await this.backendService.generateTypesForProject(projectId);
-        // Get keys
-        const anonKey = await this.backendService.getProjectAnonKey(projectId);
-        const projectUrl = this.backendService.getProjectUrl(projectId);
-        // Create env.local file with keys
-        const envLocalContent = this.getSupaEnvFile(projectUrl, anonKey);
-        this.logMessage('Types generated for project');
-        if (
-          generatedTypes &&
-          generatedTypes.types &&
-          generatedTypes.types.length > 0
-        ) {
-          // Save types and api keys to file
-          FileUtil.parseAndCreateFiles(
-            [
-              {
-                path: this.getSupaTypesFilePath(),
-                content: generatedTypes.types,
-              },
-              {
-                path: '.env.local',
-                content: envLocalContent,
-              },
-            ],
-            createAppResponseObj.name,
-          );
-        } else {
-          this.logMessage(
-            'No types generated for project. Try generating them manually',
-          );
-        }
+    const backendConfig = this.getTechStackOptions().backendConfig;
+    if (backendConfig.backend === Backend.SUPABASE && this.backendService) {
+      if (backendConfig.useExisting) {
+        this.handleExistingBackend(createAppResponseObj);
       } else {
-        this.logMessage(
-          'Not able to connect to supabase. Proceeding without backend',
-        );
+        this.handleCreateNewBackend(createAppResponseObj);
       }
     } else {
       this.logMessage('No backend setup required');
+    }
+  }
+
+  async handleExistingBackend(
+    createAppResponseObj: ZInitializeAppResponseType,
+  ): Promise<void> {
+    if (!this.backendService) {
+      throw new Error('Backend service not initialized');
+    }
+    const existingBackendDetails =
+      this.getTechStackOptions().backendConfig.details;
+
+    if (!existingBackendDetails) {
+      this.logMessage('No existing backend details found');
+      return;
+    }
+    if (existingBackendDetails.type === Backend.SUPABASE) {
+      // create env file
+      const envLocalContent = this.getSupaEnvFile(
+        existingBackendDetails.url,
+        existingBackendDetails.key,
+      );
+      if (!existingBackendDetails.types) {
+        this.logMessage('No types found for existing backend');
+        return;
+      }
+      await createSupaFiles(
+        envLocalContent,
+        this.getSupaTypesFilePath(),
+        existingBackendDetails.types,
+        createAppResponseObj.name,
+      );
+    }
+  }
+
+  async handleCreateNewBackend(
+    createAppResponseObj: ZInitializeAppResponseType,
+  ): Promise<void> {
+    if (!this.backendService) {
+      throw new Error('Backend service not initialized');
+    }
+    if (!createAppResponseObj.sqlScripts) {
+      this.logMessage('No SQL scripts found');
+      return;
+    }
+    // Check for backend connectivity
+    const isConnected = await this.backendService.isConnected();
+    if (isConnected) {
+      // Create project
+      // Select organization to create project in
+      const orgs = await this.backendService.getOrgs();
+      if (!orgs || orgs.length === 0) {
+        throw new Error('No organizations found in supabase');
+      }
+
+      this.logProgress('Select organization to create project in');
+      const selectedOrg = await vscode.window.showQuickPick(
+        orgs.map((org) => org.id + '-' + org.name),
+        {
+          placeHolder: 'Select organization to create project in',
+        },
+      );
+      if (!selectedOrg) {
+        throw new Error('Organization not selected');
+      }
+      const selectedOrgId = selectedOrg.split('-')[0];
+      // Create project in the selected org
+      this.logProgress('Creating project in supabase');
+      const projectName = createAppResponseObj.name + '-backend';
+      const newProject = await this.backendService.createProject(
+        projectName,
+        'db123456', // TODO: use a random password
+        selectedOrgId,
+      );
+      if (!newProject) {
+        this.logError('Failed to create project in supabase');
+        throw new Error('Failed to create project in supabase');
+      }
+      this.logMessage(`Project ${newProject.name} created in supabase`);
+
+      const projectId = newProject.id;
+
+      // Create tables
+      this.logProgress('Creating tables in supabase');
+      await this.backendService.runQuery(
+        projectId,
+        createAppResponseObj.sqlScripts,
+      );
+      this.logMessage('Tables created in supabase');
+
+      // Generate types
+      this.logProgress('Generating types for project');
+      const generatedTypes =
+        await this.backendService.generateTypesForProject(projectId);
+      // Get keys
+      const anonKey = await this.backendService.getProjectAnonKey(projectId);
+      const projectUrl = this.backendService.getProjectUrl(projectId);
+      // Create env.local file with keys
+      const envLocalContent = this.getSupaEnvFile(projectUrl, anonKey);
+      this.logMessage('Types generated for project');
+      if (
+        generatedTypes &&
+        generatedTypes.types &&
+        generatedTypes.types.length > 0
+      ) {
+        // Save types and api keys to file
+        await createSupaFiles(
+          envLocalContent,
+          this.getSupaTypesFilePath(),
+          generatedTypes.types,
+          createAppResponseObj.name,
+        );
+      } else {
+        this.logMessage(
+          'No types generated for project. Try generating them manually',
+        );
+      }
+    } else {
+      this.logMessage(
+        'Not able to connect to supabase. Proceeding without backend',
+      );
     }
   }
 
@@ -379,7 +466,7 @@ export class App {
 
   hasBacked(): boolean {
     return (
-      this.getTechStackOptions().backend !== Backend.None &&
+      this.getTechStackOptions().backendConfig.backend !== Backend.None &&
       this.backendService !== null
     );
   }

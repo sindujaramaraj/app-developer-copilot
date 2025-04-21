@@ -1,8 +1,18 @@
 import { ENABLE_AUTHENTICATION } from '../constants';
-import { IGenericStack } from '../types';
+import { IBackendDetails, IGenericStack } from '../types';
+
+export interface IBackendConfig {
+  backend: Backend;
+  useExisting: boolean; // Flag to indicate using existing project (e.g., for Supabase/Firebase)
+  authentication: AuthenticationMethod;
+  details?: IBackendDetails; // Optional existing backend config
+  // Add other backend-specific config here if needed in the future
+}
 
 export enum Backend {
   SUPABASE = 'supabase',
+  FIREBASE = 'firebase', // Added Firebase
+  API = 'api', // Added API
   None = 'none',
 }
 
@@ -34,9 +44,14 @@ export function getPromptForAuthenticationMethod(
   if (!ENABLE_AUTHENTICATION) {
     return 'Do not add any authentication.';
   }
+  const { backendConfig } = techStack;
 
-  const backend = techStack.backend;
-  const authMethod = techStack.authentication;
+  if (backendConfig.useExisting) {
+    return 'Based on the existing backend, add authentication. Do not add any new authentication.';
+  }
+
+  const backend = backendConfig.backend;
+  const authMethod = backendConfig.authentication;
   switch (authMethod) {
     case AuthenticationMethod.EMAIL:
       if (backend === Backend.SUPABASE) {
@@ -46,4 +61,17 @@ export function getPromptForAuthenticationMethod(
     case AuthenticationMethod.None:
       return 'Do not add any authentication.';
   }
+}
+
+export function getPromptForBackend(backendConfig: IBackendConfig): string {
+  const backend = backendConfig.backend;
+  const useExisting = backendConfig.useExisting;
+
+  if (backend !== Backend.SUPABASE) {
+    return 'Do not add any backend.';
+  }
+  if (useExisting) {
+    return 'Use the existing Supabase project.';
+  }
+  return 'Use Supabase for backend.';
 }

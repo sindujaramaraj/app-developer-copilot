@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { IWebTechStackOptions } from './web/webTechStack';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
-import { AuthenticationMethod, Backend } from './backend/serviceStack';
+import {
+  Backend,
+  IBackendConfig, // Import the new config interface
+} from './backend/serviceStack';
 
 export interface IResponseBase {
   summary: string;
@@ -64,6 +67,16 @@ export const ZCodeComponentSchema = z.object({
 });
 
 export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
+
+// TODO: Need to make this generic for all the tech stacks
+export interface IBackendDetails {
+  type: Backend;
+  url: string;
+  key: string;
+  authConfig?: any;
+  types?: string;
+  docs?: string;
+}
 
 export interface IInitializeAppInput {
   techStack: IWebTechStackOptions | IMobileTechStackOptions;
@@ -209,6 +222,5 @@ export interface IGenericStack {
   stateManagement: string;
   uiLibrary: string;
   testing: string[];
-  backend: Backend;
-  authentication: AuthenticationMethod;
+  backendConfig: IBackendConfig;
 }

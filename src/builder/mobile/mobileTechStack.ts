@@ -1,4 +1,8 @@
-import { AuthenticationMethod, Backend } from '../backend/serviceStack';
+import {
+  AuthenticationMethod,
+  Backend,
+  getPromptForBackend,
+} from '../backend/serviceStack';
 import { IGenericStack } from '../types';
 
 export enum MobilePlatform {
@@ -50,7 +54,6 @@ export interface IMobileTechStackOptions extends IGenericStack {
   navigation: Navigation;
   testing: Testing[];
   storage: Storage;
-  authentication: AuthenticationMethod;
 }
 
 export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
@@ -61,8 +64,11 @@ export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
   navigation: Navigation.EXPO_ROUTER,
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   storage: Storage.ASYNC_STORAGE,
-  authentication: AuthenticationMethod.None,
-  backend: Backend.SUPABASE,
+  backendConfig: {
+    backend: Backend.SUPABASE,
+    useExisting: false,
+    authentication: AuthenticationMethod.EMAIL,
+  },
 };
 
 export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {
@@ -116,8 +122,8 @@ export const getLibsToInstallForStack = (
       libs.push('@react-navigation/native');
       break;
   }
-
-  switch (stack.backend) {
+  const { backend } = stack.backendConfig;
+  switch (backend) {
     case Backend.SUPABASE:
       libs.push('@supabase/supabase-js');
       libs.push('@react-native-async-storage/async-storage');
@@ -137,6 +143,6 @@ export const getPromptForMobileStack = (
    ${stack.uiLibrary} for UI components library, \
    ${stack.navigation} for navigation, \
    and ${stack.storage} for local device storage.\
-   ${stack.backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
+   ${getPromptForBackend(stack.backendConfig)}\
    `;
 };

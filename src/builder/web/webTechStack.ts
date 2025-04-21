@@ -53,7 +53,6 @@ export interface IWebTechStackOptions extends IGenericStack {
   testing: Testing[];
   styling: Styling;
   buildTool: BuildTools;
-  backend: Backend;
 }
 
 export const DEFAULT_WEB_STACK: IWebTechStackOptions = {
@@ -63,8 +62,11 @@ export const DEFAULT_WEB_STACK: IWebTechStackOptions = {
   testing: [Testing.JEST, Testing.TESTING_LIBRARY],
   styling: Styling.TAILWIND,
   buildTool: BuildTools.TURBOPACK,
-  backend: Backend.SUPABASE,
-  authentication: AuthenticationMethod.None,
+  backendConfig: {
+    backend: Backend.SUPABASE,
+    useExisting: false,
+    authentication: AuthenticationMethod.EMAIL,
+  },
 };
 
 export const getDefaultWebTechStack = (): IWebTechStackOptions => {
@@ -131,7 +133,9 @@ export const getLibsToInstallForStack = (
       libs.push('@mui/icons-material');
       break;
   }
-  switch (stack.backend) {
+  const { backend } = stack.backendConfig;
+
+  switch (backend) {
     case Backend.SUPABASE:
       libs.push('@supabase/ssr');
       libs.push('@supabase/supabase-js');
@@ -141,12 +145,13 @@ export const getLibsToInstallForStack = (
 };
 
 export const getPromptForWebStack = (stack: IWebTechStackOptions): string => {
+  const { backend } = stack.backendConfig;
   return `Use ${stack.framework} for the web app framework,
   ${stack.uiLibrary} for UI component library,\
   ${stack.stateManagement} for state management,\
   ${stack.styling} for styling,\
   and ${stack.buildTool} for build tool.\
-  ${stack.backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
+  ${backend === Backend.SUPABASE ? 'Use Supabase for backend.' : ''}\
   `;
 };
 
