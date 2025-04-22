@@ -15,7 +15,7 @@ export function isMarkdown(response: string): boolean {
   return markdownPatterns.some((pattern) => pattern.test(response));
 }
 
-const codeBlockRegex = /^```[\s\S]*(.+)```$/m;
+const codeBlockRegex = /```[a-zA-Z0-9]*\s*([\s\S]*?)\s*```/;
 
 export function isCodeBlock(response: string): boolean {
   return codeBlockRegex.test(response);
@@ -48,7 +48,7 @@ export function extractCodeFromMarkdown(markdown: string): string {
   }
 
   console.error('No code block found in the Markdown string.');
-  return '';
+  return markdown;
 }
 
 export function isMermaidMarkdown(response: string): boolean {

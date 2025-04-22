@@ -65,7 +65,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
     if (backendConfig.useExisting && backendConfig.details) {
       instructions = `
       You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
-      User has an existing backend and wants to build a mobile app using the existing backend. Here are the backend details:
+      User has an existing supabase backend and wants to build a mobile app using the existing backend. Here are the backend details:
       ${getPromptForExistingBackend(backendConfig.details)}
 
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
@@ -157,7 +157,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
     if (backendConfig.useExisting && backendConfig.details) {
       instructions = `
       You are an expert at building fullstack web applications using Supabase as backend and Next.js as the web framweork.
-      User has an existing backend and wants to build a web app using the existing backend. Here are the backend details:
+      User has an existing supabase backend and wants to build a web app using the existing backend. Here are the backend details:
       ${getPromptForExistingBackend(backendConfig.details)}
       
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
@@ -173,7 +173,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
       Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
 
       ${getPromptForComponentDesign(input.techStack.framework)}
-      
+
       User will first request design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
     } else {

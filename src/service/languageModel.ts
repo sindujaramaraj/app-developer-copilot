@@ -384,6 +384,9 @@ function fixResponseFromModel(jsonResponse: any): any {
     return jsonResponse['schema'];
   }
 
+  // fix error message
+  jsonResponse.error = jsonResponse.error || '';
+
   // In any other scenario, return the response as is
   return jsonResponse;
 }
