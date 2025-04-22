@@ -156,7 +156,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
     let instructions;
     if (backendConfig.useExisting && backendConfig.details) {
       instructions = `
-      You are an expert at building fullstack web applications using Supabase as backend and Next.js as the web framweork.
+      You are an expert at building fullstack web applications using Supabase as backend and Next.js as the web framework.
       User has an existing supabase backend and wants to build a web app using the existing backend. Here are the backend details:
       ${getPromptForExistingBackend(backendConfig.details)}
       
