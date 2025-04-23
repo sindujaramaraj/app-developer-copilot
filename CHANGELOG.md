@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.0.3] - 2025-04-22
+
+### Added
+
+- Support for existing backend from Supabase
+- Discord and Reddit links in README
+
 ## [2.0.2] - 2025-04-03
 
 ### Removed

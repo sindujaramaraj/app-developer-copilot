@@ -8,13 +8,13 @@
 </div>
 
 Generate full stack web and mobile application using your existing copilot subscription or your own key.
-Note: App generarion works best with Claude 3.5 and GPT-4o models.
+Note: App generarion works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.
 
 ## Features
 
 - Create mobile apps using React Native and Expo
 - Create web apps using React and Next.js
-- Option to connect to Supabase for storage and authentication
+- Create or use existing Supabase for storage and authentication
 - Generate application architecture and component designs
 - Automatically generate TypeScript code for components
 - Handle project setup and dependency management
