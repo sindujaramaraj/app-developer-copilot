@@ -218,11 +218,12 @@ export async function handleCreateMobileApp(
       ...techStackOptions,
     };
   }
+  const backendConfig = techStackOptions.backendConfig;
 
   try {
     // Check for backend
     const backend = await getBackend(context, techStackOptions, telemetry);
-    if (techStackOptions.backend === Backend.None || !backend) {
+    if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
     app = new MobileApp(
@@ -240,7 +241,7 @@ export async function handleCreateMobileApp(
         source,
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
-        hasBackend: techStackOptions.backend !== Backend.None && !!backend,
+        hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
       },
       {
@@ -257,7 +258,7 @@ export async function handleCreateMobileApp(
         source,
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
-        hasBackend: techStackOptions.backend !== Backend.None,
+        hasBackend: backendConfig.backend !== Backend.None,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -422,10 +423,12 @@ export async function handleCreateWebApp(
     );
   }
 
+  const backendConfig = techStackOptions.backendConfig;
+
   try {
     // Check for backend
     const backend = await getBackend(context, techStackOptions, telemetry);
-    if (techStackOptions.backend === Backend.None || !backend) {
+    if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
     app = new WebApp(
@@ -443,7 +446,7 @@ export async function handleCreateWebApp(
         source,
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
-        hasBackend: techStackOptions.backend !== Backend.None && !!backend,
+        hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
       },
       {
@@ -462,7 +465,7 @@ export async function handleCreateWebApp(
         source,
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
-        hasBackend: techStackOptions.backend !== Backend.None,
+        hasBackend: backendConfig.backend !== Backend.None,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -492,7 +495,8 @@ async function getBackend(
   telemetry: TelemetryService,
   retryCount = 0,
 ): Promise<SupabaseService | null> {
-  const backend = techStackOptions.backend;
+  const backendConfig = techStackOptions.backendConfig;
+  const backend = backendConfig.backend;
 
   if (backend === Backend.SUPABASE) {
     try {

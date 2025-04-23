@@ -1,13 +1,20 @@
-# App Developer Copilot
+<div align="center">
+  <h1>App Developer Copilot</h1>
+  <p>Connect with fellow developers.</p>
+  
+  <a href="https://discord.gg/AQTRCbheA2" target="_blank"><img src="https://img.shields.io/badge/Join%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord"></a>
+  <a href="https://www.reddit.com/r/appdevelopercopilot/" target="_blank"><img src="https://img.shields.io/badge/Join%20Reddit-FF4500?style=for-the-badge&logo=reddit&logoColor=white" alt="Join Reddit"></a>
+  
+</div>
 
 Generate full stack web and mobile application using your existing copilot subscription or your own key.
-Note: App generarion works best with Claude 3.5 and GPT-4o models.
+Note: App generarion works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.
 
 ## Features
 
 - Create mobile apps using React Native and Expo
 - Create web apps using React and Next.js
-- Option to connect to Supabase for storage and authentication
+- Create or use existing Supabase for storage and authentication
 - Generate application architecture and component designs
 - Automatically generate TypeScript code for components
 - Handle project setup and dependency management
@@ -83,6 +90,10 @@ Built with:
 - VS Code Extension API
 - Webpack for bundling
 - Jest for testing
+
+## Community
+
+Join our [Discord community](https://discord.gg/AQTRCbheA2) to get help, share your projects, and connect with other app developers!
 
 ## Issues & Suggestions
 

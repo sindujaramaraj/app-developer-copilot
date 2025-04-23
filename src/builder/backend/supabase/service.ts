@@ -105,4 +105,21 @@ export class SupabaseService {
   public getProjectUrl(projectId: string) {
     return `https://${projectId}.supabase.co`;
   }
+
+  public async getProjectAuthConfig(projectId: string): Promise<{
+    disable_signup: boolean;
+    external_email_enabled: boolean;
+    external_google_enabled: boolean;
+  }> {
+    const authConfig = (await this.client.getProjectAuthConfig(
+      projectId,
+    )) as any;
+    // TODO:For now, we are only interested in these three fields
+    // but we can add more in the future if needed
+    return {
+      disable_signup: authConfig?.disable_signup,
+      external_email_enabled: authConfig?.external_email_enabled,
+      external_google_enabled: authConfig?.external_google_enabled,
+    };
+  }
 }

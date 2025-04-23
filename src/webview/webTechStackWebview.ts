@@ -67,6 +67,7 @@ export class WebTechStackWebviewProvider {
 
   private static _getHtmlForWebview() {
     const defaultOptions: IWebTechStackOptions = getDefaultWebTechStack();
+    const backendConfig = defaultOptions.backendConfig;
     return `
       <!DOCTYPE html>
       <html>
@@ -129,15 +130,22 @@ export class WebTechStackWebviewProvider {
           ${
             ENABLE_BACKEND
               ? `
-          <label>Backend:</label>
-          <select id="backend">
-          ${Object.values(Backend).map(
-            (value) =>
-              `<option value="${value}" ${
-                defaultOptions.backend === value ? 'selected' : ''
-              }>${value}</option>`,
-          )}
-          </select>`
+              <div>
+                <label>Backend:</label>
+                <select id="backend">
+                ${Object.values(Backend).map(
+                  (value) =>
+                    `<option value="${value}" ${
+                      backendConfig.backend === value ? 'selected' : '' // Access via backendConfig
+                    }>${value}</option>`,
+                )}
+                </select>
+              </div>
+              <div>
+                <input type="checkbox" id="useExistingBackend" ${backendConfig.useExisting ? 'checked' : ''}> 
+                <label for="useExistingBackend">Use Existing Backend</label>
+              </div>
+              `
               : ''
           }
 
@@ -149,7 +157,7 @@ export class WebTechStackWebviewProvider {
                       ${Object.values(AuthenticationMethod)
                         .map(
                           (value) =>
-                            `<option value="${value}" ${defaultOptions.authentication === value ? 'selected' : ''}>${value}</option>`,
+                            `<option value="${value}" ${backendConfig.authentication === value ? 'selected' : ''}>${value}</option>`, // Access via backendConfig
                         )
                         .join('')}
                     </select>`
@@ -171,13 +179,18 @@ export class WebTechStackWebviewProvider {
             function submit() {
               const authentication = document.getElementById('authentication');
               const backend = document.getElementById('backend');
+              const useExistingBackend = document.getElementById('useExistingBackend'); // Get checkbox element
+
               const options = {
                 stateManagement: document.getElementById('stateManagement').value,
                 uiLibrary: document.getElementById('uiLibrary').value,
                 styling: document.getElementById('styling').value,
                 buildTool: document.getElementById('buildTool').value,
-                backend: backend? backend.value : 'none',
-                authentication: authentication ? authentication.value : 'none',
+                backendConfig: {
+                  backend: backend? backend.value : 'none',
+                  authentication: authentication ? authentication.value : 'none',
+                  useExisting: useExistingBackend ? useExistingBackend.checked : false, // Get checkbox value
+              }
               };
               vscode.postMessage({ type: 'submit', options });
             }

@@ -46,6 +46,21 @@ export class MobileApp extends App {
     this.setStage(AppStage.Initialize);
     this.logMessage('Lets start building a mobile app');
 
+    const useExistingBackend =
+      this.getTechStackOptions().backendConfig.useExisting;
+
+    if (useExistingBackend) {
+      try {
+        const backendDetails = await this.getExistingBackendDetails();
+        this.techStackOptions.backendConfig.details = backendDetails;
+      } catch (error) {
+        console.error('MobileBuilder: Error getting backend details', error);
+        this.logMessage(
+          'Error getting backend details. Will continue without backend.',
+        );
+      }
+    }
+
     const initializeAppPrompt = this.hasBacked()
       ? new InitializeMobileAppWithBackendPrompt({
           techStack: this.getTechStackOptions(),
