@@ -93,7 +93,7 @@ Built with:
 
 ## Community
 
-Join our [Discord community](https://discord.gg/your-invite-link) to get help, share your projects, and connect with other app developers!
+Join our [Discord community](https://discord.gg/AQTRCbheA2) to get help, share your projects, and connect with other app developers!
 
 ## Issues & Suggestions
 
