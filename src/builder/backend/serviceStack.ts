@@ -11,8 +11,6 @@ export interface IBackendConfig {
 
 export enum Backend {
   SUPABASE = 'supabase',
-  FIREBASE = 'firebase', // Added Firebase
-  API = 'api', // Added API
   None = 'none',
 }
 

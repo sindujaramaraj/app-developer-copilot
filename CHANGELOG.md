@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.0.4] - 2025-04-23
+
+### Removed
+
+- Unused backend stacks
+
 ## [2.0.3] - 2025-04-22
 
 ### Added
