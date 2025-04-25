@@ -11,10 +11,10 @@ import {
   readAppConfigFromFile,
 } from '../builder/utils/appconfigHelper';
 import { runExpoProject, runNextProject } from '../builder/terminalHelper';
-import { MobileTechStackWebviewProvider } from '../webview/mobileTechStackWebview';
 import {
   getDefaultMobileTechStack,
   getPromptForMobileStack,
+  IMobileTechStackOptions,
 } from '../builder/mobile/mobileTechStack';
 import { MobileApp } from '../builder/mobile/mobileApp';
 import { FileUtil } from '../builder/utils/fileUtil';
@@ -24,8 +24,8 @@ import { WebApp } from '../builder/web/webApp';
 import {
   getDefaultWebTechStack,
   getPromptForWebStack,
+  IWebTechStackOptions,
 } from '../builder/web/webTechStack';
-import { WebTechStackWebviewProvider } from '../webview/webTechStackWebview';
 import { Backend } from '../builder/backend/serviceStack';
 import { IGenericStack } from '../builder/types';
 import { SupabaseService } from '../builder/backend/supabase/service';
@@ -35,6 +35,7 @@ import {
   isConnectedToSupabase,
 } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
+import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 
 enum ChatCommands {
   Create = 'create',
@@ -201,7 +202,11 @@ export async function handleCreateMobileApp(
 
   // Get tech stack options
   streamService.progress('Waiting for tech stack options input');
-  let techStackOptions = await MobileTechStackWebviewProvider.createOrShow();
+  let techStackOptions =
+    await WebViewProvider.createOrShow<IMobileTechStackOptions>(
+      context,
+      WebviewViewTypes.MobileTechStack,
+    );
   if (!techStackOptions) {
     techStackOptions = getDefaultMobileTechStack();
     streamService.message(
@@ -404,7 +409,10 @@ export async function handleCreateWebApp(
   streamService.progress('Waiting for tech stack options input');
   let techStackOptions;
   if (ENABLE_WEB_STACK_CONFIG) {
-    techStackOptions = await WebTechStackWebviewProvider.createOrShow();
+    techStackOptions = await WebViewProvider.createOrShow<IWebTechStackOptions>(
+      context,
+      WebviewViewTypes.WebTechStack,
+    );
   }
   if (!techStackOptions) {
     techStackOptions = getDefaultWebTechStack();
