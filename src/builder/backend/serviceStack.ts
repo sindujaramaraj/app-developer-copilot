@@ -6,11 +6,13 @@ export interface IBackendConfig {
   useExisting: boolean; // Flag to indicate using existing project (e.g., for Supabase/Firebase)
   authentication: AuthenticationMethod;
   details?: IBackendDetails; // Optional existing backend config
-  // Add other backend-specific config here if needed in the future
+  githubToken?: string; // Optional GitHub token for custom backend
+  githubRepoLink?: string; // Optional GitHub repo link for custom backend
 }
 
 export enum Backend {
   SUPABASE = 'supabase',
+  CUSTOM = 'custom',
   None = 'none',
 }
 
