@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import {
   IBackendDetails,
-  IGenerateCodeForComponentResponse,
   IGenericStack,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
@@ -249,9 +248,9 @@ export class App {
     const backendConfig = this.getTechStackOptions().backendConfig;
     if (backendConfig.backend === Backend.SUPABASE && this.backendService) {
       if (backendConfig.useExisting) {
-        this.handleExistingBackend(createAppResponseObj);
+        await this.handleExistingBackend(createAppResponseObj);
       } else {
-        this.handleCreateNewBackend(createAppResponseObj);
+        await this.handleCreateNewBackend(createAppResponseObj);
       }
     } else {
       this.logMessage('No backend setup required');
@@ -324,11 +323,19 @@ export class App {
       // Create project in the selected org
       this.logProgress('Creating project in supabase');
       const projectName = createAppResponseObj.name + '-backend';
-      const newProject = await this.backendService.createProject(
-        projectName,
-        'db123456', // TODO: use a random password
-        selectedOrgId,
-      );
+      let newProject;
+      try {
+        newProject = await this.backendService.createProject(
+          projectName,
+          'db123456', // TODO: use a random password
+          selectedOrgId,
+        );
+      } catch (error) {
+        this.logError('Failed to create project in supabase');
+        console.error('Error creating project:', error);
+        throw error;
+      }
+
       if (!newProject) {
         this.logError('Failed to create project in supabase');
         throw new Error('Failed to create project in supabase');
@@ -380,7 +387,7 @@ export class App {
   }
 
   async getCommonDependenciesForCodeGeneration() {
-    let predefinedDependencies: IGenerateCodeForComponentResponse[] = [];
+    let predefinedDependencies: ZGenerateCodeForComponentResponseType[] = [];
     if (this.hasBacked()) {
       // Add generated types to the dependencies
       const workspaceFolder = await FileUtil.getWorkspaceFolder();

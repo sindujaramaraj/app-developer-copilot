@@ -8,21 +8,22 @@ import {
 
 export interface IResponseBase {
   summary: string;
-  error?: string;
+  error?: string | null;
 }
 
 export const ZResponseBaseSchema = z.object({
   summary: z.string().describe('Summary of the user message'),
-  error: z.string().optional().describe('Error message if any'),
+  error: z.string().optional().describe('Error message if any').nullable(),
 });
 
 export type ZResponseBaseType = z.infer<typeof ZResponseBaseSchema>;
 
-export enum ComponetType {
+export enum ComponentType {
   Router = 'router',
   Handler = 'handler',
   Schema = 'schema',
   Util = 'util',
+  Hook = 'hook',
   Factory = 'factory',
   Service = 'service',
   UI = 'ui_component',
@@ -35,7 +36,7 @@ export enum ComponetType {
 
 export interface ICodeComponent {
   name: string;
-  type: ComponetType;
+  type: ComponentType;
   purpose: string;
   path: string;
   dependsOn?: string[];
@@ -44,20 +45,8 @@ export interface ICodeComponent {
 export const ZCodeComponentSchema = z.object({
   name: z.string().describe('Name of the component'),
   type: z
-    .enum([
-      'util',
-      'factory',
-      'service',
-      'router',
-      'handler',
-      'schema',
-      'ui_component',
-      'screen',
-      'config',
-      'model',
-      'layout',
-      'media',
-    ])
+    .nativeEnum(ComponentType)
+    .or(z.string())
     .describe('Type of the component'),
   purpose: z.string().describe('Purpose of the component'),
   path: z.string().describe('Path of the component'),
@@ -95,7 +84,11 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
   design: z.string().describe('Design of the app as a mermaid diagram'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
-  sqlScripts: z.string().optional().describe('SQL scripts for the app'),
+  sqlScripts: z
+    .string()
+    .optional()
+    .describe('SQL scripts for the app')
+    .nullable(),
 });
 
 export type ZInitializeAppResponseType = z.infer<
@@ -128,9 +121,9 @@ export type ZCodeFileType = z.infer<typeof ZCodeFileSchema>;
 export interface IGenerateCodeForComponentInput {
   name: string;
   path: string;
-  type: ComponetType;
+  type: ComponentType;
   purpose: string;
-  dependencies: IGenerateCodeForComponentResponse[];
+  dependencies: ZGenerateCodeForComponentResponseType[];
   projectStructure?: string;
   design: string;
   techStack: IMobileTechStackOptions | IWebTechStackOptions;
@@ -139,20 +132,8 @@ export interface IGenerateCodeForComponentInput {
 export const ZGenerateCodeForComponentInputSchema = z.object({
   name: z.string().describe('Name of the component'),
   type: z
-    .enum([
-      'util',
-      'factory',
-      'service',
-      'router',
-      'handler',
-      'schema',
-      'ui_component',
-      'screen',
-      'config',
-      'model',
-      'layout',
-      'media',
-    ])
+    .nativeEnum(ComponentType)
+    .or(z.string())
     .describe('Type of the component'),
   purpose: z.string().describe('Purpose of the component'),
   dependencies: z
@@ -165,14 +146,6 @@ export const ZGenerateCodeForComponentInputSchema = z.object({
   design: z.string().describe('Design of the app as a mermaid diagram'),
   techStack: z.string().describe('Tech stack to use in the app'),
 });
-
-export interface IGenerateCodeForComponentResponse extends IResponseBase {
-  componentName: string;
-  filePath: string;
-  content: string;
-  assets?: ICodeFile[];
-  libraries: string[];
-}
 
 export const ZGenerateCodeForComponentResponseSchema =
   ZResponseBaseSchema.extend({
@@ -203,7 +176,7 @@ export interface IGenerateCodeResponse extends IResponseBase {
   features: string[];
   design: string;
   components: ICodeComponent[];
-  generatedCode: IGenerateCodeForComponentResponse[];
+  generatedCode: ZGenerateCodeForComponentResponseType[];
 }
 
 export const ZGenerateCodeResponseSchema = ZResponseBaseSchema.extend({

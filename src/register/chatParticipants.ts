@@ -76,7 +76,17 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         };
       }
       // Initialize model and stream services
-      const modelService = new LanguageModelService(request.model, token);
+      // Check and set a supported model
+      const copilotModel = await LanguageModelService.getCopilotModel(
+        request.model,
+      );
+      if (request.model.id !== copilotModel.id) {
+        stream.markdown(
+          `The model you selected is not supported for mobile app development. Switching to ${copilotModel.id} model.`,
+        );
+      }
+      // Initialize model service
+      const modelService = new LanguageModelService(copilotModel, token);
 
       // Handle create mobile app
       return await handleCreateMobileApp(
@@ -144,7 +154,17 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         };
       }
       // Initialize model and stream services
-      const modelService = new LanguageModelService(request.model, token);
+      // Check and set a supported model
+      const copilotModel = await LanguageModelService.getCopilotModel(
+        request.model,
+      );
+      if (request.model.id !== copilotModel.id) {
+        stream.markdown(
+          `The model you selected is not supported for mobile app development. Switching to ${copilotModel.id} model.`,
+        );
+      }
+      // Initialize model service
+      const modelService = new LanguageModelService(copilotModel, token);
 
       // Handle create web app
       return await handleCreateWebApp(

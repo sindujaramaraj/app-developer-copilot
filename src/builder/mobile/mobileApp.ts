@@ -9,7 +9,7 @@ import {
   InitializeMobileAppWithBackendPrompt,
 } from '../prompt';
 import {
-  ComponetType,
+  ComponentType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
@@ -215,7 +215,7 @@ export class MobileApp extends App {
       const codeGenerationPrompt = new GenerateCodeForMobileComponentPrompt({
         name: component.name,
         path: component.path,
-        type: component.type as ComponetType,
+        type: component.type as ComponentType,
         purpose: component.purpose,
         dependencies: [...dependenciesWithContent, ...predefinedDependencies],
         design,

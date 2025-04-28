@@ -3,7 +3,6 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import {
   IBackendDetails,
   IGenerateCodeForComponentInput,
-  IGenerateCodeForComponentResponse,
   IInitializeAppInput,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
@@ -264,7 +263,7 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
 }
 
 function getPromptForDependentCode(
-  dependencies: IGenerateCodeForComponentResponse[],
+  dependencies: ZGenerateCodeForComponentResponseType[],
 ): string {
   // TODO:  Should we include the code for configuration files?
   return dependencies
