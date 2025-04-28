@@ -6,7 +6,6 @@ import {
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
   ZInitializeAppResponseType,
-  ZInitializeAppWithBackendResponseType,
   ZResponseBaseType,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';

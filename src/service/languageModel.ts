@@ -11,6 +11,7 @@ import { LLMCodeModel, LLMProvider } from './types';
 import { runCommandWithPromise } from '../builder/terminalHelper';
 
 const SUPPORTED_COPILOT_MODELS = [
+  'gpt-4.1',
   'gpt-4o',
   'claude-3.5-sonnet',
   'gemini-2.5-pro',
