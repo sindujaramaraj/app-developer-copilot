@@ -37,18 +37,47 @@ export default function BackendConfig({
           ))}
         </select>
       </div>
-      <div>
-        <input
-          type="checkbox"
-          id="useExistingBackend"
-          checked={config.useExisting}
-          onChange={(e) => {
-            const useExisting = e.target.checked;
-            onChange({ ...config, useExisting });
-          }}
-        />
-        <label htmlFor="useExistingBackend">Use Existing Backend</label>
-      </div>
+      {config.backend === Backend.SUPABASE && (
+        <div>
+          <input
+            type="checkbox"
+            id="useExistingBackend"
+            checked={config.useExisting}
+            onChange={(e) => {
+              const useExisting = e.target.checked;
+              onChange({ ...config, useExisting });
+            }}
+          />
+          <label htmlFor="useExistingBackend">Use Existing Backend</label>
+        </div>
+      )}
+      {config.useExisting && config.backend === Backend.CUSTOM && (
+        <div>
+          <h6>Custom Backend Configuration</h6>
+          <div>
+            <label>GitHub Token:</label>
+            <input
+              type="text"
+              id="githubToken"
+              value={config.githubToken}
+              onChange={(e) => {
+                onChange({ ...config, githubToken: e.target.value });
+              }}
+            />
+          </div>
+          <div>
+            <label>GitHub Repo Link:</label>
+            <input
+              type="text"
+              id="githubRepoLink"
+              value={config.githubRepoLink}
+              onChange={(e) => {
+                onChange({ ...config, githubRepoLink: e.target.value });
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <AuthConfig {...config} />
     </div>
