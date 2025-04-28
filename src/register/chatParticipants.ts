@@ -82,7 +82,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       );
       if (request.model.id !== copilotModel.id) {
         stream.markdown(
-          `The model you selected is not supported for mobile app development. Switching to ${copilotModel.id} model.`,
+          `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
         );
       }
       // Initialize model service
@@ -160,7 +160,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       );
       if (request.model.id !== copilotModel.id) {
         stream.markdown(
-          `The model you selected is not supported for mobile app development. Switching to ${copilotModel.id} model.`,
+          `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
         );
       }
       // Initialize model service
