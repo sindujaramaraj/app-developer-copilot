@@ -150,6 +150,12 @@ export class App {
       console.error('Error creating app:', error);
       this.logError('Error creating app');
       error.message && this.logMessage(error.message);
+      // check for VSCODE error
+      if (error.message && error.message.includes('Server error')) {
+        this.logMessage(
+          'Looks like there is an issue with the copilot server. Please try again later',
+        );
+      }
       this.stage = AppStage.Cancelled;
       throw error;
     } finally {
