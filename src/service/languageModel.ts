@@ -10,6 +10,13 @@ import { MAX_RETRY_COUNT } from '../builder/constants';
 import { LLMCodeModel, LLMProvider } from './types';
 import { runCommandWithPromise } from '../builder/terminalHelper';
 
+const SUPPORTED_COPILOT_MODELS = [
+  'gpt-4.1',
+  'gpt-4o',
+  'claude-3.5-sonnet',
+  'gemini-2.5-pro',
+];
+
 export interface IModelMessage {
   content: string;
   role: 'assistant' | 'user' | 'system';
@@ -33,17 +40,17 @@ export class LanguageModelService {
     chatModel?: vscode.LanguageModelChat,
     token?: vscode.CancellationToken,
   ) {
-    this.copilotModel = chatModel;
-    this.token = token;
-    if (this.copilotModel && !this.token) {
+    if (chatModel && !token) {
       throw new Error('Token is required for chat model');
     }
-    if (this.copilotModel) {
+    if (chatModel) {
+      this.copilotModel = chatModel;
+      this.token = token;
       this.useOwnModel = false;
       this.modelProvider = 'copilot';
       this.modelName = this.copilotModel.id as LLMCodeModel;
     }
-    if (!this.copilotModel) {
+    if (!chatModel) {
       const appSettings = SettingsServie.getAppSettings();
       this.useOwnModel = appSettings.useOwnModel;
       this.modelProvider = appSettings.apiProvider;
@@ -59,6 +66,26 @@ export class LanguageModelService {
     if (!this.copilotModel && !this.ownModel) {
       throw new Error('No model available');
     }
+  }
+
+  static async getCopilotModel(
+    model: vscode.LanguageModelChat,
+  ): Promise<vscode.LanguageModelChat> {
+    if (SUPPORTED_COPILOT_MODELS.includes(model.id)) {
+      return model;
+    }
+    // Default to claude-3-5-sonnet-latest if the model is not supported
+    const claudeModels = await vscode.lm.selectChatModels({
+      family: 'claude-3.5-sonnet',
+    });
+    //const claudeModels = await vscode.lm.selectChatModels();
+    if (claudeModels.length > 0) {
+      return claudeModels[0];
+    }
+    // If no default model is found, throw an error
+    throw new Error(
+      `Model ${model.id} is not supported. Please select a supported model.`,
+    );
   }
 
   createUserMessage(content: string): IModelMessage {
@@ -383,9 +410,6 @@ function fixResponseFromModel(jsonResponse: any): any {
     // Note: This is a workaround for response received from openai models
     return jsonResponse['schema'];
   }
-
-  // fix error message
-  jsonResponse.error = jsonResponse.error || '';
 
   // In any other scenario, return the response as is
   return jsonResponse;

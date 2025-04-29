@@ -9,8 +9,7 @@ import {
   InitializeWebAppWithBackendPrompt,
 } from '../prompt';
 import {
-  ComponetType,
-  IGenerateCodeForComponentResponse,
+  ComponentType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
@@ -237,7 +236,7 @@ export class WebApp extends App {
       const codeGenerationPrompt = new GenerateCodeForWebComponentPrompt({
         name: component.name,
         path: component.path,
-        type: component.type as ComponetType,
+        type: component.type as ComponentType,
         purpose: component.purpose,
         dependencies: [...dependenciesWithContent, ...predefinedDependencies],
         design,
@@ -333,9 +332,9 @@ export class WebApp extends App {
   }
 
   async getCommonDependenciesForCodeGeneration(): Promise<
-    IGenerateCodeForComponentResponse[]
+    ZGenerateCodeForComponentResponseType[]
   > {
-    const commonDependencies: IGenerateCodeForComponentResponse[] =
+    const commonDependencies: ZGenerateCodeForComponentResponseType[] =
       await super.getCommonDependenciesForCodeGeneration();
 
     const techStackOptions = this.getTechStackOptions();

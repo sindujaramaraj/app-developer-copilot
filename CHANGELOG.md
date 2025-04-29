@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.0.5] - 2025-04-28
+
+### Changed
+
+- Switch to default model when selected copilot model is not supported
+- Error handling updates
+
 ## [2.0.4] - 2025-04-23
 
 ### Removed

@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "preview": false,
   "repository": {
     "type": "git",

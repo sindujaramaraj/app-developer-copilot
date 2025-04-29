@@ -115,7 +115,7 @@ export class FileUtil {
       if (!fileContent) {
         console.error(`No content found for file: ${file.path}`);
       }
-      const content = new TextEncoder().encode(file.content);
+      const content = new TextEncoder().encode(fileContent);
 
       await vscode.workspace.fs.writeFile(uri, content);
 

@@ -1,19 +1,17 @@
 import * as vscode from 'vscode';
 import {
   IBackendDetails,
-  IGenerateCodeForComponentResponse,
   IGenericStack,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
   ZInitializeAppResponseType,
-  ZInitializeAppWithBackendResponseType,
   ZResponseBaseType,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
-import { APP_CONVERSATION_FILE } from './constants';
+import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
 import { Backend } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
@@ -151,6 +149,16 @@ export class App {
       console.error('Error creating app:', error);
       this.logError('Error creating app');
       error.message && this.logMessage(error.message);
+      // check for VSCODE error
+      if (error.message && error.message.includes('Server error')) {
+        this.logMessage(
+          'Looks like there is an issue with the copilot server. Please try again later',
+        );
+      } else {
+        // Propose to report the issue
+        this.logMessage('Would you like to report this issue?');
+        this.logLink('Report issue', ISSUE_REPORT_URL);
+      }
       this.stage = AppStage.Cancelled;
       throw error;
     } finally {
@@ -249,9 +257,9 @@ export class App {
     const backendConfig = this.getTechStackOptions().backendConfig;
     if (backendConfig.backend === Backend.SUPABASE && this.backendService) {
       if (backendConfig.useExisting) {
-        this.handleExistingBackend(createAppResponseObj);
+        await this.handleExistingBackend(createAppResponseObj);
       } else {
-        this.handleCreateNewBackend(createAppResponseObj);
+        await this.handleCreateNewBackend(createAppResponseObj);
       }
     } else {
       this.logMessage('No backend setup required');
@@ -324,11 +332,19 @@ export class App {
       // Create project in the selected org
       this.logProgress('Creating project in supabase');
       const projectName = createAppResponseObj.name + '-backend';
-      const newProject = await this.backendService.createProject(
-        projectName,
-        'db123456', // TODO: use a random password
-        selectedOrgId,
-      );
+      let newProject;
+      try {
+        newProject = await this.backendService.createProject(
+          projectName,
+          'db123456', // TODO: use a random password
+          selectedOrgId,
+        );
+      } catch (error) {
+        this.logError('Failed to create project in supabase');
+        console.error('Error creating project:', error);
+        throw error;
+      }
+
       if (!newProject) {
         this.logError('Failed to create project in supabase');
         throw new Error('Failed to create project in supabase');
@@ -380,7 +396,7 @@ export class App {
   }
 
   async getCommonDependenciesForCodeGeneration() {
-    let predefinedDependencies: IGenerateCodeForComponentResponse[] = [];
+    let predefinedDependencies: ZGenerateCodeForComponentResponseType[] = [];
     if (this.hasBacked()) {
       // Add generated types to the dependencies
       const workspaceFolder = await FileUtil.getWorkspaceFolder();
@@ -485,6 +501,10 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  logLink(message: string, link: string) {
+    this.streamService.link(message, link);
   }
 
   logError(message: string) {
