@@ -11,7 +11,7 @@ import {
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
-import { APP_CONVERSATION_FILE } from './constants';
+import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
 import { Backend } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
@@ -154,6 +154,10 @@ export class App {
         this.logMessage(
           'Looks like there is an issue with the copilot server. Please try again later',
         );
+      } else {
+        // Propose to report the issue
+        this.logMessage('Would you like to report this issue?');
+        this.logLink('Report issue', ISSUE_REPORT_URL);
       }
       this.stage = AppStage.Cancelled;
       throw error;
@@ -497,6 +501,10 @@ export class App {
 
   logMessage(message: string) {
     this.streamService.message(message);
+  }
+
+  logLink(message: string, link: string) {
+    this.streamService.link(message, link);
   }
 
   logError(message: string) {

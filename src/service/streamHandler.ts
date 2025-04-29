@@ -57,6 +57,24 @@ export class StreamHandlerService {
     }
   }
 
+  link(text: string, url: string): void {
+    if (this.useChatStream && this.chatStream) {
+      this.chatStream.markdown(`[${text}](${url})`);
+      this.chatStream.markdown('\n');
+    } else if (this.statusBarItem) {
+      this.statusBarItem.text = text;
+      this.statusBarItem.command = {
+        command: 'vscode.open',
+        title: text,
+        arguments: [vscode.Uri.parse(url)],
+      };
+      this.outputChannel?.show();
+      this.outputChannel?.appendLine(text);
+    } else {
+      console.log(text, url);
+    }
+  }
+
   error(text: string): void {
     if (this.useChatStream && this.chatStream) {
       this.chatStream.markdown(`**Error:** ${text}`);
