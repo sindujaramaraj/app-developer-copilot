@@ -36,6 +36,8 @@ import {
 } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
+import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
+import { FigmaImageResponse } from '../service/figma/types';
 
 enum ChatCommands {
   Create = 'create',
@@ -459,6 +461,20 @@ export async function handleCreateWebApp(
     if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
+    const figmaImageData = await getFigmaDesign(
+      context,
+      techStackOptions,
+      streamService,
+      telemetry,
+      source,
+    );
+    if (figmaImageData && figmaImageData.images && figmaImageData.images) {
+      techStackOptions.designConfig = {
+        ...techStackOptions.designConfig,
+        source: 'figma',
+        image: JSON.stringify(figmaImageData.images),
+      };
+    }
     app = new WebApp(
       modelService,
       streamService,
@@ -640,4 +656,90 @@ async function getAppToRun(
     );
     throw error;
   }
+}
+
+async function getFigmaDesign(
+  context: vscode.ExtensionContext,
+  techStackOptions: IWebTechStackOptions,
+  streamService: StreamHandlerService,
+  telemetry: TelemetryService,
+  source: string,
+): Promise<FigmaImageResponse | null> {
+  let figmaImageData: FigmaImageResponse | null = null;
+
+  // Check if Figma URL is provided
+  // --- Figma Integration Start ---
+  const figmaUrl =
+    techStackOptions.designConfig && techStackOptions.designConfig.figmaUrl; // Corrected access to figmaUrl
+  if (figmaUrl) {
+    streamService.progress('Checking Figma authentication...');
+    const figmaClient = new FigmaClient(context);
+    try {
+      const isAuthenticated = await figmaClient.ensureAuthenticated();
+      if (isAuthenticated) {
+        streamService.progress(`Fetching design from Figma URL: ${figmaUrl}`);
+        // Validate URL structure before fetching
+        const parsedUrl = parseFigmaUrl(figmaUrl);
+        if (parsedUrl) {
+          figmaImageData = await figmaClient.getImagesFromUrl(figmaUrl);
+          if (
+            figmaImageData &&
+            !figmaImageData.err &&
+            Object.keys(figmaImageData.images).length > 0
+          ) {
+            streamService.message(
+              'Successfully fetched design images from Figma.',
+            );
+            // TODO: Potentially save images or process URLs further
+          } else if (figmaImageData?.err) {
+            streamService.error(`Figma API Error: ${figmaImageData.err}`);
+            telemetry.trackError(
+              'web.create.figma',
+              'web',
+              source,
+              new Error(figmaImageData.err),
+              { figmaUrl },
+            );
+          } else {
+            streamService.message(
+              'Could not retrieve specific images from Figma URL. Proceeding without them.',
+            ); // Changed warning to message
+            telemetry.trackChatInteraction('web.create.figma.nodata', {
+              figmaUrl,
+            });
+          }
+        } else {
+          streamService.error(
+            `Invalid Figma URL format provided: ${figmaUrl}. Please ensure it includes a file key and node-id.`,
+          );
+          telemetry.trackError(
+            'web.create.figma',
+            'web',
+            source,
+            new Error('Invalid Figma URL format'),
+            { figmaUrl },
+          );
+        }
+      } else {
+        streamService.message(
+          // Changed warning to message
+          'Figma authentication cancelled or failed. Proceeding without Figma design.',
+        );
+        telemetry.trackChatInteraction('web.create.figma.authfailed', {
+          figmaUrl,
+        });
+      }
+    } catch (figmaError: any) {
+      streamService.error(
+        `Failed to fetch design from Figma: ${figmaError.message}`,
+      );
+      console.error('Figma Client Error:', figmaError);
+      telemetry.trackError('web.create.figma', 'web', source, figmaError, {
+        figmaUrl,
+      });
+      // Continue without Figma data
+    }
+  }
+  // --- Figma Integration End ---
+  return figmaImageData;
 }

@@ -122,6 +122,22 @@ function WebTechStackView() {
         onChange={onChangeBackendConfig}
       />
 
+      <div>
+        <label htmlFor="figmaUrl">Figma URL (Optional):</label>
+        <input
+          type="text"
+          id="figmaUrl"
+          value={(stack.designConfig && stack.designConfig.figmaUrl) || ''}
+          onChange={(e) =>
+            setStack((prevStack) => ({
+              ...prevStack,
+              figmaUrl: e.target.value,
+            }))
+          }
+          placeholder="https://www.figma.com/file/..."
+        />
+      </div>
+
       <button id="techstack-button-submit" onClick={handleSubmit}>
         Done
       </button>

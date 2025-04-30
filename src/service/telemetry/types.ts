@@ -16,6 +16,7 @@ export enum ConnectionTarget {
   AWS = 'aws',
   Google = 'google',
   Github = 'github',
+  Figma = 'figma',
 }
 
 export enum ErrorType {

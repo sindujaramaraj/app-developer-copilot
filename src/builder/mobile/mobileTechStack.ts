@@ -69,6 +69,10 @@ export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
     useExisting: false,
     authentication: AuthenticationMethod.EMAIL,
   },
+  designConfig: {
+    figmaUrl: '',
+    image: '',
+  },
 };
 
 export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {

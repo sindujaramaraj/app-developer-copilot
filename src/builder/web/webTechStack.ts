@@ -71,6 +71,10 @@ export const DEFAULT_WEB_STACK: IWebTechStackOptions = {
     useExisting: false,
     authentication: AuthenticationMethod.EMAIL,
   },
+  designConfig: {
+    figmaUrl: '',
+    image: '',
+  },
 };
 
 export const getDefaultWebTechStack = (): IWebTechStackOptions => {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { SupabaseManagementAPI } from 'supabase-management-js';
 
-const isLocal = false; // Change this to false when deploying to production
+const isLocal = true; // Change this to false when deploying to production
 
 // Supabse OAuth2 doesn't support vscode redirection. So using this intermediate edge function to handle the redirection.
 const SUPA_EDGE_FUNCTION_BASE_URL = isLocal
