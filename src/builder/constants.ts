@@ -15,6 +15,16 @@ export const MAX_RETRY_COUNT = 1;
 export const ISSUE_REPORT_URL =
   'https://github.com/sindujaramaraj/app-developer-copilot/issues';
 
+// Edge function URLs
+export const isLocal = true; // Change this to false when deploying to production
+
+// Supabse OAuth2 doesn't support vscode redirection. So using this intermediate edge function to handle the redirection.
+export const OAUTH_EDGE_FUNCTION_BASE_URL = isLocal
+  ? 'http://localhost:54321/functions/v1/oauth-handler'
+  : 'https://zrlkyaqpuvndlijmxedy.supabase.co/functions/v1/oauth-handler';
+
+export const VSCODE_CALLBACK_URI = `vscode://${APP_NAME}.app-developer-copilot/oauth2/callback`;
+
 export const ENABLE_TELEMETRY = false; // Config to enable or disable telemetry collection
 export const ENABLE_WEB_APP = true; // Config to enable or disable web app creation
 export const ENABLE_WEB_STACK_CONFIG = true; // Config to enable or disable web stack configuration

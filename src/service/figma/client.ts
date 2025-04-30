@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
 import fetch, { RequestInit } from 'node-fetch'; // Ensure node-fetch is installed
-import {
-  getValidFigmaToken,
-  initiateFigmaLogin,
-  isFigmaAuthenticated,
-} from './auth';
+import { getAccessToken, connectToFigma, isConnectedToFigma } from './auth';
 import { FigmaFileResponse, FigmaImageResponse } from './types';
 
 const FIGMA_API_BASE_URL = 'https://api.figma.com/v1';
@@ -26,7 +22,7 @@ export class FigmaClient {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const token = await getValidFigmaToken(this.context);
+    const token = await getAccessToken(this.context);
     if (!token) {
       // Optionally prompt for login here or let the caller handle it
       throw new Error('Not authenticated with Figma. Please log in.');
@@ -226,7 +222,7 @@ export class FigmaClient {
    * Returns true if authenticated or login is successfully initiated, false otherwise.
    */
   async ensureAuthenticated(): Promise<boolean> {
-    if (await isFigmaAuthenticated(this.context)) {
+    if (await isConnectedToFigma(this.context)) {
       return true;
     }
 
@@ -237,7 +233,7 @@ export class FigmaClient {
     );
 
     if (choice === 'Log in to Figma') {
-      await initiateFigmaLogin(this.context);
+      await connectToFigma(this.context);
       // We initiate login but can't guarantee success here,
       // subsequent calls will check token validity.
       // Returning false might be misleading as login *might* succeed.
@@ -254,11 +250,13 @@ export class FigmaClient {
  * Parses a Figma file URL to extract the file key and node ID if present.
  * Example URL: https://www.figma.com/file/FILE_KEY/File-Name?node-id=NODE_ID
  */
-export function parseFigmaUrl(url: string): { fileKey: string; nodeId: string } | null {
+export function parseFigmaUrl(
+  url: string,
+): { fileKey: string; nodeId: string } | null {
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    const fileKeyIndex = pathParts.findIndex(part => part === 'file');
+    const fileKeyIndex = pathParts.findIndex((part) => part === 'file');
 
     if (fileKeyIndex === -1 || fileKeyIndex + 1 >= pathParts.length) {
       console.error('Could not find file key in Figma URL path:', url);
@@ -268,7 +266,10 @@ export function parseFigmaUrl(url: string): { fileKey: string; nodeId: string } 
 
     const nodeId = urlObj.searchParams.get('node-id');
     if (!nodeId) {
-      console.error('Could not find node-id in Figma URL query parameters:', url);
+      console.error(
+        'Could not find node-id in Figma URL query parameters:',
+        url,
+      );
       return null;
     }
 

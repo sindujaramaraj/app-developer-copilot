@@ -156,7 +156,7 @@ export class App {
         );
       } else {
         // Propose to report the issue
-        this.logMessage('Would you like to report this issue?');
+        this.logMessage('*Would you like to report this issue?*');
         this.logLink('Report issue', ISSUE_REPORT_URL);
       }
       this.stage = AppStage.Cancelled;

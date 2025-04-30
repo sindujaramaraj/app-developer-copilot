@@ -253,6 +253,22 @@ export async function handleCreateMobileApp(
     if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
+    // Check for Figma design
+    const figmaImageData = await getFigmaDesign(
+      context,
+      techStackOptions,
+      streamService,
+      telemetry,
+      source,
+    );
+    if (figmaImageData && figmaImageData.images && figmaImageData.images) {
+      techStackOptions.designConfig = {
+        ...techStackOptions.designConfig,
+        source: 'figma',
+        image: JSON.stringify(figmaImageData.images),
+      };
+    }
+
     app = new MobileApp(
       modelService,
       streamService,
@@ -544,7 +560,7 @@ async function getBackend(
 
   if (backend === Backend.SUPABASE) {
     try {
-      // await clearSupabaseTokens(context);
+      //await clearSupabaseTokens(context);
       const isConnected = await isConnectedToSupabase(context);
       if (!isConnected) {
         console.log('Not connected to Supabase. Will try connecting first.');
@@ -660,7 +676,7 @@ async function getAppToRun(
 
 async function getFigmaDesign(
   context: vscode.ExtensionContext,
-  techStackOptions: IWebTechStackOptions,
+  techStackOptions: IGenericStack,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
   source: string,

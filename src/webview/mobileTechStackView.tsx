@@ -114,7 +114,10 @@ function MobileTechStackView() {
           onChange={(e) =>
             setStack((prevStack) => ({
               ...prevStack,
-              figmaUrl: e.target.value,
+              designConfig: {
+                ...prevStack.designConfig,
+                figmaUrl: e.target.value,
+              },
             }))
           }
           placeholder="https://www.figma.com/file/..."
