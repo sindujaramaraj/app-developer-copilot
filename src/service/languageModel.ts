@@ -26,6 +26,7 @@ interface IGenerateObjectRequest<T> {
   messages: IModelMessage[];
   schema: z.ZodSchema<T>;
   responseFormatPrompt?: string;
+  tools?: string[]; // list of tools to use
 }
 
 export class LanguageModelService {
@@ -33,19 +34,23 @@ export class LanguageModelService {
   private ownModel?: LanguageModel | undefined;
   private copilotModel?: vscode.LanguageModelChat;
   private token?: vscode.CancellationToken;
+  private toolInvocationToken?: vscode.ChatParticipantToolToken;
   private modelProvider: LLMProvider = 'copilot';
   private modelName: LLMCodeModel = 'claude-3-5-sonnet-latest';
 
   constructor(
     chatModel?: vscode.LanguageModelChat,
     token?: vscode.CancellationToken,
+    toolInvocationToken?: vscode.ChatParticipantToolToken,
   ) {
-    if (chatModel && !token) {
+    if (chatModel && !token && !toolInvocationToken) {
+      // If a chat model is provided, but no token or toolInvocationToken, throw an error
       throw new Error('Token is required for chat model');
     }
     if (chatModel) {
       this.copilotModel = chatModel;
       this.token = token;
+      this.toolInvocationToken = toolInvocationToken;
       this.useOwnModel = false;
       this.modelProvider = 'copilot';
       this.modelName = this.copilotModel.id as LLMCodeModel;
@@ -109,88 +114,6 @@ export class LanguageModelService {
     };
   }
 
-  async generateTextWithTools<T>(
-    options: IGenerateObjectRequest<T>,
-  ): Promise<{ response: string; tools: string }> {
-    if (this.useOwnModel && this.ownModel) {
-      if (options.responseFormatPrompt) {
-        options.messages.push({
-          content: options.responseFormatPrompt,
-          role: 'user',
-        });
-      }
-      const { text } = await generateText<{}, T>({
-        model: this.ownModel,
-        tools: {
-          initializeNextProject: tool({
-            description: 'Initialize a Next.js project',
-            parameters: z.object({
-              projectName: z.string().describe('The name of the project'),
-            }),
-            execute: async ({ projectName }) => {
-              await runCommandWithPromise(
-                `npx create-next-app@latest ${projectName} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'`,
-                undefined,
-                true,
-              );
-              return `Created Next.js project: ${projectName}`;
-            },
-          }),
-          installShadcnUIComponents: tool({
-            description: 'Install shadcn UI components',
-            parameters: z.object({
-              components: z
-                .array(z.string())
-                .describe('List of shadcn UI components'),
-            }),
-            execute: async ({ components }) => {
-              await runCommandWithPromise(
-                `npm install shadcn ${components?.join(' ')}`,
-              );
-              return `Installed shadcn UI components: ${components}`;
-            },
-          }),
-          runInTerminal: tool({
-            description: 'Run a command in the terminal',
-            parameters: z.object({
-              commands: z
-                .array(z.string())
-                .describe('The commands to run in the terminal'),
-            }),
-            execute: async ({ commands }) => {
-              let useNewTerminal = true;
-              for (const command of commands) {
-                // await runCommandWithPromise(command, undefined, useNewTerminal);
-                useNewTerminal = false;
-                console.log(`Executed command: ${command}`);
-              }
-            },
-          }),
-        },
-        // prompt:
-        //   'create a next.js hello world app and use available tools to create app, install shadcn UI components and run commands in terminal',
-        messages: options.messages,
-        headers: {
-          'HTTP-Referer':
-            'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
-          'X-Title': 'app-developer-copilot', // Optional. Shows in rankings on openrouter.ai.
-        },
-      });
-      return { response: text, tools: '' };
-    } else if (this.copilotModel) {
-      const messages = convertToCopilotMessages(options.messages);
-      const response = await handleCopilotRequest(
-        this.copilotModel,
-        messages,
-        this.token as vscode.CancellationToken,
-        z.string(),
-      );
-      return { response: response.responseContent, tools: '' };
-    } else {
-      throw new Error('No model available');
-    }
-  }
-
   async generateText(options: IModelMessage[]): Promise<string> {
     if (this.useOwnModel && this.ownModel) {
       const { text } = await generateText({
@@ -221,6 +144,7 @@ export class LanguageModelService {
         this.copilotModel,
         messages,
         this.token as vscode.CancellationToken,
+        this.toolInvocationToken as vscode.ChatParticipantToolToken,
         z.string(),
       );
       return response.responseObject;
@@ -233,16 +157,7 @@ export class LanguageModelService {
     response: string;
     object: T;
   }> {
-    const useTools = false;
     if (this.useOwnModel && this.ownModel) {
-      if (useTools) {
-        const { response } = await this.generateTextWithTools(options);
-        const object = convertStringToJSON(response);
-        return {
-          response,
-          object,
-        };
-      }
       const { object } = await generateObject<T>({
         model: this.ownModel,
         schema: options.schema,
@@ -268,6 +183,7 @@ export class LanguageModelService {
         this.copilotModel,
         messages,
         this.token as vscode.CancellationToken,
+        this.toolInvocationToken as vscode.ChatParticipantToolToken,
         options.schema,
       );
       return {
@@ -322,24 +238,106 @@ function convertToCopilotMessages(
   });
 }
 
+async function sendRequest(
+  model: vscode.LanguageModelChat,
+  messages: vscode.LanguageModelChatMessage[],
+  token: vscode.CancellationToken,
+  toolInvocationToken: vscode.ChatParticipantToolToken,
+  tools: vscode.LanguageModelChatTool[],
+): Promise<string> {
+  const response = await model.sendRequest(
+    messages,
+    {
+      toolMode: vscode.LanguageModelChatToolMode.Auto,
+      tools,
+    },
+    token,
+  );
+  try {
+    if (response) {
+      let responseContent = '';
+      const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+      for await (const part of response.stream) {
+        //responseContent += part;
+        if (part instanceof vscode.LanguageModelTextPart) {
+          responseContent += part.value;
+        } else if (part instanceof vscode.LanguageModelToolCallPart) {
+          toolCalls.push(part);
+        }
+      }
+
+      if (toolCalls.length) {
+        messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+        // Process tool calls
+        const toolResults: Record<string, vscode.LanguageModelToolResult> = {};
+        const toolCallParts: vscode.LanguageModelToolResultPart[] = [];
+        for (const call of toolCalls) {
+          console.log('Invoking tool:', call.name);
+          const toolResult = await vscode.lm.invokeTool(call.name, {
+            input: call.input,
+            toolInvocationToken,
+          });
+          toolResults[call.name] = toolResult;
+          toolCallParts.push(
+            new vscode.LanguageModelToolResultPart(
+              call.callId,
+              toolResult.content,
+            ),
+          );
+
+          console.log(`Tool result for ${call.name}: ${toolResult.toString()}`);
+        }
+
+        messages.push(vscode.LanguageModelChatMessage.User(toolCallParts));
+
+        messages.push(
+          vscode.LanguageModelChatMessage.User(
+            'Tool result is now available. Proceed with the next steps.',
+          ),
+        );
+
+        // This loops until the model doesn't want to call any more tools, then the request is done.
+        return sendRequest(model, messages, token, toolInvocationToken, tools);
+      } else {
+        return responseContent;
+      }
+    } else {
+      throw new Error('No response from model');
+    }
+  } catch (error) {
+    console.log('Error processing response from model: ' + error);
+    throw error;
+  }
+}
+
 export async function handleCopilotRequest<T>(
   model: vscode.LanguageModelChat,
   messages: vscode.LanguageModelChatMessage[],
   token: vscode.CancellationToken,
+  toolInvocationToken: vscode.ChatParticipantToolToken,
   schema: Zod.Schema<T>,
   useJson: boolean = true,
+  tools: string[] = [],
   retryCount: number = 0,
 ): Promise<{ responseContent: string; responseObject: T }> {
   if (retryCount > MAX_RETRY_COUNT) {
     throw new Error('Failed to parse response after multiple attempts');
   }
   // make request to the LM
-  const response = await model.sendRequest(messages, {}, token);
-
-  let responseContent = '';
-  for await (const fragment of response.text) {
-    responseContent += fragment;
+  let requestedTools: (vscode.LanguageModelToolInformation | undefined)[] = [];
+  if (tools.length) {
+    requestedTools = tools.map((tool) => {
+      return vscode.lm.tools.find((t) => t.name === tool);
+    });
   }
+
+  const responseContent = await sendRequest(
+    model,
+    messages,
+    token,
+    toolInvocationToken,
+    requestedTools as vscode.LanguageModelChatTool[],
+  );
 
   if (useJson) {
     // Process the response as JSON
@@ -357,8 +355,10 @@ export async function handleCopilotRequest<T>(
         model,
         messages,
         token,
+        toolInvocationToken,
         schema,
         useJson,
+        tools,
         retryCount + 1,
       );
     }
@@ -374,8 +374,10 @@ export async function handleCopilotRequest<T>(
         model,
         messages,
         token,
+        toolInvocationToken,
         schema,
         useJson,
+        tools,
         retryCount + 1,
       );
     }

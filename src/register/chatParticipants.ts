@@ -37,6 +37,7 @@ import {
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
+import { IImageSource } from './tools';
 
 enum ChatCommands {
   Create = 'create',
@@ -107,6 +108,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         modelService,
         streamService,
         telemetry,
+        getImageRefsFromRequest(request),
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunMobileApp(streamService, telemetry);
@@ -134,26 +136,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
           image.value && image.value.data
             ? await image.value.data()
             : image.value;
-        const imageContent = Buffer.from(imageData).toString('base64');
 
-        // const imageUri = image.id as unknown as vscode.Uri; // Assuming image.id is a Uri
-        // // Use vscode.workspace.fs to read the file content from the Uri
-        // const imageContentBytes = await vscode.workspace.fs.readFile(imageUri);
-        // // Convert Uint8Array to string if needed (e.g., for text files or base64 encoding)
-        // const imageContent = Buffer.from(imageContentBytes).toString('base64'); // Example: Base64 encode for image data
-
-        // Render the initial prompt
-        // const result = await renderPrompt(
-        //   ToolUserPrompt,
-        //   {
-        //     context: _context,
-        //     request,
-        //     toolCallRounds: [],
-        //     toolCallResults: {},
-        //   },
-        //   { modelMaxPromptTokens: model.maxInputTokens },
-        //   model,
-        // );
         let messages: vscode.LanguageModelChatMessage[] = [
           vscode.LanguageModelChatMessage.Assistant(
             'You are a expert developer who can convert design to code. You have been provided with an image. Please analyze the image and generate code for a single page react app. You can use the tool: app_developer_imageAnalyzer to analyze the image.',
@@ -340,6 +323,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         modelService,
         streamService,
         telemetry,
+        getImageRefsFromRequest(request),
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunWebApp(streamService, telemetry);
@@ -379,6 +363,7 @@ export async function handleCreateMobileApp(
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
+  referredImages: IImageSource[],
 ) {
   telemetry.trackChatInteraction('mobile.create', {});
   console.log('MobileBuilder: Create command called');
@@ -428,8 +413,7 @@ export async function handleCreateMobileApp(
     if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
-        source: 'figma',
-        image: figmaImageData,
+        images: [...figmaImageData, ...referredImages],
       };
     }
 
@@ -600,6 +584,7 @@ export async function handleCreateWebApp(
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
+  referredImages: IImageSource[],
 ) {
   telemetry.trackChatInteraction('web.create', {});
   console.log('WebBuilder: Create command called');
@@ -651,8 +636,8 @@ export async function handleCreateWebApp(
     if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
-        source: 'figma',
-        image: figmaImageData,
+
+        images: [...figmaImageData],
       };
     }
     app = new WebApp(
@@ -844,13 +829,13 @@ async function getFigmaDesign(
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
   source: string,
-): Promise<string[] | null> {
-  let figmaImages: string[] | null = null;
+): Promise<IImageSource[]> {
+  let figmaImages: string[] = [];
 
   // Check if Figma URL is provided
   // --- Figma Integration Start ---
   const figmaUrl =
-    techStackOptions.designConfig && techStackOptions.designConfig.figmaUrl; // Corrected access to figmaUrl
+    techStackOptions.designConfig && techStackOptions.designConfig.figmaFileUrl; // Corrected access to figmaUrl
   if (figmaUrl) {
     streamService.progress('Checking Figma authentication...');
     const figmaClient = new FigmaClient(context);
@@ -861,7 +846,7 @@ async function getFigmaDesign(
         // Validate URL structure before fetching
         const parsedUrl = parseFigmaUrl(figmaUrl);
         if (parsedUrl) {
-          figmaImages = await figmaClient.getImagesFromUrl(figmaUrl);
+          figmaImages = await figmaClient.getImagesFromFigmaFile(figmaUrl);
           if (figmaImages && figmaImages.length > 0) {
             streamService.message(
               'Successfully fetched design images from Figma.',
@@ -907,5 +892,29 @@ async function getFigmaDesign(
     }
   }
   // --- Figma Integration End ---
-  return figmaImages;
+  return figmaImages.map((image) => ({
+    source: 'url', // set to 'url' for Figma images
+    uri: image,
+  }));
+}
+
+function getImageRefsFromRequest(request: vscode.ChatRequest): IImageSource[] {
+  const refs = request.references;
+  let images: IImageSource[] = [];
+  if (refs && refs.length > 0) {
+    for (const ref of refs) {
+      if (ref instanceof vscode.Uri) {
+        images.push({
+          source: 'file',
+          uri: ref.toString(),
+        });
+      } else if (ref instanceof vscode.Location) {
+        images.push({
+          source: 'file',
+          uri: ref.uri.toString(),
+        });
+      }
+    }
+  }
+  return images;
 }

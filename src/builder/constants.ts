@@ -12,6 +12,9 @@ export const CLASS_DIAGRAM_FILE = 'classDiagram.md';
 export const PROJECT_TREE_DIAGRAM_FILE = 'projectTreeDiagram.md';
 export const MAX_RETRY_COUNT = 1;
 
+export const TOOL_IMAGE_ANALYZER = 'app_developer_imageAnalyzer';
+// Add more tools here as needed
+
 export const ISSUE_REPORT_URL =
   'https://github.com/sindujaramaraj/app-developer-copilot/issues';
 

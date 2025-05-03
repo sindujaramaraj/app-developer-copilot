@@ -110,13 +110,13 @@ function MobileTechStackView() {
         <input
           type="text"
           id="figmaUrl"
-          value={(stack.designConfig && stack.designConfig.figmaUrl) || ''}
+          value={(stack.designConfig && stack.designConfig.figmaFileUrl) || ''}
           onChange={(e) =>
             setStack((prevStack) => ({
               ...prevStack,
               designConfig: {
                 ...prevStack.designConfig,
-                figmaUrl: e.target.value,
+                figmaFileUrl: e.target.value,
               },
             }))
           }

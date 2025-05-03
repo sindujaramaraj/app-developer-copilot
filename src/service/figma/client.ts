@@ -125,7 +125,7 @@ export class FigmaClient {
   }
 
   /**
-   * Fetches rendered images for specific nodes within a Figma file.
+   * Fetches images in a Figma file.
    * @param fileUrl The full URL of the Figma file.
    * @param nodeIds An array of node IDs to render.
    * @param format The desired image format (e.g., 'png', 'jpg', 'svg', 'pdf').
@@ -136,7 +136,7 @@ export class FigmaClient {
     nodeIds: string[],
     format: 'png' | 'jpg' | 'svg' | 'pdf' = 'png',
     scale: number = 1,
-  ): Promise<string[] | null> {
+  ): Promise<string[]> {
     const fileKey = this.parseFileKeyFromUrl(fileUrl);
     if (!fileKey) {
       throw new Error('Invalid Figma file URL provided.');
@@ -156,53 +156,40 @@ export class FigmaClient {
     const imagesResponse = await this.request<IFigmaImageResponse>(
       `${endpoint}?${params.toString()}`,
     );
-    const imagesData = [];
+    const imageUrls = [];
     if (imagesResponse.images) {
-      for (const imageKey of Object.keys(imagesResponse.images)) {
-        const imageUrl = imagesResponse.images[imageKey]; // nodeId must be a string
+      for (const nodeId of Object.keys(imagesResponse.images)) {
+        const imageUrl = imagesResponse.images[nodeId];
         if (imageUrl) {
-          try {
-            const imageResponse = await fetch(imageUrl);
-            if (!imageResponse.ok) {
-              throw new Error(
-                `Failed to fetch image for node ${imageKey}: ${imageResponse.statusText}`,
-              );
-            }
-            const imageData = await imageResponse.arrayBuffer();
-            const base64Image = Buffer.from(imageData).toString('base64');
-            imagesData.push(base64Image);
-          } catch (error) {
-            console.error(`Error fetching image for node ${imageKey}:`, error);
-          }
+          imageUrls.push(imageUrl);
         }
       }
-      return imagesData; // Return array of base64 image data
     }
-    return null; // No images found
+    return imageUrls; // Return array of image URLs
   }
 
   /**
    * Fetches images based on a Figma URL, automatically extracting file key and node ID if present.
    * If a node ID is in the URL, fetches only that node's image. Otherwise, could fetch images for top-level nodes (needs refinement).
-   * @param figmaUrl The full Figma URL (can include node-id).
+   * @param fileUrl The full Figma URL (can include node-id).
    */
-  async getImagesFromUrl(
-    figmaUrl: string,
+  async getImagesFromFigmaFile(
+    fileUrl: string,
     format: 'png' | 'jpg' | 'svg' | 'pdf' = 'png',
     scale: number = 1,
-  ): Promise<string[] | null> {
-    const fileKey = this.parseFileKeyFromUrl(figmaUrl);
+  ): Promise<string[]> {
+    const fileKey = this.parseFileKeyFromUrl(fileUrl);
     if (!fileKey) {
       vscode.window.showErrorMessage('Invalid Figma URL provided.');
       throw new Error('Invalid Figma URL provided.');
     }
 
-    const nodeId = this.parseNodeIdFromUrl(figmaUrl);
+    const nodeId = this.parseNodeIdFromUrl(fileUrl);
 
     if (nodeId) {
       // Fetch image for the specific node ID
       console.log(`Fetching image for node ${nodeId} from file ${fileKey}`);
-      return this.getImages(figmaUrl, [nodeId], format, scale);
+      return this.getImages(fileUrl, [nodeId], format, scale);
     } else {
       // Behavior without node-id: Fetch the whole file metadata first?
       // Or fetch images for top-level children? Needs decision.
@@ -211,7 +198,7 @@ export class FigmaClient {
         `Figma URL does not contain a specific node-id. Fetching file info for ${fileKey}`,
       );
       try {
-        const fileInfo = await this.getFile(figmaUrl);
+        const fileInfo = await this.getFile(fileUrl);
         console.log(`File Name: ${fileInfo.name}`);
         // Decide what to do here - maybe fetch images for top-level nodes?
         // Example: Fetch images for direct children of the canvas
@@ -223,7 +210,7 @@ export class FigmaClient {
           );
           // Limit the number of nodes to avoid overly large requests?
           return this.getImages(
-            figmaUrl,
+            fileUrl,
             topLevelNodes.slice(0, 10),
             format,
             scale,

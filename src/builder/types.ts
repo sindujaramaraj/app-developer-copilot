@@ -5,6 +5,7 @@ import {
   Backend,
   IBackendConfig, // Import the new config interface
 } from './backend/serviceStack';
+import { IImageSource } from '../register/tools';
 
 export interface IResponseBase {
   summary: string;
@@ -197,8 +198,9 @@ export interface IGenericStack {
   testing: string[];
   backendConfig: IBackendConfig;
   designConfig: {
-    source?: 'figma' | 'image';
-    figmaUrl?: string;
-    image?: string | string[] | Buffer;
+    figmaFileUrl?: string;
+    theme?: string;
+    images?: IImageSource[];
+    description?: string;
   };
 }
