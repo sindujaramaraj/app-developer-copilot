@@ -196,9 +196,9 @@ export interface IGenericStack {
   uiLibrary: string;
   testing: string[];
   backendConfig: IBackendConfig;
-  designConfig?: {
+  designConfig: {
     source?: 'figma' | 'image';
     figmaUrl?: string;
-    image?: string;
+    image?: string | string[] | Buffer;
   };
 }

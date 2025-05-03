@@ -25,6 +25,10 @@ export const OAUTH_EDGE_FUNCTION_BASE_URL = isLocal
 
 export const VSCODE_CALLBACK_URI = `vscode://${APP_NAME}.app-developer-copilot/oauth2/callback`;
 
+export const AI_EDGE_FUNCTION_BASE_URL = isLocal
+  ? 'http://localhost:54321/functions/v1/ai'
+  : 'https://zrlkyaqpuvndlijmxedy.supabase.co/functions/v1/ai';
+
 export const ENABLE_TELEMETRY = false; // Config to enable or disable telemetry collection
 export const ENABLE_WEB_APP = true; // Config to enable or disable web app creation
 export const ENABLE_WEB_STACK_CONFIG = true; // Config to enable or disable web stack configuration

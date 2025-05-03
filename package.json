@@ -208,6 +208,34 @@
             "command"
           ]
         }
+      },
+      {
+        "name": "app_developer_imageAnalyzer",
+        "tags": [
+          "image",
+          "analysis",
+          "chat-tools-sample"
+        ],
+        "displayName": "Image Analyzer",
+        "modelDescription": "Analyzes images from URIs (file paths) and returns a JSON description. Use this tool when you need to understand the content of an image specified by its location.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uris": {
+              "type": [
+                "string",
+                "array"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "description": "A single image URI (file path) string or an array of image URI strings to analyze."
+            }
+          },
+          "required": [
+            "uris"
+          ]
+        }
       }
     ]
   },

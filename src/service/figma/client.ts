@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import fetch, { RequestInit } from 'node-fetch'; // Ensure node-fetch is installed
 import { getAccessToken, connectToFigma, isConnectedToFigma } from './auth';
-import { FigmaFileResponse, FigmaImageResponse } from './types';
+import { FigmaFileResponse, IFigmaImageResponse } from './types';
 
 const FIGMA_API_BASE_URL = 'https://api.figma.com/v1';
 
@@ -78,14 +78,17 @@ export class FigmaClient {
 
   /**
    * Parses a Figma file URL to extract the file key.
-   * Example URL: https://www.figma.com/file/FILE_KEY/File-Name?node-id=NODE_ID
+   * Example URL: https://www.figma.com/:file_type/FILE_KEY/File-Name?node-id=NODE_ID
    */
   private parseFileKeyFromUrl(url: string): string | null {
     try {
       const urlParts = new URL(url);
       const pathSegments = urlParts.pathname.split('/');
-      // Find the segment after '/file/'
-      const fileIndex = pathSegments.findIndex((segment) => segment === 'file');
+      // Find the segment after '/file/' or '/design/' or /proto/
+      const fileIndex = pathSegments.findIndex(
+        (segment) =>
+          segment === 'file' || segment === 'design' || segment === 'proto',
+      );
       if (fileIndex !== -1 && pathSegments.length > fileIndex + 1) {
         return pathSegments[fileIndex + 1];
       }
@@ -133,7 +136,7 @@ export class FigmaClient {
     nodeIds: string[],
     format: 'png' | 'jpg' | 'svg' | 'pdf' = 'png',
     scale: number = 1,
-  ): Promise<FigmaImageResponse> {
+  ): Promise<string[] | null> {
     const fileKey = this.parseFileKeyFromUrl(fileUrl);
     if (!fileKey) {
       throw new Error('Invalid Figma file URL provided.');
@@ -150,7 +153,32 @@ export class FigmaClient {
     });
 
     // Use GET request with query parameters
-    return this.request<FigmaImageResponse>(`${endpoint}?${params.toString()}`);
+    const imagesResponse = await this.request<IFigmaImageResponse>(
+      `${endpoint}?${params.toString()}`,
+    );
+    const imagesData = [];
+    if (imagesResponse.images) {
+      for (const imageKey of Object.keys(imagesResponse.images)) {
+        const imageUrl = imagesResponse.images[imageKey]; // nodeId must be a string
+        if (imageUrl) {
+          try {
+            const imageResponse = await fetch(imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(
+                `Failed to fetch image for node ${imageKey}: ${imageResponse.statusText}`,
+              );
+            }
+            const imageData = await imageResponse.arrayBuffer();
+            const base64Image = Buffer.from(imageData).toString('base64');
+            imagesData.push(base64Image);
+          } catch (error) {
+            console.error(`Error fetching image for node ${imageKey}:`, error);
+          }
+        }
+      }
+      return imagesData; // Return array of base64 image data
+    }
+    return null; // No images found
   }
 
   /**
@@ -162,11 +190,11 @@ export class FigmaClient {
     figmaUrl: string,
     format: 'png' | 'jpg' | 'svg' | 'pdf' = 'png',
     scale: number = 1,
-  ): Promise<FigmaImageResponse | null> {
+  ): Promise<string[] | null> {
     const fileKey = this.parseFileKeyFromUrl(figmaUrl);
     if (!fileKey) {
       vscode.window.showErrorMessage('Invalid Figma URL provided.');
-      return null;
+      throw new Error('Invalid Figma URL provided.');
     }
 
     const nodeId = this.parseNodeIdFromUrl(figmaUrl);
@@ -202,7 +230,7 @@ export class FigmaClient {
           ); // Example: Limit to 10
         } else {
           console.log('No top-level nodes found in the Figma file.');
-          return { err: null, images: {} }; // Return empty response
+          return []; // Return empty response
         }
       } catch (error) {
         console.error(
@@ -212,7 +240,7 @@ export class FigmaClient {
         vscode.window.showErrorMessage(
           `Failed to process Figma file: ${error instanceof Error ? error.message : String(error)}`,
         );
-        return null;
+        throw error; // Rethrow the error for further handling
       }
     }
   }
@@ -256,7 +284,9 @@ export function parseFigmaUrl(
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    const fileKeyIndex = pathParts.findIndex((part) => part === 'file');
+    const fileKeyIndex = pathParts.findIndex(
+      (part) => part === 'file' || part === 'design',
+    );
 
     if (fileKeyIndex === -1 || fileKeyIndex + 1 >= pathParts.length) {
       console.error('Could not find file key in Figma URL path:', url);

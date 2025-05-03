@@ -47,7 +47,7 @@ export interface FigmaStyle {
   // Add other style properties
 }
 
-export interface FigmaImageResponse {
+export interface IFigmaImageResponse {
   err: string | null;
   images: { [nodeId: string]: string | null };
   status?: number;

@@ -37,12 +37,21 @@ import {
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
-import { FigmaImageResponse } from '../service/figma/types';
 
 enum ChatCommands {
   Create = 'create',
   Run = 'run',
   Help = 'help',
+}
+
+interface IChatRequestImageReference {
+  id: string;
+  name: string;
+  value: {
+    data: () => Promise<any>;
+    mimeType: string;
+    reference: vscode.Uri;
+  };
 }
 
 export function registerChatParticipants(context: vscode.ExtensionContext) {
@@ -112,9 +121,164 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       stream.markdown(
         `Mobile App Developer agent is designed to create mobile apps. To create a mobile app, type \`@app-developer-mobile /create\` and follow the prompts. To run the app, type \`@app-developer-mobile /run.\``,
       );
-      return {
-        metadata: { command: 'help' },
-      };
+      /* testing */
+
+      const model = request.model;
+      const refs = request.references;
+      const image = refs[0] as IChatRequestImageReference;
+      if (!image) {
+        stream.markdown('No image provided');
+      }
+      if (true) {
+        const imageData =
+          image.value && image.value.data
+            ? await image.value.data()
+            : image.value;
+        const imageContent = Buffer.from(imageData).toString('base64');
+
+        // const imageUri = image.id as unknown as vscode.Uri; // Assuming image.id is a Uri
+        // // Use vscode.workspace.fs to read the file content from the Uri
+        // const imageContentBytes = await vscode.workspace.fs.readFile(imageUri);
+        // // Convert Uint8Array to string if needed (e.g., for text files or base64 encoding)
+        // const imageContent = Buffer.from(imageContentBytes).toString('base64'); // Example: Base64 encode for image data
+
+        // Render the initial prompt
+        // const result = await renderPrompt(
+        //   ToolUserPrompt,
+        //   {
+        //     context: _context,
+        //     request,
+        //     toolCallRounds: [],
+        //     toolCallResults: {},
+        //   },
+        //   { modelMaxPromptTokens: model.maxInputTokens },
+        //   model,
+        // );
+        let messages: vscode.LanguageModelChatMessage[] = [
+          vscode.LanguageModelChatMessage.Assistant(
+            'You are a expert developer who can convert design to code. You have been provided with an image. Please analyze the image and generate code for a single page react app. You can use the tool: app_developer_imageAnalyzer to analyze the image.',
+          ),
+          vscode.LanguageModelChatMessage.User(
+            `can you tell me about this image?`,
+          ),
+          vscode.LanguageModelChatMessage.User(`${image.value.reference}`),
+        ];
+        let accumulatedMessages: vscode.LanguageModelChatMessage[] = [];
+        // result.references.forEach((ref) => {
+        //   if (
+        //     ref.anchor instanceof vscode.Uri ||
+        //     ref.anchor instanceof vscode.Location
+        //   ) {
+        //     stream.reference(ref.anchor);
+        //   }
+        // });
+
+        const toolReferences = [...request.toolReferences];
+
+        const tools = vscode.lm.tools;
+        const imageAnalyzerTool = tools.find(
+          (tool) => tool.name === 'app_developer_imageAnalyzer',
+        );
+
+        if (!imageAnalyzerTool) {
+          stream.markdown('Image analyzer tool not found');
+          return {
+            errorDetails: {
+              message: 'Image analyzer tool not found',
+            },
+          };
+        }
+
+        const accumulatedToolResults: Record<
+          string,
+          vscode.LanguageModelToolResult
+        > = {};
+
+        const runWithTools = async (useTool: boolean): Promise<void> => {
+          accumulatedMessages.concat(messages);
+          const response = await model.sendRequest(
+            messages,
+            useTool
+              ? {
+                  justification: 'To make a request to the image analyzer tool',
+                  toolMode: vscode.LanguageModelChatToolMode.Auto,
+                  tools: [imageAnalyzerTool],
+                }
+              : {},
+          );
+          try {
+            if (response) {
+              let responseContent = '';
+              const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+              for await (const part of response.stream) {
+                //responseContent += part;
+                if (part instanceof vscode.LanguageModelTextPart) {
+                  console.log('TEXT', part);
+                  stream.markdown(part.value);
+                  responseContent += part.value;
+                } else if (part instanceof vscode.LanguageModelToolCallPart) {
+                  console.log('TOOL CALL', part);
+                  toolCalls.push(part);
+                }
+              }
+
+              if (toolCalls.length) {
+                messages.push(
+                  vscode.LanguageModelChatMessage.Assistant(toolCalls),
+                );
+                // Process tool calls
+                const toolResults: Record<
+                  string,
+                  vscode.LanguageModelToolResult
+                > = {};
+                const toolCallParts: vscode.LanguageModelToolResultPart[] = [];
+                for (const call of toolCalls) {
+                  console.log('Invoking tool:', call.name);
+                  const toolResult = await vscode.lm.invokeTool(call.name, {
+                    input: call.input,
+                    toolInvocationToken: request.toolInvocationToken,
+                  });
+                  toolResults[call.name] = toolResult;
+                  toolCallParts.push(
+                    new vscode.LanguageModelToolResultPart(
+                      call.callId,
+                      toolResult.content,
+                    ),
+                  );
+
+                  stream.markdown(
+                    `Tool result for ${call.name}: ${toolResult.toString()}`,
+                  );
+                }
+
+                messages.push(
+                  vscode.LanguageModelChatMessage.User(toolCallParts),
+                );
+
+                messages.push(
+                  vscode.LanguageModelChatMessage.User(
+                    'Tool result is now available. Proceed with the next steps.',
+                  ),
+                );
+
+                // This loops until the model doesn't want to call any more tools, then the request is done.
+                return runWithTools(true);
+              } else {
+                stream.markdown(responseContent);
+              }
+            }
+          } catch (error) {
+            stream.markdown('Error processing image: ' + error);
+          }
+        };
+        await runWithTools(true);
+        return {
+          metadata: {
+            // Return tool call metadata so it can be used in prompt history on the next request
+            toolCallResults: accumulatedToolResults,
+          },
+        };
+      }
     }
   };
 
@@ -261,11 +425,11 @@ export async function handleCreateMobileApp(
       telemetry,
       source,
     );
-    if (figmaImageData && figmaImageData.images && figmaImageData.images) {
+    if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
         source: 'figma',
-        image: JSON.stringify(figmaImageData.images),
+        image: figmaImageData,
       };
     }
 
@@ -484,11 +648,11 @@ export async function handleCreateWebApp(
       telemetry,
       source,
     );
-    if (figmaImageData && figmaImageData.images && figmaImageData.images) {
+    if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
         source: 'figma',
-        image: JSON.stringify(figmaImageData.images),
+        image: figmaImageData,
       };
     }
     app = new WebApp(
@@ -680,8 +844,8 @@ async function getFigmaDesign(
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
   source: string,
-): Promise<FigmaImageResponse | null> {
-  let figmaImageData: FigmaImageResponse | null = null;
+): Promise<string[] | null> {
+  let figmaImages: string[] | null = null;
 
   // Check if Figma URL is provided
   // --- Figma Integration Start ---
@@ -697,24 +861,10 @@ async function getFigmaDesign(
         // Validate URL structure before fetching
         const parsedUrl = parseFigmaUrl(figmaUrl);
         if (parsedUrl) {
-          figmaImageData = await figmaClient.getImagesFromUrl(figmaUrl);
-          if (
-            figmaImageData &&
-            !figmaImageData.err &&
-            Object.keys(figmaImageData.images).length > 0
-          ) {
+          figmaImages = await figmaClient.getImagesFromUrl(figmaUrl);
+          if (figmaImages && figmaImages.length > 0) {
             streamService.message(
               'Successfully fetched design images from Figma.',
-            );
-            // TODO: Potentially save images or process URLs further
-          } else if (figmaImageData?.err) {
-            streamService.error(`Figma API Error: ${figmaImageData.err}`);
-            telemetry.trackError(
-              'web.create.figma',
-              'web',
-              source,
-              new Error(figmaImageData.err),
-              { figmaUrl },
             );
           } else {
             streamService.message(
@@ -757,5 +907,5 @@ async function getFigmaDesign(
     }
   }
   // --- Figma Integration End ---
-  return figmaImageData;
+  return figmaImages;
 }
