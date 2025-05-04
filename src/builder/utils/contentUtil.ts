@@ -112,3 +112,7 @@ export function isBase64(content: string): boolean {
     return false;
   }
 }
+
+export function isMimeTypeImage(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}
