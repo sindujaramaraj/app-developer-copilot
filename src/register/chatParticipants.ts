@@ -95,7 +95,11 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         );
       }
       // Initialize model service
-      const modelService = new LanguageModelService(copilotModel, token);
+      const modelService = new LanguageModelService(
+        copilotModel,
+        token,
+        request.toolInvocationToken,
+      );
 
       // Handle create mobile app
       return await handleCreateMobileApp(
@@ -175,7 +179,11 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         );
       }
       // Initialize model service
-      const modelService = new LanguageModelService(copilotModel, token);
+      const modelService = new LanguageModelService(
+        copilotModel,
+        token,
+        request.toolInvocationToken,
+      );
 
       // Handle create web app
       return await handleCreateWebApp(
@@ -499,7 +507,7 @@ export async function handleCreateWebApp(
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
 
-        images: [...figmaImageData],
+        images: [...figmaImageData, ...referredImages],
       };
     }
     app = new WebApp(

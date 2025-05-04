@@ -22,6 +22,7 @@ import {
   APP_ARCHITECTURE_DIAGRAM_FILE,
   SUPA_SQL_FILE_PATH,
   SUPA_TYPES_MOBILE_FILE_PATH,
+  TOOL_IMAGE_ANALYZER,
 } from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
@@ -78,6 +79,12 @@ export class MobileApp extends App {
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
+      let tools: string[] | undefined = undefined;
+      const designConfig = this.getTechStackOptions().designConfig;
+      if (designConfig?.images && designConfig.images.length > 0) {
+        tools = [TOOL_IMAGE_ANALYZER];
+      }
+
       let { response: createAppResponse, object: createAppResponseObj } =
         await this.languageModelService.generateObject<
           ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
@@ -85,6 +92,7 @@ export class MobileApp extends App {
           messages: initializeAppMessages,
           schema: initializeAppPrompt.getResponseFormatSchema(),
           responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+          tools, // Pass tools if images are present
         });
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse),

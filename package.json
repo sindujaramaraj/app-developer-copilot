@@ -189,27 +189,6 @@
     ],
     "languageModelTools": [
       {
-        "name": "app_developer_runInTerminal",
-        "tags": [
-          "terminal",
-          "chat-tools-sample"
-        ],
-        "displayName": "Run in Terminal",
-        "modelDescription": "Run a command in a terminal and return the output",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "command": {
-              "type": "string",
-              "description": "The command to run"
-            }
-          },
-          "required": [
-            "command"
-          ]
-        }
-      },
-      {
         "name": "app_developer_imageAnalyzer",
         "tags": [
           "image",
@@ -217,34 +196,42 @@
           "chat-tools-sample"
         ],
         "displayName": "Image Analyzer",
-        "modelDescription": "Analyzes images from URIs (file paths) and returns a JSON description. Use this tool when you need to understand the content of an image specified by its location.",
+        "modelDescription": "Analyzes images from file paths or URLs and returns a JSON description. Use this tool when you need to understand the content of an image.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "uris": {
-              "type": [
-                "string",
-                "array"
-              ],
+            "images": {
+              "type": "array",
               "items": {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "uri": {
+                    "type": "string",
+                    "description": "The URI (file path or URL) of the image."
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "file",
+                      "url"
+                    ],
+                    "description": "Specifies whether the URI is a local file path or a web URL."
+                  }
+                },
+                "required": [
+                  "uri",
+                  "source"
+                ]
               },
-              "description": "A single image URI (file path) string or an array of image URI strings to analyze."
+              "description": "An array of image sources to analyze."
             }
           },
           "required": [
-            "uris"
+            "images"
           ]
         }
       }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
+    ],
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",

@@ -162,6 +162,7 @@ export class LanguageModelService {
         model: this.ownModel,
         schema: options.schema,
         messages: options.messages,
+        // TODO: Add tools support for own model if needed
         headers: {
           'HTTP-Referer':
             'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
@@ -185,6 +186,8 @@ export class LanguageModelService {
         this.token as vscode.CancellationToken,
         this.toolInvocationToken as vscode.ChatParticipantToolToken,
         options.schema,
+        true, // useJson is true for generateObject
+        options.tools, // Pass tools here
       );
       return {
         response: response.responseContent,
@@ -248,7 +251,10 @@ async function sendRequest(
   const response = await model.sendRequest(
     messages,
     {
-      toolMode: vscode.LanguageModelChatToolMode.Auto,
+      toolMode:
+        tools.length > 0
+          ? vscode.LanguageModelChatToolMode.Required
+          : vscode.LanguageModelChatToolMode.Auto,
       tools,
     },
     token,
@@ -270,7 +276,7 @@ async function sendRequest(
         messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
         // Process tool calls
         const toolResults: Record<string, vscode.LanguageModelToolResult> = {};
-        const toolCallParts: vscode.LanguageModelToolResultPart[] = [];
+        const toolResultParts: vscode.LanguageModelToolResultPart[] = [];
         for (const call of toolCalls) {
           console.log('Invoking tool:', call.name);
           const toolResult = await vscode.lm.invokeTool(call.name, {
@@ -278,7 +284,7 @@ async function sendRequest(
             toolInvocationToken,
           });
           toolResults[call.name] = toolResult;
-          toolCallParts.push(
+          toolResultParts.push(
             new vscode.LanguageModelToolResultPart(
               call.callId,
               toolResult.content,
@@ -286,9 +292,15 @@ async function sendRequest(
           );
 
           console.log(`Tool result for ${call.name}: ${toolResult.toString()}`);
+
+          // Remove the tool from tools list
+          const toolIndex = tools.findIndex((tool) => tool.name === call.name);
+          if (toolIndex !== -1) {
+            tools.splice(toolIndex, 1);
+          }
         }
 
-        messages.push(vscode.LanguageModelChatMessage.User(toolCallParts));
+        messages.push(vscode.LanguageModelChatMessage.User(toolResultParts));
 
         messages.push(
           vscode.LanguageModelChatMessage.User(
@@ -336,7 +348,9 @@ export async function handleCopilotRequest<T>(
     messages,
     token,
     toolInvocationToken,
-    requestedTools as vscode.LanguageModelChatTool[],
+    requestedTools.filter(
+      (tool): tool is vscode.LanguageModelToolInformation => !!tool,
+    ),
   );
 
   if (useJson) {
