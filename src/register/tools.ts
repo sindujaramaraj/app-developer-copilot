@@ -71,7 +71,7 @@ export class ImageAnalyzerTool
             let mimeType: string;
 
             if (imageSource.source === 'file') {
-              const uri = vscode.Uri.parse(imageSource.uri, true); // Use strict parsing
+              const uri = vscode.Uri.parse(imageSource.uri, false);
               const fileContent = await vscode.workspace.fs.readFile(uri);
               mimeType = getMimeTypeFromUri(imageSource.uri); // Infer MIME type from URI
               base64String = Buffer.from(fileContent).toString('base64');

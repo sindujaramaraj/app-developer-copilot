@@ -793,7 +793,7 @@ function getImageRefsFromRequest(request: vscode.ChatRequest): IImageSource[] {
         const imageRef = value as IChatRequestImageReference;
         images.push({
           source: 'file',
-          uri: imageRef.reference ? imageRef.reference.path : ref.id,
+          uri: imageRef.reference ? imageRef.reference.fsPath : ref.id,
         });
       }
     }
