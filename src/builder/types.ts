@@ -83,7 +83,12 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   name: z.string().describe('Name of the app'),
   title: z.string().describe('Title of the app'),
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
-  design: z.string().describe('Design of the app as a mermaid diagram'),
+  architecture: z
+    .string()
+    .describe('Architecture of the app as a mermaid diagram'),
+  design: z
+    .string()
+    .describe('Design elements used in the app like colors, fonts, etc.'),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
   sqlScripts: z
     .string()
@@ -126,6 +131,7 @@ export interface IGenerateCodeForComponentInput {
   purpose: string;
   dependencies: ZGenerateCodeForComponentResponseType[];
   projectStructure?: string;
+  architecture: string;
   design: string;
   techStack: IMobileTechStackOptions | IWebTechStackOptions;
 }

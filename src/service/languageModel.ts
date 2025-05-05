@@ -22,6 +22,12 @@ export interface IModelMessage {
   role: 'assistant' | 'user' | 'system';
 }
 
+export interface IModelResponse {
+  content: string;
+  toolCalls?: vscode.LanguageModelToolCallPart[];
+  toolResults?: Record<string, vscode.LanguageModelToolResult>;
+}
+
 interface IGenerateObjectRequest<T> {
   messages: IModelMessage[];
   schema: z.ZodSchema<T>;
@@ -154,7 +160,7 @@ export class LanguageModelService {
   }
 
   async generateObject<T>(options: IGenerateObjectRequest<T>): Promise<{
-    response: string;
+    response: IModelResponse;
     object: T;
   }> {
     if (this.useOwnModel && this.ownModel) {
@@ -170,7 +176,9 @@ export class LanguageModelService {
         },
       });
       return {
-        response: JSON.stringify(object, null, 2),
+        response: {
+          content: JSON.stringify(object, null, 2),
+        },
         object,
       };
     } else if (this.copilotModel) {
@@ -190,7 +198,7 @@ export class LanguageModelService {
         options.tools, // Pass tools here
       );
       return {
-        response: response.responseContent,
+        response: response.modelResponse,
         object: response.responseObject,
       };
     } else {
@@ -247,79 +255,92 @@ async function sendRequest(
   token: vscode.CancellationToken,
   toolInvocationToken: vscode.ChatParticipantToolToken,
   tools: vscode.LanguageModelChatTool[],
-): Promise<string> {
-  const response = await model.sendRequest(
-    messages,
-    {
-      toolMode:
-        tools.length > 0
-          ? vscode.LanguageModelChatToolMode.Required
-          : vscode.LanguageModelChatToolMode.Auto,
-      tools,
-    },
-    token,
-  );
-  try {
-    if (response) {
-      let responseContent = '';
-      const toolCalls: vscode.LanguageModelToolCallPart[] = [];
-      for await (const part of response.stream) {
-        //responseContent += part;
-        if (part instanceof vscode.LanguageModelTextPart) {
-          responseContent += part.value;
-        } else if (part instanceof vscode.LanguageModelToolCallPart) {
-          toolCalls.push(part);
-        }
-      }
-
-      if (toolCalls.length) {
-        messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
-        // Process tool calls
-        const toolResults: Record<string, vscode.LanguageModelToolResult> = {};
-        const toolResultParts: vscode.LanguageModelToolResultPart[] = [];
-        for (const call of toolCalls) {
-          console.log('Invoking tool:', call.name);
-          const toolResult = await vscode.lm.invokeTool(call.name, {
-            input: call.input,
-            toolInvocationToken,
-          });
-          toolResults[call.name] = toolResult;
-          toolResultParts.push(
-            new vscode.LanguageModelToolResultPart(
-              call.callId,
-              toolResult.content,
-            ),
-          );
-
-          console.log(`Tool result for ${call.name}: ${toolResult.toString()}`);
-
-          // Remove the tool from tools list
-          const toolIndex = tools.findIndex((tool) => tool.name === call.name);
-          if (toolIndex !== -1) {
-            tools.splice(toolIndex, 1);
+): Promise<IModelResponse> {
+  let responseContent = '';
+  let accumuldatedToolCalls: vscode.LanguageModelToolCallPart[] = [];
+  const toolResults: Record<string, vscode.LanguageModelToolResult> = {};
+  async function runWithTools() {
+    const response = await model.sendRequest(
+      messages,
+      {
+        toolMode:
+          tools.length > 0
+            ? vscode.LanguageModelChatToolMode.Required
+            : vscode.LanguageModelChatToolMode.Auto,
+        tools,
+      },
+      token,
+    );
+    try {
+      if (response) {
+        const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+        for await (const part of response.stream) {
+          //responseContent += part;
+          if (part instanceof vscode.LanguageModelTextPart) {
+            responseContent += part.value;
+          } else if (part instanceof vscode.LanguageModelToolCallPart) {
+            toolCalls.push(part);
           }
         }
 
-        messages.push(vscode.LanguageModelChatMessage.User(toolResultParts));
+        if (toolCalls.length) {
+          messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+          accumuldatedToolCalls.concat(toolCalls);
+          // Process tool calls
 
-        messages.push(
-          vscode.LanguageModelChatMessage.User(
-            'Tool result is now available. Proceed with the next steps.',
-          ),
-        );
+          const toolResultParts: vscode.LanguageModelToolResultPart[] = [];
+          for (const call of toolCalls) {
+            console.log('Invoking tool:', call.name);
+            const toolResult = await vscode.lm.invokeTool(call.name, {
+              input: call.input,
+              toolInvocationToken,
+            });
+            toolResults[call.name] = toolResult;
+            toolResultParts.push(
+              new vscode.LanguageModelToolResultPart(
+                call.callId,
+                toolResult.content,
+              ),
+            );
 
-        // This loops until the model doesn't want to call any more tools, then the request is done.
-        return sendRequest(model, messages, token, toolInvocationToken, tools);
+            console.debug(
+              `Tool result received for ${call.name}: ${JSON.stringify(toolResult)}`,
+            );
+
+            // Remove the tool from tools list
+            const toolIndex = tools.findIndex(
+              (tool) => tool.name === call.name,
+            );
+            if (toolIndex !== -1) {
+              tools.splice(toolIndex, 1);
+            }
+          }
+
+          messages.push(vscode.LanguageModelChatMessage.User(toolResultParts));
+
+          messages.push(
+            vscode.LanguageModelChatMessage.User(
+              'Tool result is now available. Proceed with the next steps.',
+            ),
+          );
+
+          // This loops until the model doesn't want to call any more tools, then the request is done.
+          runWithTools();
+        }
       } else {
-        return responseContent;
+        throw new Error('No response from model');
       }
-    } else {
-      throw new Error('No response from model');
+    } catch (error) {
+      console.log('Error processing response from model: ' + error);
+      throw error;
     }
-  } catch (error) {
-    console.log('Error processing response from model: ' + error);
-    throw error;
   }
+  await runWithTools();
+  return {
+    content: responseContent,
+    toolCalls: accumuldatedToolCalls,
+    toolResults,
+  };
 }
 
 export async function handleCopilotRequest<T>(
@@ -331,7 +352,7 @@ export async function handleCopilotRequest<T>(
   useJson: boolean = true,
   tools: string[] = [],
   retryCount: number = 0,
-): Promise<{ responseContent: string; responseObject: T }> {
+): Promise<{ modelResponse: IModelResponse; responseObject: T }> {
   if (retryCount > MAX_RETRY_COUNT) {
     throw new Error('Failed to parse response after multiple attempts');
   }
@@ -343,7 +364,7 @@ export async function handleCopilotRequest<T>(
     });
   }
 
-  const responseContent = await sendRequest(
+  const modelResponse = await sendRequest(
     model,
     messages,
     token,
@@ -358,7 +379,7 @@ export async function handleCopilotRequest<T>(
     // Check if the response is in Markdown format
     let jsonResponse: any = null;
     try {
-      jsonResponse = convertStringToJSON(responseContent);
+      jsonResponse = convertStringToJSON(modelResponse.content);
     } catch (error) {
       console.warn(
         'Attempting retry. Failed to parse code response as JSON:',
@@ -398,14 +419,14 @@ export async function handleCopilotRequest<T>(
 
     const parsedResponse = validationResult.data as T;
     return {
-      responseContent,
+      modelResponse: modelResponse,
       responseObject: parsedResponse,
     };
   } else {
     // return the response as is as a string
     return {
-      responseContent,
-      responseObject: responseContent as T,
+      modelResponse: modelResponse,
+      responseObject: modelResponse as T,
     };
   }
 }

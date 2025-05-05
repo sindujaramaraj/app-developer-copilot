@@ -192,8 +192,7 @@
         "name": "app_developer_imageAnalyzer",
         "tags": [
           "image",
-          "analysis",
-          "chat-tools-sample"
+          "analysis"
         ],
         "displayName": "Image Analyzer",
         "modelDescription": "Analyzes images from file paths or URLs and returns a JSON description. Use this tool when you need to understand the content of an image.",
@@ -231,7 +230,14 @@
           ]
         }
       }
-    ],
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",

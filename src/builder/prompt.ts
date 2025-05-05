@@ -84,10 +84,10 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
       ${getPromptForExistingBackend(backendConfig.details)}
       ${imageInstructions}
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
-      Now design the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
-      Represent the design as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
+      Now architect the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
+      Represent the archietcture as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
 
-      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
       Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
       This is the tech stack that will be used: ${getPromptForMobileStack(
@@ -98,7 +98,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
 
       ${getPromptForComponentDesign(input.techStack.framework)}
 
-      User will first request design for the app and request code the components one by one sequentially.
+      User will first request architecture and design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.
       `;
     } else {
@@ -107,7 +107,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
       ${imageInstructions}
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first architect the app using database, data and UI components that will enable the functionality of the app. Represent the architecture as a mermaid diagram. Keep it simple and functional.
-      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
       Assume the project code will be created using 'npx create-expo-app' and uses expo-router with typescript template.
       This is the tech stack that will be used: ${getPromptForMobileStack(
@@ -118,7 +118,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
 
       ${getPromptForComponentDesign(input.techStack.framework)}
 
-      User will first request design for the app and request code the components one by one sequentially.
+      User will first request architecture and design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.
       `;
     }
@@ -148,10 +148,11 @@ export class InitializeMobileAppPrompt extends PromptBase<
     const imageInstructions = getPromptForDesignConfig(designConfig);
     const instructions = `
     You are an expert at building mobile apps using react native and expo. For simplicity, we are not using a backend for this app.
-    ${imageInstructions}
+    
     Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
+    ${imageInstructions}
     You will first architect the app components that will enable the functionality of the app. Represent the architecture as a mermaid diagram. Keep it simple and functional.
-    Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+    Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
     Assume the project code will be initialized using 'npx create-expo-app' and uses expo-router with typescript template.
     This is the tech stack that will be used: ${getPromptForMobileStack(
@@ -160,7 +161,7 @@ export class InitializeMobileAppPrompt extends PromptBase<
 
     ${getPromptForComponentDesign(input.techStack.framework)}
 
-    User will first request design for the app and request code the components one by one sequentially.
+    User will first request architecture and design for the app and request code the components one by one sequentially.
     If the user asks a non-programming question, politely decline to respond.`;
     super(input, instructions, ZInitializeAppResponseSchema);
   }
@@ -183,9 +184,9 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
       ${getPromptForExistingBackend(backendConfig.details)}
       ${imageInstructions}
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
-      Now design the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
-      Represent the design as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
-      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      Now architect the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
+      Represent the architecture as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
+      Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
       Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(
@@ -196,7 +197,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 
       ${getPromptForComponentDesign(input.techStack.framework)}
 
-      User will first request design for the app and request code the components one by one sequentially.
+      User will first request architecture and design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
     } else {
       instructions = `
@@ -204,7 +205,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
       ${imageInstructions}
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first architect the app using database, server and client components that will enable the functionality of the app. Represent the architecture as a mermaid diagram. Keep it simple and functional.
-      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
       Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
@@ -213,7 +214,7 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 
       ${getPromptForComponentDesign(input.techStack.framework)}
 
-      User will first request design for the app and request code the components one by one sequentially.
+      User will first request architecture and design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
     }
 
@@ -233,14 +234,14 @@ export class InitializeWebAppPrompt extends PromptBase<
       ${imageInstructions}
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first architect the app components that will enable the functionality of the app. Represent the architecture as a mermaid diagram. Keep it simple and functional.
-      Then to implement the app, come up with the list of components that can be derived from the app design. For now components are just placeholders and code for the components will be requested later.
+      Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
       Assume the webapp will be built using next.js with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
 
       ${getPromptForComponentDesign(input.techStack.framework)}
 
-      User will first request design for the app and request code the components one by one sequentially.
+      User will first request architecture and design for the app and request code the components one by one sequentially.
       If the user asks a non-programming question, politely decline to respond.`;
 
     super(input, instructions, ZInitializeAppResponseSchema);
@@ -255,7 +256,8 @@ export class GenerateCodeForMobileComponentPrompt extends PromptBase<
     const instructions = `Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
     If this is the entry file, make sure to initialize the UI library correctly.
     Tech stack: ${getPromptForMobileStack(input.techStack as IMobileTechStackOptions)}.
-    This component is part of an react native app. Design of the app as a mermaid diagram: ${input.design}.
+    This component is part of an react native app. Architecture of the app as a mermaid diagram: ${input.architecture}.
+    Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
@@ -276,7 +278,8 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
     const instructions = `Generate code for component ${input.name} located at path: ${input.path}. Purpose of the component: ${input.purpose}. Type: ${input.type}.
     If this is the entry file, make sure to initialize the UI library correctly.
     Tech stack: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
-    This component is part of an web app. Design of the app as a mermaid diagram: ${input.design}.
+    This component is part of an web app. Architecture of the app as a mermaid diagram: ${input.architecture}.
+    Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
     If the code uses any media like image or sound, do not generate the media. Just use placeholder text and include the media as asset in the response.
