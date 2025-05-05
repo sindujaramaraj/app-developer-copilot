@@ -69,7 +69,7 @@ export class TelemetryService {
     properties: ITelemetryAppCreationEventProperties,
     measurements: ITelemetryAppCreationEventMeasurements,
   ): void {
-    const { success, hasBackend, ...otherProps } = properties;
+    const { success, hasBackend, hasDesign, ...otherProps } = properties;
     if (success) {
       this.reporter.sendTelemetryEvent(
         TelemetryEvent.AppCreation,
@@ -77,6 +77,7 @@ export class TelemetryService {
           ...otherProps,
           success: String(success),
           hasBackend: String(hasBackend),
+          hasDesign: String(hasDesign),
         },
         {
           ...measurements,

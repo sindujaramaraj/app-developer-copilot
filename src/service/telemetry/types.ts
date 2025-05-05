@@ -54,6 +54,7 @@ export interface ITelemetryAppCreationEventProperties
   success: boolean;
   techStack: string;
   hasBackend: boolean;
+  hasDesign: boolean;
   error?: string;
   errorMessage?: string;
   errorReason?: string;

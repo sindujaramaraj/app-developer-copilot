@@ -304,6 +304,10 @@ export async function handleCreateMobileApp(
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
       },
       {
         duration: Date.now() - startTime,
@@ -320,6 +324,10 @@ export async function handleCreateMobileApp(
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None,
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -527,6 +535,11 @@ export async function handleCreateWebApp(
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
+
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
       },
       {
         duration: Date.now() - startTime,
@@ -545,6 +558,10 @@ export async function handleCreateWebApp(
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None,
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
