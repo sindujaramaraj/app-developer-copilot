@@ -129,6 +129,7 @@ export class WebApp extends App {
         type: AppType.WEB,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
+        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
       });
 
       return {

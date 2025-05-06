@@ -186,36 +186,3 @@ export class ImageAnalyzerTool
     };
   }
 }
-
-// ... existing waitForShellIntegration function ...
-async function waitForShellIntegration(
-  terminal: vscode.Terminal,
-  timeout: number,
-): Promise<void> {
-  let resolve: () => void;
-  let reject: (e: Error) => void;
-  const p = new Promise<void>((_resolve, _reject) => {
-    resolve = _resolve;
-    reject = _reject;
-  });
-
-  const timer = setTimeout(
-    () =>
-      reject(
-        new Error(
-          'Could not run terminal command: shell integration is not enabled',
-        ),
-      ),
-    timeout,
-  );
-
-  const listener = vscode.window.onDidChangeTerminalShellIntegration((e) => {
-    if (e.terminal === terminal) {
-      clearTimeout(timer);
-      listener.dispose();
-      resolve();
-    }
-  });
-
-  await p;
-}

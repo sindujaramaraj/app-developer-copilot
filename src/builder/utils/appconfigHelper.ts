@@ -25,6 +25,7 @@ export interface AppConfig {
   type: AppType;
   hasDatabase?: boolean;
   hasAuth?: boolean;
+  figmaUrl?: string;
 }
 
 export async function createAppConfig(

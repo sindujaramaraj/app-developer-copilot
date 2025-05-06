@@ -170,8 +170,7 @@ export class LanguageModelService {
         messages: options.messages,
         // TODO: Add tools support for own model if needed
         headers: {
-          'HTTP-Referer':
-            'https://github.com/sindujaramaraj/app-developer-copilot', // Optional, for including your app on openrouter.ai rankings.
+          'HTTP-Referer': 'https://appdevelopercode.github.io/', // Optional, for including your app on openrouter.ai rankings.
           'X-Title': 'app-developer-copilot', // Optional. Shows in rankings on openrouter.ai.
         },
       });
@@ -259,6 +258,17 @@ async function sendRequest(
   let responseContent = '';
   let accumuldatedToolCalls: vscode.LanguageModelToolCallPart[] = [];
   const toolResults: Record<string, vscode.LanguageModelToolResult> = {};
+  // Use default tools if no tools are provided
+  const defautlToolNames = ['copilot_fetchWebPage'];
+  const defaultTools =
+    tools.length === 0
+      ? vscode.lm.tools.filter((tool) => defautlToolNames.includes(tool.name))
+      : [];
+  messages.push(
+    vscode.LanguageModelChatMessage.User(
+      `You have access to the following tools: ${defaultTools.join(', ')}`,
+    ),
+  );
   async function runWithTools() {
     const response = await model.sendRequest(
       messages,
@@ -267,7 +277,7 @@ async function sendRequest(
           tools.length > 0
             ? vscode.LanguageModelChatToolMode.Required
             : vscode.LanguageModelChatToolMode.Auto,
-        tools,
+        tools: [...defaultTools, ...tools],
       },
       token,
     );
@@ -325,7 +335,7 @@ async function sendRequest(
           );
 
           // This loops until the model doesn't want to call any more tools, then the request is done.
-          runWithTools();
+          await runWithTools();
         }
       } else {
         throw new Error('No response from model');

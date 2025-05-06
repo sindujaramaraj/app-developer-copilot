@@ -88,7 +88,9 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
     .describe('Architecture of the app as a mermaid diagram'),
   design: z
     .string()
-    .describe('Design elements used in the app like colors, fonts, etc.'),
+    .describe(
+      'Design elements used in the app like colors, fonts, etc. as string or json string',
+    ),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
   sqlScripts: z
     .string()

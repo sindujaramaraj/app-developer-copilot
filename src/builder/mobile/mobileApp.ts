@@ -124,6 +124,7 @@ export class MobileApp extends App {
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
+        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
       });
 
       return {
