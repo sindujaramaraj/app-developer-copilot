@@ -14,6 +14,7 @@ const SUPPORTED_COPILOT_MODELS = [
   'gpt-4.1',
   'gpt-4o',
   'claude-3.5-sonnet',
+  'claude-3.7-sonnet',
   'gemini-2.5-pro',
 ];
 
@@ -273,10 +274,7 @@ async function sendRequest(
     const response = await model.sendRequest(
       messages,
       {
-        toolMode:
-          tools.length > 0
-            ? vscode.LanguageModelChatToolMode.Required
-            : vscode.LanguageModelChatToolMode.Auto,
+        toolMode: getToolMode(model, tools),
         tools: [...defaultTools, ...tools],
       },
       token,
@@ -284,8 +282,8 @@ async function sendRequest(
     try {
       if (response) {
         const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+        responseContent = '';
         for await (const part of response.stream) {
-          //responseContent += part;
           if (part instanceof vscode.LanguageModelTextPart) {
             responseContent += part.value;
           } else if (part instanceof vscode.LanguageModelToolCallPart) {
@@ -294,8 +292,13 @@ async function sendRequest(
         }
 
         if (toolCalls.length) {
+          if (responseContent) {
+            messages.push(
+              vscode.LanguageModelChatMessage.Assistant(responseContent),
+            );
+          }
           messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
-          accumuldatedToolCalls.concat(toolCalls);
+          accumuldatedToolCalls = accumuldatedToolCalls.concat(toolCalls);
           // Process tool calls
 
           const toolResultParts: vscode.LanguageModelToolResultPart[] = [];
@@ -318,12 +321,12 @@ async function sendRequest(
             );
 
             // Remove the tool from tools list
-            const toolIndex = tools.findIndex(
-              (tool) => tool.name === call.name,
-            );
-            if (toolIndex !== -1) {
-              tools.splice(toolIndex, 1);
-            }
+            // const toolIndex = tools.findIndex(
+            //   (tool) => tool.name === call.name,
+            // );
+            // if (toolIndex !== -1) {
+            //   tools.splice(toolIndex, 1);
+            // }
           }
 
           messages.push(vscode.LanguageModelChatMessage.User(toolResultParts));
@@ -458,6 +461,24 @@ function fixResponseFromModel(jsonResponse: any): any {
     return jsonResponse['schema'];
   }
 
+  if (jsonResponse.design && typeof jsonResponse.design !== 'string') {
+    // If it has a design property, return the design property as string
+    // Note: This is a workaround for response received from models
+    jsonResponse.design = JSON.stringify(jsonResponse.design);
+  }
+
   // In any other scenario, return the response as is
   return jsonResponse;
+}
+
+function getToolMode(
+  model: vscode.LanguageModelChat,
+  tools: vscode.LanguageModelChatTool[],
+) {
+  if (model.id === 'claude-3.5-sonnet' && tools.length > 0) {
+    // If the model is Claude and there are tools, use Required mode
+    return vscode.LanguageModelChatToolMode.Required;
+  }
+  // In any other case, use Auto mode
+  return vscode.LanguageModelChatToolMode.Auto;
 }

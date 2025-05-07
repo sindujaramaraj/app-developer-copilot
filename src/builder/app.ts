@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  IBackendDetails,
   IGenericStack,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
@@ -12,7 +11,7 @@ import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
 import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
-import { Backend } from './backend/serviceStack';
+import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
 import { get } from 'http';

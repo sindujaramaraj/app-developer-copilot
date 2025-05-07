@@ -58,16 +58,6 @@ export const ZCodeComponentSchema = z.object({
 
 export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
-// TODO: Need to make this generic for all the tech stacks
-export interface IBackendDetails {
-  type: Backend;
-  url: string;
-  key: string;
-  authConfig?: any;
-  types?: string;
-  docs?: string;
-}
-
 export interface IInitializeAppInput {
   techStack: IWebTechStackOptions | IMobileTechStackOptions;
 }
@@ -89,13 +79,13 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   design: z
     .string()
     .describe(
-      'Design elements used in the app like colors, fonts, etc. as string or json string',
+      'Design elements used in the app like colors, fonts, etc... represented as string or json string',
     ),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
   sqlScripts: z
     .string()
     .optional()
-    .describe('SQL scripts for the app')
+    .describe('SQL scripts to intitilize database for the app')
     .nullable(),
 });
 
@@ -105,7 +95,9 @@ export type ZInitializeAppResponseType = z.infer<
 
 export const ZInitializeAppWithBackendResponseSchema =
   ZInitializeAppResponseSchema.extend({
-    sqlScripts: z.string().describe('SQL scripts for the app'),
+    sqlScripts: z
+      .string()
+      .describe('SQL scripts to intitilize database for the app'),
   });
 
 export type ZInitializeAppWithBackendResponseType = z.infer<

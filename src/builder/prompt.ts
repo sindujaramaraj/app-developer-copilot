@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
-  IBackendDetails,
   IGenerateCodeForComponentInput,
   IGenericStack,
   IInitializeAppInput,
@@ -17,7 +16,11 @@ import {
   IMobileTechStackOptions,
 } from './mobile/mobileTechStack';
 import { getPromptForWebStack, IWebTechStackOptions } from './web/webTechStack';
-import { getPromptForAuthenticationMethod } from './backend/serviceStack';
+import {
+  getPromptForAuthenticationMethod,
+  getPromptForExistingBackend,
+  getPromptForNewDatabase,
+} from './backend/serviceStack';
 import { TOOL_IMAGE_ANALYZER } from './constants';
 
 export class PromptBase<TInput, TOutput> {
@@ -73,16 +76,13 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
   constructor(input: IInitializeAppInput) {
     const backendConfig = input.techStack.backendConfig;
     let instructions;
-    const imageInstructions = getPromptForDesignConfig(
-      input.techStack.designConfig,
-    );
 
     if (backendConfig.useExisting && backendConfig.details) {
       instructions = `
       You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
       User has an existing supabase backend and wants to build a mobile app using the existing backend. Here are the backend details:
       ${getPromptForExistingBackend(backendConfig.details)}
-      ${imageInstructions}
+      ${getPromptForDesignConfig(input.techStack.designConfig)}
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
       Now architect the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
       Represent the archietcture as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
@@ -104,7 +104,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
     } else {
       instructions = `
       You are an expert at building fullstack mobile applications using Supabase as backend and Expo + React Native for frontend.
-      ${imageInstructions}
+      ${getPromptForDesignConfig(input.techStack.designConfig)}
       Given a request for creating an app, you will first think through the problem and come up with an extensive list of features for the app.
       You will first architect the app using database, data and UI components that will enable the functionality of the app. Represent the architecture as a mermaid diagram. Keep it simple and functional.
       Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
@@ -113,6 +113,8 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
       This is the tech stack that will be used: ${getPromptForMobileStack(
         input.techStack as IMobileTechStackOptions,
       )}
+
+      Database Instructions: ${getPromptForNewDatabase(input.techStack.backendConfig)}.
 
       Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
 
@@ -124,19 +126,6 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
     }
     super(input, instructions, ZInitializeAppWithBackendResponseSchema);
   }
-}
-
-function getPromptForExistingBackend(backendDetails: IBackendDetails) {
-  // TODO
-  return `The backend uses ${backendDetails.type} as the backend. Here are the details:\
-  ----------------------------------------\
-  authConfig: ${backendDetails.authConfig || 'none'}\
-  -----------------------------------------\
-  types: ${backendDetails.types || 'none'}\
-  -----------------------------------------\
-  docs: ${backendDetails.docs || 'none'}\
-  -----------------------------------------\
-  `;
 }
 
 export class InitializeMobileAppPrompt extends PromptBase<
@@ -209,6 +198,8 @@ export class InitializeWebAppWithBackendPrompt extends PromptBase<
 
       Assume web app will be built using nextjs with typescript template by running command 'npx create-next-app@latest {PROJECT_NAME} --eslint --src-dir --tailwind --ts --app --turbopack --import-alias '@/*'.
       This is the tech stack that will be used: ${getPromptForWebStack(input.techStack as IWebTechStackOptions)}.
+
+      Database Instructions: ${getPromptForNewDatabase(input.techStack.backendConfig)}.
 
       Authentication: ${getPromptForAuthenticationMethod(input.techStack)}.
 
