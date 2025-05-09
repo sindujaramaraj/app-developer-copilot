@@ -12,6 +12,7 @@ export function getHtmlForWebview(scriptUri: vscode.Uri) {
             body { padding: 10px; }
             select { width: 100%; margin: 5px 0; padding: 5px; }
             button { margin-top: 10px; width: 100%; padding: 8px; }
+            input[type="text"] { width: 100%; padding: 5px; margin: 5px 0; }
           </style>
         </head>
         <body>

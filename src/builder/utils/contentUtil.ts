@@ -27,12 +27,23 @@ export function extractJsonFromMarkdown(markdown: string): any {
   const match = markdown.match(jsonRegex);
 
   if (match && match[1]) {
+    const jsonString = match[1].trim();
     try {
-      const jsonString = match[1].trim();
       return JSON.parse(jsonString);
     } catch (error) {
-      console.error('Failed to parse JSON:', error);
-      return null;
+      console.debug('Failed to parse JSON block:', error);
+      // Handle escaped characters and normalize JSON string
+      const normalizedJson = jsonString
+        .replace(/\\\\/g, '\\') // Convert \\ to \
+        .replace(/\\"/g, '"') // Convert \" to "
+        .replace(/\\n/g, '\n'); // Convert \n to actual newlines
+      try {
+        return JSON.parse(normalizedJson);
+      } catch (error) {
+        console.error('Failed to parse normalized JSON:', error);
+        // If parsing fails, return null
+        throw error;
+      }
     }
   }
 
@@ -60,6 +71,24 @@ export function convertToMermaidMarkdown(diagram: string): string {
   return mermaidMarkdown;
 }
 
+export const extractJsonFromString = (input: string): any => {
+  try {
+    // This regex looks for a JSON-like structure
+    const jsonRegex = /{[\s\S]*?(?<=\n)}(?=\s*$)/;
+    const match = input.match(jsonRegex);
+
+    if (!match) {
+      return null;
+    }
+
+    // Parse the extracted JSON string
+    return match[0];
+  } catch (error) {
+    console.error('Error extracting JSON:', error);
+    return null;
+  }
+};
+
 export function convertStringToJSON(content: string): any {
   // Check if the response is in Markdown format
   let jsonObject: any = null;
@@ -73,7 +102,11 @@ export function convertStringToJSON(content: string): any {
       jsonObject = extractJsonFromMarkdown(content);
       return jsonObject;
     } else {
-      console.error('Content is not in JSON markdown format');
+      const jsonInString = extractJsonFromString(content);
+      if (jsonInString) {
+        return convertStringToJSON(jsonInString);
+      }
+      console.error('Content is not a valid JSON string or JSON markdown');
       throw new Error('Content is not a JSON string or JSON markdown');
     }
   }
@@ -111,4 +144,8 @@ export function isBase64(content: string): boolean {
   } catch (error) {
     return false;
   }
+}
+
+export function isMimeTypeImage(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
 }
