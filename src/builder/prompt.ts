@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
@@ -308,4 +309,27 @@ function getPromptForComponentDesign(framework: string) {
   5. Make sure the components design adhere to the framework we are using and the file path of the components are consistent.
   6. Use the best practices suggested by the ${framework} framework.
   `;
+}
+
+export function getPromptForTools(
+  toolResults: Record<string, vscode.LanguageModelToolResult>,
+): string {
+  if (toolResults[TOOL_IMAGE_ANALYZER]) {
+    const toolResult = toolResults[TOOL_IMAGE_ANALYZER];
+    if (
+      toolResult.content &&
+      toolResult.content.length > 0 &&
+      (toolResult.content[0] as any).value &&
+      typeof (toolResult.content[0] as any).value === 'string'
+    ) {
+      const analysisJsonString = (toolResult.content[0] as any).value;
+      const instructionMessage = `The design images you provided have been analyzed. The analysis results are provided in the following JSON string: '''${analysisJsonString}'''.\
+      This JSON string might contain an array of analyses if multiple images were processed. For all subsequent code generation,\
+      please ensure the app's UI (layout, color palette, typography, components) strictly adheres to these analyses.\
+      Prioritize matching the \`design_elements\` (like \`color_palette\`, \`typography\`, \`components\` types and styles) and the \`overall_style\` described in each analysis.\
+      If multiple analyses are present, synthesize these elements to create a cohesive design. This will help make the generated app visually consistent with the provided images.`;
+      return instructionMessage;
+    }
+  }
+  return '';
 }

@@ -14,7 +14,6 @@ const SUPPORTED_COPILOT_MODELS = [
   'gpt-4.1',
   'gpt-4o',
   'claude-3.5-sonnet',
-  'claude-3.7-sonnet',
   'gemini-2.5-pro',
 ];
 
@@ -271,6 +270,12 @@ async function sendRequest(
     ),
   );
   async function runWithTools() {
+    let tokenCount = 0;
+    for await (const message of messages) {
+      tokenCount += await model.countTokens(message, token);
+    }
+    console.debug('Token count for messages:', tokenCount);
+
     const response = await model.sendRequest(
       messages,
       {

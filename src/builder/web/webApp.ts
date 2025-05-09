@@ -5,6 +5,7 @@ import {
 } from '../utils/contentUtil';
 import {
   GenerateCodeForWebComponentPrompt,
+  getPromptForTools,
   InitializeWebAppPrompt,
   InitializeWebAppWithBackendPrompt,
 } from '../prompt';
@@ -102,6 +103,14 @@ export class WebApp extends App {
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse.content),
       );
+
+      // Add instruction message if image analyzer tool was used
+      const toolPrompt = createAppResponse.toolResults
+        ? getPromptForTools(createAppResponse.toolResults)
+        : '';
+      if (toolPrompt) {
+        initializeAppMessages.push(this.createUserMessage(toolPrompt));
+      }
 
       this.logInitialResponse(createAppResponseObj);
 

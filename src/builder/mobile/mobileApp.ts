@@ -5,6 +5,7 @@ import {
 } from '../utils/contentUtil';
 import {
   GenerateCodeForMobileComponentPrompt,
+  getPromptForTools,
   InitializeMobileAppPrompt,
   InitializeMobileAppWithBackendPrompt,
 } from '../prompt';
@@ -97,6 +98,14 @@ export class MobileApp extends App {
       initializeAppMessages.push(
         this.createAssistantMessage(createAppResponse.content),
       );
+
+      // Add instruction message if image analyzer tool was used
+      const toolPrompt = createAppResponse.toolResults
+        ? getPromptForTools(createAppResponse.toolResults)
+        : '';
+      if (toolPrompt) {
+        initializeAppMessages.push(this.createUserMessage(toolPrompt));
+      }
 
       this.logInitialResponse(createAppResponseObj);
 

@@ -1,10 +1,7 @@
 import { z } from 'zod';
 import { IWebTechStackOptions } from './web/webTechStack';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
-import {
-  Backend,
-  IBackendConfig, // Import the new config interface
-} from './backend/serviceStack';
+import { IBackendConfig } from './backend/serviceStack';
 import { IImageSource } from '../register/tools';
 
 export interface IResponseBase {

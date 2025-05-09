@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/sindujaramaraj/app-developer-copilot/issues"
   },
-  "homepage": "https://github.com/sindujaramaraj/app-developer-copilot",
+  "homepage": "https://appdevelopercode.github.io/",
   "license": "MIT",
   "publisher": "sindujaramaraj",
   "author": {
@@ -45,7 +45,19 @@
     "OpenRouter",
     "Anthropic",
     "code",
-    "agent"
+    "agent",
+    "figma",
+    "design",
+    "figma to code",
+    "figma to react",
+    "figma to react-native",
+    "figma to nextjs",
+    "figma to web",
+    "figma to mobile",
+    "design to code",
+    "fronend tools",
+    "screenshot to code",
+    "prompt to code"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",

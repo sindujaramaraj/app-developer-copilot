@@ -14,7 +14,6 @@ import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
 import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
-import { get } from 'http';
 import { createSupaFiles } from './backend/supabase/helper';
 
 export enum AppStage {
