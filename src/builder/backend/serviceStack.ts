@@ -101,9 +101,9 @@ export function getPromptForExistingBackend(backendDetails: IBackendDetails) {
   // TODO
   return `The app uses ${backendDetails.type} as the backend. Here are the details:\
   ----------------------------------------\
-  authConfig: ${backendDetails.authConfig || 'none'}\
+  authConfig: ${JSON.stringify(backendDetails.authConfig) || 'none'}\
   -----------------------------------------\
-  types: ${backendDetails.types || 'none'}\
+  supabase database as types: ${backendDetails.types || 'none'}\
   -----------------------------------------\
   docs: ${backendDetails.docs || 'none'}\
   -----------------------------------------\

@@ -466,7 +466,11 @@ function fixResponseFromModel(jsonResponse: any): any {
     return jsonResponse['schema'];
   }
 
-  if (jsonResponse.design && typeof jsonResponse.design !== 'string') {
+  if (
+    jsonResponse &&
+    jsonResponse.design &&
+    typeof jsonResponse.design !== 'string'
+  ) {
     // If it has a design property, return the design property as string
     // Note: This is a workaround for response received from models
     jsonResponse.design = JSON.stringify(jsonResponse.design);

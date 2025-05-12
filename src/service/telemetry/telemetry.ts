@@ -116,7 +116,7 @@ export class TelemetryService {
    */
   public trackError(
     event: string,
-    appType: 'mobile' | 'web',
+    appType: 'mobile' | 'web' | 'common',
     source: string,
     error?: Error,
     properties?: Record<string, string>,

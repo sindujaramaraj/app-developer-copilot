@@ -10,6 +10,14 @@ export async function isConnectedToFigma(context: vscode.ExtensionContext) {
   if (!accessToken) {
     return false;
   }
+  // Check if the access token has expired
+  const expires_in = await context.secrets.get('figma_expires_in');
+  if (OAuthHelper.hasTokenExpired(expires_in)) {
+    console.log('Figma access token has expired. Refreshing...');
+    await refreshAccessToken(context);
+    return true;
+  }
+
   return true;
 }
 

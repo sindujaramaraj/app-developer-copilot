@@ -151,7 +151,11 @@ export class App {
       this.logError('Error creating app');
       error.message && this.logMessage(error.message);
       // check for VSCODE error
-      if (error.message && error.message.includes('Server error')) {
+      if (
+        error.message &&
+        (error.message.includes('Server error') ||
+          error.message.includes('Response contained no choices'))
+      ) {
         this.logMessage(
           'Looks like there is an issue with the copilot server. Please try again later',
         );

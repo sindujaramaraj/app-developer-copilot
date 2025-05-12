@@ -39,6 +39,7 @@ import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
 import { IImageSource } from './tools';
 import { isMimeTypeImage } from '../builder/utils/contentUtil';
+import { isConnectedToFigma } from '../service/figma/auth';
 
 enum ChatCommands {
   Create = 'create',
@@ -727,8 +728,17 @@ async function getFigmaDesign(
     streamService.progress('Checking Figma authentication...');
     const figmaClient = new FigmaClient(context);
     try {
+      const isConnected = await isConnectedToFigma(context);
       const isAuthenticated = await figmaClient.ensureAuthenticated();
       if (isAuthenticated) {
+        if (!isConnected) {
+          // Track figma oauth flow
+          telemetry.trackConnection({
+            target: ConnectionTarget.Figma,
+            success: true,
+            retryCount: 0,
+          });
+        }
         streamService.progress(`Fetching design from Figma URL: ${figmaUrl}`);
         // Validate URL structure before fetching
         const parsedUrl = parseFigmaUrl(figmaUrl);
@@ -742,20 +752,22 @@ async function getFigmaDesign(
             streamService.message(
               'Could not retrieve specific images from Figma URL. Proceeding without them.',
             ); // Changed warning to message
-            telemetry.trackChatInteraction('web.create.figma.nodata', {
-              figmaUrl,
-            });
+            telemetry.trackError(
+              'figma',
+              'common',
+              source,
+              new Error('Could not retrieve specific images from Figma URL'),
+            );
           }
         } else {
           streamService.error(
             `Invalid Figma URL format provided: ${figmaUrl}. Please ensure it includes a file key and node-id.`,
           );
           telemetry.trackError(
-            'web.create.figma',
-            'web',
+            'figma',
+            'common',
             source,
             new Error('Invalid Figma URL format'),
-            { figmaUrl },
           );
         }
       } else {
@@ -763,8 +775,13 @@ async function getFigmaDesign(
           // Changed warning to message
           'Figma authentication cancelled or failed. Proceeding without Figma design.',
         );
-        telemetry.trackChatInteraction('web.create.figma.authfailed', {
-          figmaUrl,
+        telemetry.trackConnection({
+          target: ConnectionTarget.Figma,
+          success: false,
+          retryCount: 0,
+          error: isConnected
+            ? 'Existing Figma authentication failed'
+            : 'Not able to connect to Figma',
         });
       }
     } catch (figmaError: any) {
@@ -772,10 +789,12 @@ async function getFigmaDesign(
         `Failed to fetch design from Figma: ${figmaError.message}`,
       );
       console.error('Figma Client Error:', figmaError);
-      telemetry.trackError('web.create.figma', 'web', source, figmaError, {
-        figmaUrl,
+      telemetry.trackConnection({
+        target: ConnectionTarget.Figma,
+        success: false,
+        retryCount: 0,
+        error: figmaError.message,
       });
-      // Continue without Figma data
     }
   }
   // --- Figma Integration End ---
