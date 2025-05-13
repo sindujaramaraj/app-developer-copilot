@@ -1,5 +1,15 @@
 import { ENABLE_AUTHENTICATION } from '../constants';
-import { IBackendDetails, IGenericStack } from '../types';
+import { IGenericStack } from '../types';
+
+// TODO: Need to make this generic for all the tech stacks
+export interface IBackendDetails {
+  type: Backend;
+  url: string;
+  key: string;
+  authConfig?: any;
+  types?: string;
+  docs?: string;
+}
 
 export interface IBackendConfig {
   backend: Backend;
@@ -74,4 +84,28 @@ export function getPromptForBackend(backendConfig: IBackendConfig): string {
     return 'Use the existing Supabase project.';
   }
   return 'Use Supabase for backend.';
+}
+
+export function getPromptForNewDatabase(backendConfig: IBackendConfig): string {
+  const backend = backendConfig.backend;
+
+  if (backend !== Backend.SUPABASE) {
+    return '';
+  }
+
+  return 'For the database, generate scripts to initialize the Supabase database by keeping in mind the default schemas available from Supabase.\
+   The script must first create tables and alter them if needed to set policies to make sure the table exists before creating the policies.';
+}
+
+export function getPromptForExistingBackend(backendDetails: IBackendDetails) {
+  // TODO
+  return `The app uses ${backendDetails.type} as the backend. Here are the details:\
+  ----------------------------------------\
+  authConfig: ${JSON.stringify(backendDetails.authConfig) || 'none'}\
+  -----------------------------------------\
+  supabase database as types: ${backendDetails.types || 'none'}\
+  -----------------------------------------\
+  docs: ${backendDetails.docs || 'none'}\
+  -----------------------------------------\
+  `;
 }

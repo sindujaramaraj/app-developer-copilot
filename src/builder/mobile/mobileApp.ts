@@ -5,6 +5,7 @@ import {
 } from '../utils/contentUtil';
 import {
   GenerateCodeForMobileComponentPrompt,
+  getPromptForTools,
   InitializeMobileAppPrompt,
   InitializeMobileAppWithBackendPrompt,
 } from '../prompt';
@@ -22,6 +23,7 @@ import {
   APP_ARCHITECTURE_DIAGRAM_FILE,
   SUPA_SQL_FILE_PATH,
   SUPA_TYPES_MOBILE_FILE_PATH,
+  TOOL_IMAGE_ANALYZER,
 } from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
@@ -78,6 +80,12 @@ export class MobileApp extends App {
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
+      let tools: string[] | undefined = undefined;
+      const designConfig = this.getTechStackOptions().designConfig;
+      if (designConfig?.images && designConfig.images.length > 0) {
+        tools = [TOOL_IMAGE_ANALYZER];
+      }
+
       let { response: createAppResponse, object: createAppResponseObj } =
         await this.languageModelService.generateObject<
           ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
@@ -85,10 +93,19 @@ export class MobileApp extends App {
           messages: initializeAppMessages,
           schema: initializeAppPrompt.getResponseFormatSchema(),
           responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+          tools, // Pass tools if images are present
         });
       initializeAppMessages.push(
-        this.createAssistantMessage(createAppResponse),
+        this.createAssistantMessage(createAppResponse.content),
       );
+
+      // Add instruction message if image analyzer tool was used
+      const toolPrompt = createAppResponse.toolResults
+        ? getPromptForTools(createAppResponse.toolResults)
+        : '';
+      if (toolPrompt) {
+        initializeAppMessages.push(this.createUserMessage(toolPrompt));
+      }
 
       this.logInitialResponse(createAppResponseObj);
 
@@ -116,11 +133,14 @@ export class MobileApp extends App {
         type: AppType.MOBILE,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
+        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
       });
 
       return {
         messages: initializeAppMessages,
         output: createAppResponseObj,
+        toolCalls: createAppResponse.toolCalls,
+        toolResults: createAppResponse.toolResults,
       };
     } catch (error) {
       console.error('MobileBuilder: Error parsing response', error);
@@ -138,15 +158,15 @@ export class MobileApp extends App {
 
     // Create files
     const files: IFile[] = [];
-    // Design the app
-    this.logProgress('Writing design diagram to file');
-    let designDiagram = createAppResponseObj.design;
-    if (!isMermaidMarkdown(designDiagram)) {
-      designDiagram = convertToMermaidMarkdown(designDiagram);
+    // Architecture the app
+    this.logProgress('Writing architecture diagram to file');
+    let architectureDiagram = createAppResponseObj.architecture;
+    if (!isMermaidMarkdown(architectureDiagram)) {
+      architectureDiagram = convertToMermaidMarkdown(architectureDiagram);
     }
     files.push({
       path: APP_ARCHITECTURE_DIAGRAM_FILE,
-      content: designDiagram,
+      content: architectureDiagram,
     });
     // SQL scripts
     if (this.hasBacked() && createAppResponseObj.sqlScripts) {
@@ -162,12 +182,18 @@ export class MobileApp extends App {
   }
 
   async generateCode({
-    previousMessages,
-    previousOutput,
+    messages: previousMessages,
+    output: previousOutput,
   }: IAppStageInput<ZInitializeAppResponseType>): Promise<
     IAppStageOutput<ZGenerateCodeResponseType>
   > {
-    const { name: appName, features, components, design } = previousOutput;
+    const {
+      name: appName,
+      features,
+      components,
+      architecture,
+      design,
+    } = previousOutput;
     this.setStage(AppStage.GenerateCode);
 
     // Generate code for each component
@@ -188,7 +214,7 @@ export class MobileApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
-      // TODO: Try switching to a system message with coder role with design generated with architect role
+      // TODO: Try switching to a system message with coder role with architecture generated with architect role
       this.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
@@ -218,6 +244,7 @@ export class MobileApp extends App {
         type: component.type as ComponentType,
         purpose: component.purpose,
         dependencies: [...dependenciesWithContent, ...predefinedDependencies],
+        architecture,
         design,
         techStack: this.getTechStackOptions(),
       });

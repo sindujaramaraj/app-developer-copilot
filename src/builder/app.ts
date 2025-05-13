@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  IBackendDetails,
   IGenericStack,
   ZCodeComponentType,
   ZGenerateCodeForComponentResponseType,
@@ -12,10 +11,9 @@ import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
 import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
-import { Backend } from './backend/serviceStack';
+import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
-import { get } from 'http';
 import { createSupaFiles } from './backend/supabase/helper';
 
 export enum AppStage {
@@ -30,15 +28,18 @@ export enum AppStage {
   Cancelled,
 }
 
-export interface IAppStageOutput<T extends ZResponseBaseType> {
+interface IAppStageInputOutputCommon<T extends ZResponseBaseType> {
   messages: IModelMessage[];
   output: T;
+  toolCalls?: vscode.LanguageModelToolCallPart[];
+  toolResults?: Record<string, vscode.LanguageModelToolResult>;
 }
 
-export interface IAppStageInput<T extends ZResponseBaseType> {
-  previousMessages: IModelMessage[];
-  previousOutput: T;
-}
+export interface IAppStageOutput<T extends ZResponseBaseType>
+  extends IAppStageInputOutputCommon<T> {}
+
+export interface IAppStageInput<T extends ZResponseBaseType>
+  extends IAppStageInputOutputCommon<T> {}
 
 /**
  * Base class for the app builder. Works with copilot model to build app in stages.
@@ -127,8 +128,8 @@ export class App {
               throw new Error('No previous output to generate code');
             }
             currentOutput = await this.generateCode({
-              previousMessages: stageOutput.messages,
-              previousOutput: stageOutput.output as ZInitializeAppResponseType,
+              messages: stageOutput.messages,
+              output: stageOutput.output as ZInitializeAppResponseType,
             });
             this.generatedFilesCount =
               currentOutput.output.generatedCode.length;
@@ -150,13 +151,17 @@ export class App {
       this.logError('Error creating app');
       error.message && this.logMessage(error.message);
       // check for VSCODE error
-      if (error.message && error.message.includes('Server error')) {
+      if (
+        error.message &&
+        (error.message.includes('Server error') ||
+          error.message.includes('Response contained no choices'))
+      ) {
         this.logMessage(
           'Looks like there is an issue with the copilot server. Please try again later',
         );
       } else {
         // Propose to report the issue
-        this.logMessage('Would you like to report this issue?');
+        this.logMessage('*Would you like to report this issue?*');
         this.logLink('Report issue', ISSUE_REPORT_URL);
       }
       this.stage = AppStage.Cancelled;
@@ -165,7 +170,7 @@ export class App {
       this.isExecuting = false;
       this.streamService.close();
       // store conversations in a file
-      await FileUtil.parseAndCreateFiles(
+      await FileUtil.createFiles(
         [
           {
             content: JSON.stringify(this.conversations, null, 2),

@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "preview": false,
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/sindujaramaraj/app-developer-copilot/issues"
   },
-  "homepage": "https://github.com/sindujaramaraj/app-developer-copilot",
+  "homepage": "https://appdevelopercode.github.io/",
   "license": "MIT",
   "publisher": "sindujaramaraj",
   "author": {
@@ -45,7 +45,19 @@
     "OpenRouter",
     "Anthropic",
     "code",
-    "agent"
+    "agent",
+    "figma",
+    "design",
+    "figma to code",
+    "figma to react",
+    "figma to react-native",
+    "figma to nextjs",
+    "figma to web",
+    "figma to mobile",
+    "design to code",
+    "frontend tools",
+    "screenshot to code",
+    "prompt to code"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -189,23 +201,44 @@
     ],
     "languageModelTools": [
       {
-        "name": "app_developer_runInTerminal",
+        "name": "app_developer_imageAnalyzer",
         "tags": [
-          "terminal",
-          "chat-tools-sample"
+          "image",
+          "analysis"
         ],
-        "displayName": "Run in Terminal",
-        "modelDescription": "Run a command in a terminal and return the output",
+        "displayName": "Image Analyzer",
+        "modelDescription": "Analyzes images from file paths or URLs and returns a JSON description. Use this tool when you need to understand the content of an image.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "command": {
-              "type": "string",
-              "description": "The command to run"
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "uri": {
+                    "type": "string",
+                    "description": "The URI (file path or URL) of the image."
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "file",
+                      "url"
+                    ],
+                    "description": "Specifies whether the URI is a local file path or a web URL."
+                  }
+                },
+                "required": [
+                  "uri",
+                  "source"
+                ]
+              },
+              "description": "An array of image sources to analyze."
             }
           },
           "required": [
-            "command"
+            "images"
           ]
         }
       }
@@ -228,8 +261,10 @@
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.27.0",
+    "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
+    "@types/node-fetch": "^2.6.12",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/vscode": "^1.93.0",
@@ -238,6 +273,7 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "babel-loader": "^10.0.0",
+    "chai": "^5.2.0",
     "dotenv": "^16.5.0",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
@@ -256,6 +292,7 @@
     "@vscode/extension-telemetry": "^0.9.8",
     "ai": "^4.0.18",
     "client-oauth2": "^4.3.3",
+    "node-fetch": "^3.3.2",
     "openai": "^4.76.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

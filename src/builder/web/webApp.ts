@@ -5,6 +5,7 @@ import {
 } from '../utils/contentUtil';
 import {
   GenerateCodeForWebComponentPrompt,
+  getPromptForTools,
   InitializeWebAppPrompt,
   InitializeWebAppWithBackendPrompt,
 } from '../prompt';
@@ -25,6 +26,7 @@ import {
   APP_ARCHITECTURE_DIAGRAM_FILE,
   SUPA_SQL_FILE_PATH,
   SUPA_TYPES_WEB_FILE_PATH,
+  TOOL_IMAGE_ANALYZER,
 } from '../constants';
 import { AppType, createAppConfig } from '../utils/appconfigHelper';
 import {
@@ -83,6 +85,12 @@ export class WebApp extends App {
     // send the request
     this.logProgress('Analyzing app requirements');
     try {
+      let tools: string[] | undefined = undefined;
+      const designConfig = this.getTechStackOptions().designConfig;
+      if (designConfig?.images && designConfig.images.length > 0) {
+        tools = [TOOL_IMAGE_ANALYZER];
+      }
+
       let { response: createAppResponse, object: createAppResponseObj } =
         await this.languageModelService.generateObject<
           ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
@@ -90,10 +98,19 @@ export class WebApp extends App {
           messages: initializeAppMessages,
           schema: initializeAppPrompt.getResponseFormatSchema(),
           responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+          tools, // Pass tools if images are present
         });
       initializeAppMessages.push(
-        this.createAssistantMessage(createAppResponse),
+        this.createAssistantMessage(createAppResponse.content),
       );
+
+      // Add instruction message if image analyzer tool was used
+      const toolPrompt = createAppResponse.toolResults
+        ? getPromptForTools(createAppResponse.toolResults)
+        : '';
+      if (toolPrompt) {
+        initializeAppMessages.push(this.createUserMessage(toolPrompt));
+      }
 
       this.logInitialResponse(createAppResponseObj);
 
@@ -121,11 +138,14 @@ export class WebApp extends App {
         type: AppType.WEB,
         modelProvider: modelConfig.modelProvider,
         languageModel: modelConfig.model,
+        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
       });
 
       return {
         messages: initializeAppMessages,
         output: createAppResponseObj,
+        toolCalls: createAppResponse.toolCalls,
+        toolResults: createAppResponse.toolResults,
       };
     } catch (error) {
       console.error('WebBuilder: Error parsing response', error);
@@ -160,15 +180,15 @@ export class WebApp extends App {
 
     // Create files
     const files: IFile[] = [];
-    // Design of the app
-    this.logProgress('Writing design diagram to file');
-    let designDiagram = createAppResponseObj.design;
-    if (!isMermaidMarkdown(designDiagram)) {
-      designDiagram = convertToMermaidMarkdown(designDiagram);
+    // architecture of the app
+    this.logProgress('Writing architecture diagram to file');
+    let architectureDiagram = createAppResponseObj.architecture;
+    if (!isMermaidMarkdown(architectureDiagram)) {
+      architectureDiagram = convertToMermaidMarkdown(architectureDiagram);
     }
     files.push({
       path: APP_ARCHITECTURE_DIAGRAM_FILE,
-      content: designDiagram,
+      content: architectureDiagram,
     });
     // SQL scripts
     if (this.hasBacked() && createAppResponseObj.sqlScripts) {
@@ -184,12 +204,18 @@ export class WebApp extends App {
   }
 
   async generateCode({
-    previousMessages,
-    previousOutput,
+    messages: previousMessages,
+    output: previousOutput,
   }: IAppStageInput<ZInitializeAppResponseType>): Promise<
     IAppStageOutput<ZGenerateCodeResponseType>
   > {
-    const { name: appName, features, components, design } = previousOutput;
+    const {
+      name: appName,
+      features,
+      components,
+      architecture,
+      design,
+    } = previousOutput;
     this.setStage(AppStage.GenerateCode);
 
     // Generate code for each component
@@ -210,7 +236,7 @@ export class WebApp extends App {
 
     const codeGenerationMessages = [
       ...previousMessages,
-      // TODO: Try switching to a system message with coder role with design generated with architect role
+      // TODO: Try switching to a system message with coder role with architecture generated with architect role
       this.createUserMessage(
         `Lets start generating code for the components one by one.
         Do not create placeholder code.
@@ -240,6 +266,7 @@ export class WebApp extends App {
         purpose: component.purpose,
         dependencies: [...dependenciesWithContent, ...predefinedDependencies],
         design,
+        architecture,
         techStack: this.getTechStackOptions(),
       });
       const messages = [

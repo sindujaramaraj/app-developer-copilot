@@ -69,6 +69,7 @@ export const DEFAULT_MOBILE_STACK: IMobileTechStackOptions = {
     useExisting: false,
     authentication: AuthenticationMethod.EMAIL,
   },
+  designConfig: {},
 };
 
 export const getDefaultMobileTechStack = (): IMobileTechStackOptions => {

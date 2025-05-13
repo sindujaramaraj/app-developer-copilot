@@ -20,3 +20,10 @@
 ### Claude 3.5 Haiku
 
 - Erroring out with `AI_APICallError: Bad Request`
+
+Claude model needs the tool references intially passed but works with auto
+gpt 4.1 needs the tool references intially passed but works with auto
+
+- generates shandcn components that are already installed
+
+Gemini model - remove tool after use and doesnt call tool in auto mode

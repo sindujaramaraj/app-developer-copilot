@@ -1,10 +1,8 @@
 import { z } from 'zod';
 import { IWebTechStackOptions } from './web/webTechStack';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
-import {
-  Backend,
-  IBackendConfig, // Import the new config interface
-} from './backend/serviceStack';
+import { IBackendConfig } from './backend/serviceStack';
+import { IImageSource } from '../register/tools';
 
 export interface IResponseBase {
   summary: string;
@@ -57,16 +55,6 @@ export const ZCodeComponentSchema = z.object({
 
 export type ZCodeComponentType = z.infer<typeof ZCodeComponentSchema>;
 
-// TODO: Need to make this generic for all the tech stacks
-export interface IBackendDetails {
-  type: Backend;
-  url: string;
-  key: string;
-  authConfig?: any;
-  types?: string;
-  docs?: string;
-}
-
 export interface IInitializeAppInput {
   techStack: IWebTechStackOptions | IMobileTechStackOptions;
 }
@@ -82,12 +70,19 @@ export const ZInitializeAppResponseSchema = ZResponseBaseSchema.extend({
   name: z.string().describe('Name of the app'),
   title: z.string().describe('Title of the app'),
   features: z.array(z.string()).describe('Minimum features of the app'), //TODO: Generate advanced features after the MVP
-  design: z.string().describe('Design of the app as a mermaid diagram'),
+  architecture: z
+    .string()
+    .describe('Architecture of the app as a mermaid diagram'),
+  design: z
+    .string()
+    .describe(
+      'Design elements used in the app like colors, fonts, etc... represented as string or json string',
+    ),
   components: z.array(ZCodeComponentSchema).describe('Components of the app'),
   sqlScripts: z
     .string()
     .optional()
-    .describe('SQL scripts for the app')
+    .describe('SQL scripts to intitilize database for the app')
     .nullable(),
 });
 
@@ -97,7 +92,9 @@ export type ZInitializeAppResponseType = z.infer<
 
 export const ZInitializeAppWithBackendResponseSchema =
   ZInitializeAppResponseSchema.extend({
-    sqlScripts: z.string().describe('SQL scripts for the app'),
+    sqlScripts: z
+      .string()
+      .describe('SQL scripts to intitilize database for the app'),
   });
 
 export type ZInitializeAppWithBackendResponseType = z.infer<
@@ -125,6 +122,7 @@ export interface IGenerateCodeForComponentInput {
   purpose: string;
   dependencies: ZGenerateCodeForComponentResponseType[];
   projectStructure?: string;
+  architecture: string;
   design: string;
   techStack: IMobileTechStackOptions | IWebTechStackOptions;
 }
@@ -196,4 +194,10 @@ export interface IGenericStack {
   uiLibrary: string;
   testing: string[];
   backendConfig: IBackendConfig;
+  designConfig: {
+    figmaFileUrl?: string;
+    theme?: string;
+    images?: IImageSource[];
+    description?: string;
+  };
 }

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import {
   APP_CONFIG_FILE,
+  ENABLE_DESIGN,
   ENABLE_WEB_APP,
   ENABLE_WEB_STACK_CONFIG,
 } from '../builder/constants';
@@ -36,11 +37,21 @@ import {
 } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
+import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
+import { IImageSource } from './tools';
+import { isMimeTypeImage } from '../builder/utils/contentUtil';
+import { isConnectedToFigma } from '../service/figma/auth';
 
 enum ChatCommands {
   Create = 'create',
   Run = 'run',
   Help = 'help',
+}
+
+interface IChatRequestImageReference {
+  data: () => Promise<any>;
+  mimeType: string;
+  reference: vscode.Uri;
 }
 
 export function registerChatParticipants(context: vscode.ExtensionContext) {
@@ -86,7 +97,11 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         );
       }
       // Initialize model service
-      const modelService = new LanguageModelService(copilotModel, token);
+      const modelService = new LanguageModelService(
+        copilotModel,
+        token,
+        request.toolInvocationToken,
+      );
 
       // Handle create mobile app
       return await handleCreateMobileApp(
@@ -96,6 +111,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
         modelService,
         streamService,
         telemetry,
+        getImageRefsFromRequest(request),
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunMobileApp(streamService, telemetry);
@@ -110,6 +126,7 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       stream.markdown(
         `Mobile App Developer agent is designed to create mobile apps. To create a mobile app, type \`@app-developer-mobile /create\` and follow the prompts. To run the app, type \`@app-developer-mobile /run.\``,
       );
+      // getImageRefsFromRequest(request);
       return {
         metadata: { command: 'help' },
       };
@@ -164,7 +181,11 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         );
       }
       // Initialize model service
-      const modelService = new LanguageModelService(copilotModel, token);
+      const modelService = new LanguageModelService(
+        copilotModel,
+        token,
+        request.toolInvocationToken,
+      );
 
       // Handle create web app
       return await handleCreateWebApp(
@@ -174,6 +195,7 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
         modelService,
         streamService,
         telemetry,
+        getImageRefsFromRequest(request),
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunWebApp(streamService, telemetry);
@@ -213,6 +235,7 @@ export async function handleCreateMobileApp(
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
+  referredImages: IImageSource[],
 ) {
   telemetry.trackChatInteraction('mobile.create', {});
   console.log('MobileBuilder: Create command called');
@@ -251,6 +274,23 @@ export async function handleCreateMobileApp(
     if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
+    // Check for Figma design
+    const figmaImageData =
+      ENABLE_DESIGN &&
+      (await getFigmaDesign(
+        context,
+        techStackOptions,
+        streamService,
+        telemetry,
+        source,
+      ));
+    if (figmaImageData) {
+      techStackOptions.designConfig = {
+        ...techStackOptions.designConfig,
+        images: [...figmaImageData, ...referredImages],
+      };
+    }
+
     app = new MobileApp(
       modelService,
       streamService,
@@ -268,6 +308,10 @@ export async function handleCreateMobileApp(
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
       },
       {
         duration: Date.now() - startTime,
@@ -284,6 +328,10 @@ export async function handleCreateMobileApp(
         appType: 'mobile',
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None,
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -418,6 +466,7 @@ export async function handleCreateWebApp(
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
+  referredImages: IImageSource[],
 ) {
   telemetry.trackChatInteraction('web.create', {});
   console.log('WebBuilder: Create command called');
@@ -459,6 +508,22 @@ export async function handleCreateWebApp(
     if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
+    const figmaImageData =
+      ENABLE_DESIGN &&
+      (await getFigmaDesign(
+        context,
+        techStackOptions,
+        streamService,
+        telemetry,
+        source,
+      ));
+    if (figmaImageData) {
+      techStackOptions.designConfig = {
+        ...techStackOptions.designConfig,
+
+        images: [...figmaImageData, ...referredImages],
+      };
+    }
     app = new WebApp(
       modelService,
       streamService,
@@ -476,6 +541,11 @@ export async function handleCreateWebApp(
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None && !!backend,
         ...modelService.getModelConfig(),
+
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
       },
       {
         duration: Date.now() - startTime,
@@ -494,6 +564,10 @@ export async function handleCreateWebApp(
         appType: 'web',
         techStack: JSON.stringify(techStackOptions),
         hasBackend: backendConfig.backend !== Backend.None,
+        hasDesign:
+          (techStackOptions.designConfig.images &&
+            techStackOptions.designConfig.images?.length > 0) ||
+          false,
         error: error,
         errorMessage: error.message,
         errorReason: 'execution_error',
@@ -528,7 +602,7 @@ async function getBackend(
 
   if (backend === Backend.SUPABASE) {
     try {
-      // await clearSupabaseTokens(context);
+      //await clearSupabaseTokens(context);
       const isConnected = await isConnectedToSupabase(context);
       if (!isConnected) {
         console.log('Not connected to Supabase. Will try connecting first.');
@@ -640,4 +714,134 @@ async function getAppToRun(
     );
     throw error;
   }
+}
+
+async function getFigmaDesign(
+  context: vscode.ExtensionContext,
+  techStackOptions: IGenericStack,
+  streamService: StreamHandlerService,
+  telemetry: TelemetryService,
+  source: string,
+): Promise<IImageSource[]> {
+  let figmaImages: string[] = [];
+
+  // Check if Figma URL is provided
+  // --- Figma Integration Start ---
+  const figmaUrl =
+    techStackOptions.designConfig && techStackOptions.designConfig.figmaFileUrl; // Corrected access to figmaUrl
+  if (figmaUrl) {
+    streamService.progress('Checking Figma authentication...');
+    const figmaClient = new FigmaClient(context);
+    try {
+      const isConnected = await isConnectedToFigma(context);
+      const isAuthenticated = await figmaClient.ensureAuthenticated();
+      if (isAuthenticated) {
+        if (!isConnected) {
+          // Track figma oauth flow
+          telemetry.trackConnection({
+            target: ConnectionTarget.Figma,
+            success: true,
+            retryCount: 0,
+          });
+        }
+        streamService.progress(`Fetching design from Figma URL: ${figmaUrl}`);
+        // Validate URL structure before fetching
+        const parsedUrl = parseFigmaUrl(figmaUrl);
+        if (parsedUrl) {
+          figmaImages = await figmaClient.getImagesFromFigmaFile(figmaUrl);
+          if (figmaImages && figmaImages.length > 0) {
+            streamService.message(
+              'Successfully fetched design images from Figma.',
+            );
+          } else {
+            streamService.message(
+              'Could not retrieve specific images from Figma URL. Proceeding without them.',
+            ); // Changed warning to message
+            telemetry.trackError(
+              'figma',
+              'common',
+              source,
+              new Error('Could not retrieve specific images from Figma URL'),
+            );
+          }
+        } else {
+          streamService.error(
+            `Invalid Figma URL format provided: ${figmaUrl}. Please ensure it includes a file key and node-id.`,
+          );
+          telemetry.trackError(
+            'figma',
+            'common',
+            source,
+            new Error('Invalid Figma URL format'),
+          );
+        }
+      } else {
+        streamService.message(
+          // Changed warning to message
+          'Figma authentication cancelled or failed. Proceeding without Figma design.',
+        );
+        telemetry.trackConnection({
+          target: ConnectionTarget.Figma,
+          success: false,
+          retryCount: 0,
+          error: isConnected
+            ? 'Existing Figma authentication failed'
+            : 'Not able to connect to Figma',
+        });
+      }
+    } catch (figmaError: any) {
+      streamService.error(
+        `Failed to fetch design from Figma: ${figmaError.message}`,
+      );
+      console.error('Figma Client Error:', figmaError);
+      telemetry.trackConnection({
+        target: ConnectionTarget.Figma,
+        success: false,
+        retryCount: 0,
+        error: figmaError.message,
+      });
+    }
+  }
+  // --- Figma Integration End ---
+  return figmaImages.map((image) => ({
+    source: 'url', // set to 'url' for Figma images
+    uri: image,
+  }));
+}
+
+function getImageRefsFromRequest(request: vscode.ChatRequest): IImageSource[] {
+  if (!ENABLE_DESIGN) {
+    return [];
+  }
+  // Check if request has references
+  const refs = request.references;
+  let images: IImageSource[] = [];
+  if (refs && refs.length > 0) {
+    for (const ref of refs) {
+      const value = ref.value;
+      if (!value) {
+        continue;
+      }
+      if (value instanceof vscode.Uri) {
+        images.push({
+          source: 'file',
+          uri: (ref.value as vscode.Uri).fsPath,
+        });
+      } else if (value instanceof vscode.Location) {
+        images.push({
+          source: 'file',
+          uri: (value as vscode.Location).uri.fsPath,
+        });
+      } else if (
+        isMimeTypeImage((value as IChatRequestImageReference).mimeType)
+      ) {
+        const imageRef = value as IChatRequestImageReference;
+        images.push({
+          source: 'file',
+          uri: imageRef.reference ? imageRef.reference.fsPath : ref.id,
+        });
+      }
+    }
+  }
+  return images;
 }

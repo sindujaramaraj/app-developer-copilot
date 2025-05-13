@@ -47,6 +47,7 @@ function registerMobileCommands(context: vscode.ExtensionContext) {
             modelService,
             streamService,
             telemetry,
+            [],
           );
         });
     }),
@@ -83,6 +84,7 @@ function registerWebCommands(context: vscode.ExtensionContext) {
             modelService,
             streamService,
             telemetry,
+            [],
           );
         });
     }),
