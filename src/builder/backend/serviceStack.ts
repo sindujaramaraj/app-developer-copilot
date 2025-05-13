@@ -93,7 +93,7 @@ export function getPromptForNewDatabase(backendConfig: IBackendConfig): string {
     return '';
   }
 
-  return 'For the database, generate scripts to intialize the Supabase database by keeping in mind the default schemas available from Supabase.\
+  return 'For the database, generate scripts to initialize the Supabase database by keeping in mind the default schemas available from Supabase.\
    The script must first create tables and alter them if needed to set policies to make sure the table exists before creating the policies.';
 }
 
