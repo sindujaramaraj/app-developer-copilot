@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import {
   APP_CONFIG_FILE,
+  ENABLE_DESIGN,
   ENABLE_WEB_APP,
   ENABLE_WEB_STACK_CONFIG,
 } from '../builder/constants';
@@ -274,13 +275,15 @@ export async function handleCreateMobileApp(
       streamService.message('Continuing app creation without backend');
     }
     // Check for Figma design
-    const figmaImageData = await getFigmaDesign(
-      context,
-      techStackOptions,
-      streamService,
-      telemetry,
-      source,
-    );
+    const figmaImageData =
+      ENABLE_DESIGN &&
+      (await getFigmaDesign(
+        context,
+        techStackOptions,
+        streamService,
+        telemetry,
+        source,
+      ));
     if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
@@ -505,13 +508,15 @@ export async function handleCreateWebApp(
     if (backendConfig.backend === Backend.None || !backend) {
       streamService.message('Continuing app creation without backend');
     }
-    const figmaImageData = await getFigmaDesign(
-      context,
-      techStackOptions,
-      streamService,
-      telemetry,
-      source,
-    );
+    const figmaImageData =
+      ENABLE_DESIGN &&
+      (await getFigmaDesign(
+        context,
+        techStackOptions,
+        streamService,
+        telemetry,
+        source,
+      ));
     if (figmaImageData) {
       techStackOptions.designConfig = {
         ...techStackOptions.designConfig,
@@ -805,6 +810,10 @@ async function getFigmaDesign(
 }
 
 function getImageRefsFromRequest(request: vscode.ChatRequest): IImageSource[] {
+  if (!ENABLE_DESIGN) {
+    return [];
+  }
+  // Check if request has references
   const refs = request.references;
   let images: IImageSource[] = [];
   if (refs && refs.length > 0) {

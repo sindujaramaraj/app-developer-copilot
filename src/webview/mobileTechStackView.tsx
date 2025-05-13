@@ -9,6 +9,7 @@ import {
   UILibrary,
 } from '../builder/mobile/mobileTechStack';
 import { IBackendConfig } from '../builder/backend/serviceStack';
+import { ENABLE_DESIGN } from '../builder/constants';
 
 // Declare acquireVsCodeApi as a global function provided by VS Code
 declare function acquireVsCodeApi(): any;
@@ -105,24 +106,28 @@ function MobileTechStackView() {
         onChange={onChangeBackendConfig}
       />
 
-      <div>
-        <label htmlFor="figmaUrl">Figma URL (Optional):</label>
-        <input
-          type="text"
-          id="figmaUrl"
-          value={(stack.designConfig && stack.designConfig.figmaFileUrl) || ''}
-          onChange={(e) =>
-            setStack((prevStack) => ({
-              ...prevStack,
-              designConfig: {
-                ...prevStack.designConfig,
-                figmaFileUrl: e.target.value,
-              },
-            }))
-          }
-          placeholder="https://www.figma.com/file/..."
-        />
-      </div>
+      {ENABLE_DESIGN && (
+        <div>
+          <label htmlFor="figmaUrl">Figma URL (Optional):</label>
+          <input
+            type="text"
+            id="figmaUrl"
+            value={
+              (stack.designConfig && stack.designConfig.figmaFileUrl) || ''
+            }
+            onChange={(e) =>
+              setStack((prevStack) => ({
+                ...prevStack,
+                designConfig: {
+                  ...prevStack.designConfig,
+                  figmaFileUrl: e.target.value,
+                },
+              }))
+            }
+            placeholder="https://www.figma.com/file/..."
+          />
+        </div>
+      )}
 
       <div>
         <button id="techstack-button-submit" onClick={handleSubmit}>
