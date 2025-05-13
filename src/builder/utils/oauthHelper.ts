@@ -94,18 +94,20 @@ export async function refreshAccessToken(
     console.error('Failed to get access token', tokens);
     throw new Error('Failed to get access token');
   }
-  return tokens;
+  const expiresAt = new Date().getTime() + parseInt(tokens.expires_in) * 1000;
+  return {
+    ...tokens,
+    expires_at: expiresAt,
+  };
 }
 
 export function hasTokenExpired(expiresIn: string | undefined): boolean {
   if (!expiresIn) {
     throw new Error('No expires_in found in secrets');
   }
-  if (expiresIn) {
-    const expiresAt = new Date().getTime() + parseInt(expiresIn) * 1000;
-    if (expiresAt < new Date().getTime()) {
-      return true;
-    }
+  const expiresAt = parseInt(expiresIn);
+  if (expiresAt < new Date().getTime()) {
+    return true;
   }
   return false;
 }
