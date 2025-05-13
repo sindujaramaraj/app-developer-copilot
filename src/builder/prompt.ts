@@ -86,7 +86,7 @@ export class InitializeMobileAppWithBackendPrompt extends PromptBase<
       ${getPromptForDesignConfig(input.techStack.designConfig)}
       Given request for creating an app, use the backend details to understand the backend and the database schema using the types definition.
       Now architect the frontend of the system using the existing backend. You will first think through the problem and come up with an extensive list of features for the app.
-      Represent the archietcture as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
+      Represent the architecture as a mermaid diagram. Keep it simple and functional. Do not generate the SQL scripts for the database.
 
       Then to implement the app, come up with the list of components that can be derived from the app architecture. For now components are just placeholders and code for the components will be requested later.
 
