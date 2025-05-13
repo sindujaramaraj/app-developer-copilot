@@ -323,11 +323,12 @@ export function getPromptForTools(
       typeof (toolResult.content[0] as any).value === 'string'
     ) {
       const analysisJsonString = (toolResult.content[0] as any).value;
-      const instructionMessage = `The design images you provided have been analyzed. The analysis results are provided in the following JSON string: '''${analysisJsonString}'''.\
+      const instructionMessage = `The design images have been analyzed. The analysis results are provided in the following JSON string: '''${analysisJsonString}'''.\
       This JSON string might contain an array of analyses if multiple images were processed. For all subsequent code generation,\
       please ensure the app's UI (layout, color palette, typography, components) strictly adheres to these analyses.\
       Prioritize matching the \`design_elements\` (like \`color_palette\`, \`typography\`, \`components\` types and styles) and the \`overall_style\` described in each analysis.\
-      If multiple analyses are present, synthesize these elements to create a cohesive design. This will help make the generated app visually consistent with the provided images.`;
+      If multiple analyses are present, synthesize these elements to create a cohesive design. This will help make the generated app visually consistent with the provided images.\
+      If user flow is available, make use of it to design the app navigation based on the flow. All details of the design must be impleneted in the app.`;
       return instructionMessage;
     }
   }

@@ -170,7 +170,7 @@ export class App {
       this.isExecuting = false;
       this.streamService.close();
       // store conversations in a file
-      await FileUtil.parseAndCreateFiles(
+      await FileUtil.createFiles(
         [
           {
             content: JSON.stringify(this.conversations, null, 2),

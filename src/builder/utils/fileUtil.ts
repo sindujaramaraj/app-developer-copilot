@@ -19,6 +19,40 @@ export interface IFile {
 
 export class FileUtil {
   /**
+   * Create files without disturbing the file content
+   * @param files
+   * @param pathPrefix
+   * @param isMedia
+   * @param baseDir
+   */
+  static async createFiles(
+    files: IFile[],
+    pathPrefix: string,
+    isMedia?: boolean,
+    baseDir?: string,
+  ): Promise<void> {
+    // Get workspace directory if not provided
+    if (!baseDir) {
+      const workspaceFolder = await FileUtil.getWorkspaceFolder();
+      if (!workspaceFolder) {
+        throw new Error('No workspace folder selected');
+      }
+      baseDir = workspaceFolder;
+    }
+
+    // Create files
+    for (const file of files) {
+      // check if file path is prefixed with pathPrefix
+      if (!file.path.startsWith(pathPrefix)) {
+        const newPath = path.join(pathPrefix, file.path);
+        console.info(`Converting ${file.path} to ${newPath}`);
+        file.path = newPath;
+      }
+      await FileUtil.createFile(baseDir, file, isMedia, false);
+    }
+  }
+
+  /**
    * Create or replace files in the workspace based on the response
    * @param files List of files to create/replace
    * @param pathPrefix Files must be prefixed with this path
@@ -82,7 +116,8 @@ export class FileUtil {
   private static async createFile(
     baseDir: string,
     file: ParsedFile,
-    isMedia?: boolean,
+    isMedia: boolean = false,
+    parseContent: boolean = true,
   ): Promise<void> {
     const fullPath = path.join(baseDir, file.path);
 
@@ -109,7 +144,7 @@ export class FileUtil {
     } else {
       // check if the file content is a markdown
       let fileContent = file.content;
-      if (isCodeBlock(file.content)) {
+      if (parseContent && isCodeBlock(file.content)) {
         fileContent = extractCodeFromMarkdown(file.content);
       }
       if (!fileContent) {
