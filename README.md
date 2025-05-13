@@ -3,7 +3,7 @@
   <p>
     <h3>Your full stack App Developer. Create web and mobile apps. Convert design to code!</h3>
     <br/>
-    <i>Note: App generarion works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.</i>
+    <i>Note: App generation works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.</i>
   </p>
 
   <p>Connect with fellow developers.</p>
