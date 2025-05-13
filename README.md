@@ -1,5 +1,11 @@
 <div align="center">
   <h1>App Developer Copilot</h1>
+  <p>
+    <h3>Your full stack App Developer. Create web and mobile apps. Convert design to code!</h3>
+    <br/>
+    <i>Note: App generarion works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.</i>
+  </p>
+
   <p>Connect with fellow developers.</p>
   
   <a href="https://discord.gg/AQTRCbheA2" target="_blank"><img src="https://img.shields.io/badge/Join%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord"></a>
@@ -7,18 +13,21 @@
   
 </div>
 
-Generate full stack web and mobile application using your existing copilot subscription or your own key.
-Note: App generarion works best with advanced coding models like Claude 3.5, GPT-4o and Gemini 2.5 Pro.
-
 ## Features
 
 - Create mobile apps using React Native and Expo
 - Create web apps using React and Next.js
 - Create or use existing Supabase for storage and authentication
+- Use Figma design or attach screenshots for design reference
 - Generate application architecture and component designs
 - Automatically generate TypeScript code for components
 - Handle project setup and dependency management
-- Option to configure your tech stack. ![Refer screenshot](media/screenshots/techstack.png)
+- Option to configure your tech stack.
+
+## Screenshots
+
+![Attach image for design](media/screenshots/chat.png)
+![Configure Tech Stack](media/screenshots/techstack.png)
 
 ## Requirements
 
@@ -47,6 +56,7 @@ Note: App generarion works best with advanced coding models like Claude 3.5, GPT
 The extension will:
 
 - Analyse the prompt and generate a list of features
+- Use any attached image or figma link for design reference
 - Create a project folder with chosen tech stack
 - Generate app architecture diagram
 - Generate code for components and features
