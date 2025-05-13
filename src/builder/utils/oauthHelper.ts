@@ -94,10 +94,11 @@ export async function refreshAccessToken(
     console.error('Failed to get access token', tokens);
     throw new Error('Failed to get access token');
   }
+  // Set expires_in to the current time + expires_in duration
   const expiresAt = new Date().getTime() + parseInt(tokens.expires_in) * 1000;
   return {
     ...tokens,
-    expires_at: expiresAt,
+    expires_in: `${expiresAt}`,
   };
 }
 
