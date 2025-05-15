@@ -153,6 +153,10 @@
       {
         "command": "app-developer.web.create",
         "title": "App Developer: Create a web app"
+      },
+      {
+        "command": "app-developer.common.clear",
+        "title": "App Developer: Clear app data"
       }
     ],
     "chatParticipants": [

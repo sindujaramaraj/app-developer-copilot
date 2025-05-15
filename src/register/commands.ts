@@ -4,6 +4,8 @@ import { StreamHandlerService } from '../service/streamHandler';
 import { TelemetryService } from '../service/telemetry/telemetry';
 import { APP_DISPLAY_NAME } from '../builder/constants';
 import { handleCreateMobileApp, handleCreateWebApp } from './chatParticipants';
+import { clearSupabaseTokens } from '../builder/backend/supabase/oauth';
+import { clearTokens } from '../service/figma/auth';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -15,6 +17,19 @@ export function registerCommands(context: vscode.ExtensionContext) {
 
   registerMobileCommands(context);
   registerWebCommands(context);
+  registerOtherCommands(context);
+}
+
+function registerOtherCommands(context: vscode.ExtensionContext) {
+  const telemetry = TelemetryService.getInstance(context);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('app-developer.common.clear', () => {
+      telemetry.trackCommandPanelInteraction('common.clear');
+      vscode.window.showWarningMessage('Clearing all data...');
+      clearSupabaseTokens(context);
+      clearTokens(context);
+    }),
+  );
 }
 
 function registerMobileCommands(context: vscode.ExtensionContext) {
