@@ -30,11 +30,7 @@ import {
 import { Backend } from '../builder/backend/serviceStack';
 import { IGenericStack } from '../builder/types';
 import { SupabaseService } from '../builder/backend/supabase/service';
-import {
-  clearSupabaseTokens,
-  connectToSupabase,
-  isConnectedToSupabase,
-} from '../builder/backend/supabase/oauth';
+import { clearSupabaseTokens } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
@@ -602,15 +598,15 @@ async function getBackend(
 
   if (backend === Backend.SUPABASE) {
     try {
-      //await clearSupabaseTokens(context);
-      const isConnected = await isConnectedToSupabase(context);
-      if (!isConnected) {
-        console.log('Not connected to Supabase. Will try connecting first.');
-        await connectToSupabase(context);
-      }
       const supabaseService = await SupabaseService.getInstance(context);
       if (!supabaseService) {
-        throw new Error('Failed to get instance of Supabase service');
+        telemetry.trackConnection({
+          target: ConnectionTarget.Supabase,
+          success: false,
+          retryCount,
+          error: 'Not logged in to Supabase',
+        });
+        return null;
       }
       telemetry.trackConnection({
         target: ConnectionTarget.Supabase,
