@@ -201,3 +201,15 @@ export interface IGenericStack {
     description?: string;
   };
 }
+
+export interface IFixIssuePromptInput {
+  contentType: string;
+  content: string;
+  errorMessage: string;
+}
+
+export const ZFixIssueResponseSchema = ZResponseBaseSchema.extend({
+  fixedContent: z.string().describe('Fixed content'),
+});
+
+export type ZFixIssueResponseType = z.infer<typeof ZFixIssueResponseSchema>;

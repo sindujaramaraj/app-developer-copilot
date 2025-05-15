@@ -2,9 +2,12 @@ import * as vscode from 'vscode';
 import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
+  IFixIssuePromptInput,
   IGenerateCodeForComponentInput,
   IGenericStack,
   IInitializeAppInput,
+  ZFixIssueResponseSchema,
+  ZFixIssueResponseType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZInitializeAppResponseSchema,
@@ -333,4 +336,18 @@ export function getPromptForTools(
     }
   }
   return '';
+}
+
+export class FixIssuePrompt extends PromptBase<
+  IFixIssuePromptInput,
+  ZFixIssueResponseType
+> {
+  constructor(input: IFixIssuePromptInput) {
+    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with the code that has an issue and the error message.\
+    Your task is to identify the issue in the code and fix it.\
+    The code is written in ${input.contentType} and the error message is: ${input.errorMessage}.\
+    Here is the code: ${input.content}.\
+    Fix the issue in the code and provide the fixed code. Do not provide any explanation or additional information. Just provide the fixed code.`;
+    super(input, instructions, ZFixIssueResponseSchema);
+  }
 }

@@ -15,6 +15,7 @@ import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
 import { createSupaFiles } from './backend/supabase/helper';
+import { FixIssuePrompt } from './prompt';
 
 export enum AppStage {
   None,
@@ -359,12 +360,13 @@ export class App {
       const projectId = newProject.id;
 
       // Create tables
-      this.logProgress('Creating tables in supabase');
-      await this.backendService.runQuery(
+      const sqlSuccess = await this.runSQLScripts(
         projectId,
-        createAppResponseObj.sqlScripts,
+        createAppResponseObj,
       );
-      this.logMessage('Tables created in supabase');
+      if (!sqlSuccess) {
+        throw new Error('Failed to create tables in supabase');
+      }
 
       // Generate types
       this.logProgress('Generating types for project');
@@ -398,6 +400,70 @@ export class App {
         'Not able to connect to supabase. Proceeding without backend',
       );
     }
+  }
+
+  async runSQLScripts(
+    projectId: string,
+    createAppResponseObj: ZInitializeAppResponseType,
+    retry = false,
+  ): Promise<boolean> {
+    if (!this.backendService) {
+      throw new Error('Backend service not initialized');
+    }
+    if (!createAppResponseObj.sqlScripts) {
+      this.logMessage('No SQL scripts found');
+      return false;
+    }
+    // Create tables
+    this.logProgress('Creating tables in supabase');
+    const sqlScripts = createAppResponseObj.sqlScripts;
+    try {
+      await this.backendService.runQuery(projectId, sqlScripts);
+    } catch (sqlError) {
+      if (retry) {
+        this.logError('Failed to create tables in supabase.');
+        this.logMessage(
+          'Not able to fix the SQL issue. Please fix it manually',
+        );
+        return false;
+      }
+      this.logError('Failed to create tables in supabase.');
+      this.logMessage('Will try to fix the issue');
+      // Try to fix the issue
+      const fixSQLPrompt = new FixIssuePrompt({
+        content: sqlScripts,
+        contentType: 'sql',
+        errorMessage:
+          sqlError instanceof Error && sqlError.message
+            ? sqlError.message
+            : 'Error executing the query',
+      });
+
+      const fixIssueResponse = await this.languageModelService.generateObject({
+        messages: [
+          this.createUserMessage(fixSQLPrompt.getInstructionsPrompt()),
+        ],
+        schema: fixSQLPrompt.getResponseFormatSchema(),
+        responseFormatPrompt: fixSQLPrompt.getResponseFormatPrompt(),
+      });
+
+      const fixedSQL = fixIssueResponse.object.fixedContent;
+      if (!fixedSQL) {
+        this.logError('Failed to fix the SQL issue.');
+        this.logMessage(
+          'Not able to fix the SQL issue. Please fix it manually',
+        );
+        return false;
+      }
+      // Update response object with fixed SQL
+      createAppResponseObj.sqlScripts = fixedSQL;
+      this.logMessage('SQL issue fixed. Creating tables again');
+
+      return await this.runSQLScripts(projectId, createAppResponseObj, true);
+    }
+
+    this.logMessage('Tables created in Supabase');
+    return true;
   }
 
   async getCommonDependenciesForCodeGeneration() {
