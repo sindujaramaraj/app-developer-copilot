@@ -1,5 +1,19 @@
 # Change Log
 
+## [2.0.8] - 2025-05-16
+
+### Changed
+
+- Retry if generated SQL scripts fail to run
+- Refactoring
+- Connection fixes
+
+## [2.0.7] - 2025-05-13
+
+### Added
+
+- Support for Figma and design to code generation
+
 ## [2.0.5] - 2025-04-28
 
 ### Changed
