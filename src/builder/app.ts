@@ -5,17 +5,32 @@ import {
   ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
   ZInitializeAppResponseType,
+  ZInitializeAppWithBackendResponseType,
   ZResponseBaseType,
 } from './types';
 import { IModelMessage, LanguageModelService } from '../service/languageModel';
 import { StreamHandlerService } from '../service/streamHandler';
 import { FileUtil } from './utils/fileUtil';
-import { APP_CONVERSATION_FILE, ISSUE_REPORT_URL } from './constants';
+import {
+  APP_ARCHITECTURE_DIAGRAM_FILE,
+  APP_CONVERSATION_FILE,
+  ISSUE_REPORT_URL,
+  SUPA_SQL_FILE_PATH,
+  TOOL_IMAGE_ANALYZER,
+} from './constants';
 import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
 import { createSupaFiles } from './backend/supabase/helper';
-import { FixIssuePrompt } from './prompt';
+import { FixIssuePrompt, getPromptForTools } from './prompt';
+import { createAppConfig, AppType } from './utils/appconfigHelper';
+import { IMobileTechStackOptions } from './mobile/mobileTechStack';
+import { IWebTechStackOptions } from './web/webTechStack';
+import { installNPMDependencies } from './terminalHelper';
+import {
+  convertToMermaidMarkdown,
+  isMermaidMarkdown,
+} from './utils/contentUtil';
 
 export enum AppStage {
   None,
@@ -28,6 +43,8 @@ export enum AppStage {
   Deploy,
   Cancelled,
 }
+
+const MAX_RETRIES = 5;
 
 interface IAppStageInputOutputCommon<T extends ZResponseBaseType> {
   messages: IModelMessage[];
@@ -212,6 +229,146 @@ export class App {
     throw new Error('Method not implemented.');
   }
 
+  /**
+   * Common initialize logic for all app types. Calls overridable methods for app-specific behavior.
+   */
+  protected async baseInitialize(
+    userMessage: string | undefined,
+    getPrompt: (hasBackend: boolean) => any,
+    handleCreateApp: (responseObj: ZInitializeAppResponseType) => Promise<void>,
+    appType: AppType,
+    techStack: IMobileTechStackOptions | IWebTechStackOptions,
+  ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
+    if (!userMessage) {
+      this.logMessage(
+        `Please provide a valid input to start building a ${appType} app`,
+      );
+      this.setStage(AppStage.Cancelled);
+      throw new Error('Invalid input');
+    }
+    this.setStage(AppStage.Initialize);
+    this.logMessage(`Lets start building a ${appType} app`);
+
+    const useExistingBackend = techStack.backendConfig.useExisting;
+
+    if (useExistingBackend) {
+      try {
+        const backendDetails = await this.getExistingBackendDetails();
+        techStack.backendConfig.details = backendDetails;
+      } catch (error) {
+        console.error(`Error getting backend details`, error);
+        this.logMessage(
+          'Error getting backend details. Will continue without backend.',
+        );
+      }
+    }
+
+    const initializeAppPrompt = getPrompt(this.hasBacked());
+
+    const initializeAppMessages = [
+      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
+      this.createUserMessage(`Create app for: ${userMessage}`),
+    ];
+
+    this.logProgress('Analyzing app requirements');
+    try {
+      let tools: string[] | undefined = undefined;
+      const designConfig = techStack.designConfig;
+      if (designConfig?.images && designConfig.images.length > 0) {
+        tools = [TOOL_IMAGE_ANALYZER];
+      }
+
+      let { response: createAppResponse, object: createAppResponseObj } =
+        await this.languageModelService.generateObject<
+          ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
+        >({
+          messages: initializeAppMessages,
+          schema: initializeAppPrompt.getResponseFormatSchema(),
+          responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
+          tools,
+        });
+      initializeAppMessages.push(
+        this.createAssistantMessage(createAppResponse.content),
+      );
+
+      const toolPrompt = createAppResponse.toolResults
+        ? getPromptForTools(createAppResponse.toolResults)
+        : '';
+      if (toolPrompt) {
+        initializeAppMessages.push(this.createUserMessage(toolPrompt));
+      }
+
+      this.logInitialResponse(createAppResponseObj);
+
+      this.logProgress(`Creating app ${createAppResponseObj.name}`);
+      const formattedAppName = createAppResponseObj.name
+        .replace(/\s/g, '-')
+        .toLowerCase();
+      createAppResponseObj.name = formattedAppName;
+      this.setAppName(formattedAppName);
+      this.setAppTitle(createAppResponseObj.title);
+
+      await this.postInitialize(createAppResponseObj, handleCreateApp);
+
+      // Create app config
+      const modelConfig = this.languageModelService.getModelConfig();
+      await createAppConfig({
+        name: createAppResponseObj.name,
+        title: createAppResponseObj.title,
+        initialPrompt: userMessage,
+        components: createAppResponseObj.components,
+        features: createAppResponseObj.features,
+        techStack: techStack,
+        type: appType,
+        modelProvider: modelConfig.modelProvider,
+        languageModel: modelConfig.model,
+        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
+      });
+
+      return {
+        messages: initializeAppMessages,
+        output: createAppResponseObj,
+        toolCalls: createAppResponse.toolCalls,
+        toolResults: createAppResponse.toolResults,
+      };
+    } catch (error) {
+      console.error(`Error parsing response`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Common post-initialize logic for all app types. Calls overridable methods for app-specific behavior.
+   */
+  protected async postInitialize(
+    createAppResponseObj:
+      | ZInitializeAppResponseType
+      | ZInitializeAppWithBackendResponseType,
+    handleCreateApp: (responseObj: ZInitializeAppResponseType) => Promise<void>,
+  ): Promise<void> {
+    // Create app
+    await handleCreateApp(createAppResponseObj);
+
+    // save architecture of the app
+    this.logProgress('Writing architecture diagram to file');
+    let architectureDiagram = createAppResponseObj.architecture;
+    if (!isMermaidMarkdown(architectureDiagram)) {
+      architectureDiagram = convertToMermaidMarkdown(architectureDiagram);
+    }
+    await FileUtil.parseAndCreateFiles(
+      [
+        {
+          path: APP_ARCHITECTURE_DIAGRAM_FILE,
+          content: architectureDiagram,
+        },
+      ],
+      createAppResponseObj.name,
+    );
+
+    // Backend setup
+    await this.handleBackend(createAppResponseObj);
+  }
+
   // Construct details for existing backend
   async getExistingBackendDetails(): Promise<IBackendDetails> {
     // Construct details for existing backend
@@ -227,8 +384,8 @@ export class App {
     // Select projects
     const projects = await this.backendService.getProjects();
     if (!projects || projects.length === 0) {
-      this.logError('No projects found in supabase');
-      throw new Error('No projects found in supabase');
+      this.logError('No projects found in Supabase');
+      throw new Error('No projects found in Supabase');
     }
     this.logProgress('Select the Supabase project you want to use as backend');
     const selectedProject = await vscode.window.showQuickPick(
@@ -359,7 +516,7 @@ export class App {
 
       const projectId = newProject.id;
 
-      // Create tables
+      // Run script to create tables
       const sqlSuccess = await this.runSQLScripts(
         projectId,
         createAppResponseObj,
@@ -367,6 +524,17 @@ export class App {
       if (!sqlSuccess) {
         throw new Error('Failed to create tables in supabase');
       }
+      // Save the SQL scripts to file
+      this.logProgress('Saving SQL scripts to file');
+      await FileUtil.parseAndCreateFiles(
+        [
+          {
+            path: SUPA_SQL_FILE_PATH,
+            content: createAppResponseObj.sqlScripts,
+          },
+        ],
+        createAppResponseObj.name,
+      );
 
       // Generate types
       this.logProgress('Generating types for project');
@@ -405,7 +573,7 @@ export class App {
   async runSQLScripts(
     projectId: string,
     createAppResponseObj: ZInitializeAppResponseType,
-    retry = false,
+    retryCount = 0,
   ): Promise<boolean> {
     if (!this.backendService) {
       throw new Error('Backend service not initialized');
@@ -420,15 +588,22 @@ export class App {
     try {
       await this.backendService.runQuery(projectId, sqlScripts);
     } catch (sqlError) {
-      if (retry) {
-        this.logError('Failed to create tables in supabase.');
+      if (retryCount >= MAX_RETRIES) {
+        this.logError(
+          `Failed to create tables in supabase after ${MAX_RETRIES} attempts.`,
+        );
         this.logMessage(
-          'Not able to fix the SQL issue. Please fix it manually',
+          'Maximum retry attempts reached. Please fix the SQL issue manually',
         );
         return false;
       }
-      this.logError('Failed to create tables in supabase.');
-      this.logMessage('Will try to fix the issue');
+      this.logError(
+        'Failed to create tables in supabase.' +
+          (sqlError instanceof Error ? sqlError.message : ''),
+      );
+      this.logMessage(
+        `Retry attempt ${retryCount + 1}/${MAX_RETRIES}: Will try to fix the issue`,
+      );
       // Try to fix the issue
       const fixSQLPrompt = new FixIssuePrompt({
         content: sqlScripts,
@@ -459,7 +634,11 @@ export class App {
       createAppResponseObj.sqlScripts = fixedSQL;
       this.logMessage('SQL issue fixed. Creating tables again');
 
-      return await this.runSQLScripts(projectId, createAppResponseObj, true);
+      return await this.runSQLScripts(
+        projectId,
+        createAppResponseObj,
+        retryCount + 1,
+      );
     }
 
     this.logMessage('Tables created in Supabase');
@@ -506,6 +685,125 @@ export class App {
   ): Promise<IAppStageOutput<ZGenerateCodeResponseType>> {
     // Generate code
     throw new Error('Method not implemented.');
+  }
+
+  /**
+   * Common generateCode logic for all app types. Calls overridable methods for app-specific behavior.
+   */
+  protected async baseGenerateCode(
+    previousMessages: IModelMessage[],
+    previousOutput: ZInitializeAppResponseType,
+    libsForStack: string[],
+    getPrompt: (
+      component: any,
+      dependencies: any[],
+      architecture: string,
+      design: string,
+    ) => any,
+    getDependenciesForCodeGeneration: () => Promise<any[]>,
+  ): Promise<IAppStageOutput<ZGenerateCodeResponseType>> {
+    const {
+      name: appName,
+      features,
+      components,
+      architecture,
+      design,
+    } = previousOutput;
+    this.setStage(AppStage.GenerateCode);
+
+    this.logProgress('Generating code for components');
+    const sortedComponents = this.sortComponentsByDependency(components);
+    const generatedCodeByComponent: Map<string, any> = new Map();
+    let error = false;
+    const installedDependencies: string[] = [];
+
+    // Install default dependencies for the tech stack
+    await installNPMDependencies(appName, libsForStack, installedDependencies);
+
+    const codeGenerationMessages = [
+      ...previousMessages,
+      this.createUserMessage(
+        `Lets start generating code for the components one by one.Do not create placeholder code.Write the actual code that will be used in production.Use typescript for the code.Wait for the code generation request.`,
+      ),
+    ];
+
+    const totalComponents = sortedComponents.length;
+    let componentIndex = 0;
+    const predefinedDependencies = await getDependenciesForCodeGeneration();
+
+    for (const component of sortedComponents) {
+      const dependenciesWithContent = Array.from(
+        generatedCodeByComponent.values(),
+      );
+      const codeGenerationPrompt = getPrompt(
+        component,
+        [...dependenciesWithContent, ...predefinedDependencies],
+        architecture,
+        design,
+      );
+      const messages = [
+        ...codeGenerationMessages,
+        this.createUserMessage(codeGenerationPrompt.getInstructionsPrompt()),
+      ];
+      let codeGenerationResponseObj;
+      try {
+        this.logProgress(
+          `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
+        );
+        const { object } = await this.languageModelService.generateObject<any>({
+          messages,
+          schema: codeGenerationPrompt.getResponseFormatSchema(),
+          responseFormatPrompt: codeGenerationPrompt.getResponseFormatPrompt(),
+        });
+        codeGenerationResponseObj = object;
+        generatedCodeByComponent.set(component.name, codeGenerationResponseObj);
+        console.info(`Received code for component ${component.name}`);
+      } catch (error) {
+        console.error(
+          'Error parsing code generation response for component',
+          component.name,
+          error,
+        );
+        this.logMessage(
+          `Error generating code for component ${component.name}`,
+        );
+        throw error;
+      }
+      this.logMessage(
+        `Successfully generated code for component ${component.name}`,
+      );
+      this.logProgress(`Writing code to for component ${component.name}`);
+      componentIndex++;
+      if (codeGenerationResponseObj.filePath !== component.path) {
+        console.error(
+          `Component path mismatch for component ${component.name}. Expected: ${component.path}, Received: ${codeGenerationResponseObj.filePath}`,
+        );
+      }
+      this.handleAssets(codeGenerationResponseObj, component, appName);
+      const files = [
+        {
+          path: codeGenerationResponseObj.filePath,
+          content: codeGenerationResponseObj.content,
+        },
+      ];
+      await FileUtil.parseAndCreateFiles(files, appName);
+      this.logProgress('Installing npm dependencies');
+      const npmDependencies = codeGenerationResponseObj.libraries || [];
+      installNPMDependencies(appName, npmDependencies, installedDependencies);
+    }
+    this.logMessage('Components created successfully');
+    return {
+      messages: codeGenerationMessages,
+      output: {
+        appName,
+        features,
+        design,
+        components,
+        generatedCode: Array.from(generatedCodeByComponent.values()),
+        error: error ? 'Error generating code for components' : undefined,
+        summary: 'Successfully generated code for all components',
+      },
+    };
   }
 
   build() {
@@ -678,6 +976,12 @@ export class App {
         }
       }
     }
+    // Further sort nodes based on dependency count
+    sortedNodes.sort((a, b) => {
+      const aDependencies = a.dependsOn || [];
+      const bDependencies = b.dependsOn || [];
+      return aDependencies.length - bDependencies.length;
+    });
     return sortedNodes;
   }
 

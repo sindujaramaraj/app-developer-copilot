@@ -104,7 +104,7 @@ export function convertStringToJSON(content: string): any {
     } else {
       const jsonInString = extractJsonFromString(content);
       if (jsonInString) {
-        return convertStringToJSON(jsonInString);
+        return JSON.parse(jsonInString);
       }
       console.error('Content is not a valid JSON string or JSON markdown');
       throw new Error('Content is not a JSON string or JSON markdown');

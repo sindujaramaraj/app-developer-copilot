@@ -1,31 +1,18 @@
-import { App, AppStage, IAppStageInput, IAppStageOutput } from '../app';
-import {
-  convertToMermaidMarkdown,
-  isMermaidMarkdown,
-} from '../utils/contentUtil';
+import { App, IAppStageInput, IAppStageOutput } from '../app';
+
 import {
   GenerateCodeForMobileComponentPrompt,
-  getPromptForTools,
   InitializeMobileAppPrompt,
   InitializeMobileAppWithBackendPrompt,
 } from '../prompt';
 import {
   ComponentType,
-  ZGenerateCodeForComponentResponseSchema,
-  ZGenerateCodeForComponentResponseType,
   ZGenerateCodeResponseType,
   ZInitializeAppResponseType,
-  ZInitializeAppWithBackendResponseType,
 } from '../types';
-import { createExpoApp, installNPMDependencies } from '../terminalHelper';
-import { FileUtil, IFile } from '../utils/fileUtil';
-import {
-  APP_ARCHITECTURE_DIAGRAM_FILE,
-  SUPA_SQL_FILE_PATH,
-  SUPA_TYPES_MOBILE_FILE_PATH,
-  TOOL_IMAGE_ANALYZER,
-} from '../constants';
-import { AppType, createAppConfig } from '../utils/appconfigHelper';
+import { createExpoApp } from '../terminalHelper';
+import { SUPA_TYPES_MOBILE_FILE_PATH } from '../constants';
+import { AppType } from '../utils/appconfigHelper';
 import {
   getLibsToInstallForStack,
   IMobileTechStackOptions,
@@ -35,150 +22,35 @@ import {
  * Mobile app builder
  */
 export class MobileApp extends App {
+  /**
+   * Initialize the mobile app
+   * @param userMessage
+   * @returns
+   */
   async initialize(
     userMessage?: string,
   ): Promise<IAppStageOutput<ZInitializeAppResponseType>> {
-    if (!userMessage) {
-      this.logMessage(
-        'Please provide a valid input to start building a mobile app',
-      );
-      this.setStage(AppStage.Cancelled);
-      throw new Error('Invalid input');
-    }
-    this.setStage(AppStage.Initialize);
-    this.logMessage('Lets start building a mobile app');
-
-    const useExistingBackend =
-      this.getTechStackOptions().backendConfig.useExisting;
-
-    if (useExistingBackend) {
-      try {
-        const backendDetails = await this.getExistingBackendDetails();
-        this.techStackOptions.backendConfig.details = backendDetails;
-      } catch (error) {
-        console.error('MobileBuilder: Error getting backend details', error);
-        this.logMessage(
-          'Error getting backend details. Will continue without backend.',
-        );
-      }
-    }
-
-    const initializeAppPrompt = this.hasBacked()
-      ? new InitializeMobileAppWithBackendPrompt({
-          techStack: this.getTechStackOptions(),
-        })
-      : new InitializeMobileAppPrompt({
-          techStack: this.getTechStackOptions(),
-        });
-
-    const initializeAppMessages = [
-      this.createSystemMessage(initializeAppPrompt.getInstructionsPrompt()),
-      // Add user's message
-      this.createUserMessage(`Create app for: ${userMessage}`),
-    ];
-
-    // send the request
-    this.logProgress('Analyzing app requirements');
-    try {
-      let tools: string[] | undefined = undefined;
-      const designConfig = this.getTechStackOptions().designConfig;
-      if (designConfig?.images && designConfig.images.length > 0) {
-        tools = [TOOL_IMAGE_ANALYZER];
-      }
-
-      let { response: createAppResponse, object: createAppResponseObj } =
-        await this.languageModelService.generateObject<
-          ZInitializeAppResponseType | ZInitializeAppWithBackendResponseType
-        >({
-          messages: initializeAppMessages,
-          schema: initializeAppPrompt.getResponseFormatSchema(),
-          responseFormatPrompt: initializeAppPrompt.getResponseFormatPrompt(),
-          tools, // Pass tools if images are present
-        });
-      initializeAppMessages.push(
-        this.createAssistantMessage(createAppResponse.content),
-      );
-
-      // Add instruction message if image analyzer tool was used
-      const toolPrompt = createAppResponse.toolResults
-        ? getPromptForTools(createAppResponse.toolResults)
-        : '';
-      if (toolPrompt) {
-        initializeAppMessages.push(this.createUserMessage(toolPrompt));
-      }
-
-      this.logInitialResponse(createAppResponseObj);
-
-      this.logProgress(`Creating app ${createAppResponseObj.name}`);
-      const formattedAppName = createAppResponseObj.name
-        .replace(/\s/g, '-')
-        .toLowerCase();
-      // fix app name
-      createAppResponseObj.name = formattedAppName;
-      // set app name
-      this.setAppName(formattedAppName);
-      this.setAppTitle(createAppResponseObj.title);
-
-      await this.postInitialize(createAppResponseObj);
-
-      // Create app config
-      const modelConfig = this.languageModelService.getModelConfig();
-      await createAppConfig({
-        name: createAppResponseObj.name,
-        title: createAppResponseObj.title,
-        initialPrompt: userMessage,
-        components: createAppResponseObj.components,
-        features: createAppResponseObj.features,
-        techStack: this.getTechStackOptions(),
-        type: AppType.MOBILE,
-        modelProvider: modelConfig.modelProvider,
-        languageModel: modelConfig.model,
-        figmaUrl: this.getTechStackOptions().designConfig.figmaFileUrl,
-      });
-
-      return {
-        messages: initializeAppMessages,
-        output: createAppResponseObj,
-        toolCalls: createAppResponse.toolCalls,
-        toolResults: createAppResponse.toolResults,
-      };
-    } catch (error) {
-      console.error('MobileBuilder: Error parsing response', error);
-      throw error;
-    }
-  }
-
-  async postInitialize(createAppResponseObj: ZInitializeAppResponseType) {
-    // Create expo project
-    await createExpoApp(createAppResponseObj.name);
-    // TODO: Commenting this out for now because behavior is not clear
-    // Reset expo project
-    // await resetExpoProject(createAppResponseObj.name);
-    this.logMessage(`Created expo project: ${createAppResponseObj.name}`);
-
-    // Create files
-    const files: IFile[] = [];
-    // Architecture the app
-    this.logProgress('Writing architecture diagram to file');
-    let architectureDiagram = createAppResponseObj.architecture;
-    if (!isMermaidMarkdown(architectureDiagram)) {
-      architectureDiagram = convertToMermaidMarkdown(architectureDiagram);
-    }
-    files.push({
-      path: APP_ARCHITECTURE_DIAGRAM_FILE,
-      content: architectureDiagram,
-    });
-    // SQL scripts
-    if (this.hasBacked() && createAppResponseObj.sqlScripts) {
-      files.push({
-        path: SUPA_SQL_FILE_PATH,
-        content: createAppResponseObj.sqlScripts,
-      });
-    }
-    await FileUtil.parseAndCreateFiles(files, createAppResponseObj.name);
-
-    this.logMessage('Initial files saved successfully');
-    await this.handleBackend(createAppResponseObj);
+    return this.baseInitialize(
+      userMessage,
+      (hasBackend) =>
+        hasBackend
+          ? new InitializeMobileAppWithBackendPrompt({
+              techStack: this.getTechStackOptions(),
+            })
+          : new InitializeMobileAppPrompt({
+              techStack: this.getTechStackOptions(),
+            }),
+      async (responseObj) => {
+        // Create expo project
+        await createExpoApp(responseObj.name);
+        // TODO: Commenting this out for now because behavior is not clear
+        // Reset expo project
+        // await resetExpoProject(createAppResponseObj.name);
+        this.logMessage(`Created expo project: ${responseObj.name}`);
+      },
+      AppType.MOBILE,
+      this.getTechStackOptions(),
+    );
   }
 
   async generateCode({
@@ -187,152 +59,23 @@ export class MobileApp extends App {
   }: IAppStageInput<ZInitializeAppResponseType>): Promise<
     IAppStageOutput<ZGenerateCodeResponseType>
   > {
-    const {
-      name: appName,
-      features,
-      components,
-      architecture,
-      design,
-    } = previousOutput;
-    this.setStage(AppStage.GenerateCode);
-
-    // Generate code for each component
-    this.logProgress('Generating code for components');
-    // Generate code for individual components first
-    const sortedComponents = this.sortComponentsByDependency(components);
-
-    // Generate code for all components
-    const generatedCodeByComponent: Map<
-      string,
-      ZGenerateCodeForComponentResponseType
-    > = new Map();
-    let error = false;
-    const installedDependencies: string[] = [];
-    // Install default dependencies for the tech stack
-    const libsForStack = getLibsToInstallForStack(this.getTechStackOptions());
-    await installNPMDependencies(appName, libsForStack, installedDependencies);
-
-    const codeGenerationMessages = [
-      ...previousMessages,
-      // TODO: Try switching to a system message with coder role with architecture generated with architect role
-      this.createUserMessage(
-        `Lets start generating code for the components one by one.
-        Do not create placeholder code.
-        Write the actual code that will be used in production.
-        Use typescript for the code.
-        Wait for the code generation request.`,
-      ),
-    ];
-
-    const totalComponents = sortedComponents.length;
-    let componentIndex = 0;
-
-    // Get content for pre defined dependencies
-    const predefinedDependencies =
-      await this.getCommonDependenciesForCodeGeneration();
-
-    for (const component of sortedComponents) {
-      // Use all previously generated code as dependencies
-      const dependenciesWithContent = Array.from(
-        generatedCodeByComponent.values(),
-      );
-
-      // Generate code for the component
-      const codeGenerationPrompt = new GenerateCodeForMobileComponentPrompt({
-        name: component.name,
-        path: component.path,
-        type: component.type as ComponentType,
-        purpose: component.purpose,
-        dependencies: [...dependenciesWithContent, ...predefinedDependencies],
-        architecture,
-        design,
-        techStack: this.getTechStackOptions(),
-      });
-      const messages = [
-        ...codeGenerationMessages,
-        this.createUserMessage(codeGenerationPrompt.getInstructionsPrompt()),
-      ];
-
-      let codeGenerationResponse, codeGenerationResponseObj;
-      try {
-        this.logProgress(
-          `Generating code ${componentIndex + 1}/${totalComponents} for component ${component.name}`,
-        );
-        const { response, object } =
-          await this.languageModelService.generateObject<ZGenerateCodeForComponentResponseType>(
-            {
-              messages,
-              schema: ZGenerateCodeForComponentResponseSchema,
-              responseFormatPrompt:
-                codeGenerationPrompt.getResponseFormatPrompt(),
-            },
-          );
-        codeGenerationResponse = response;
-        codeGenerationResponseObj = object;
-        generatedCodeByComponent.set(component.name, codeGenerationResponseObj);
-        // codeGenerationMessages.push(
-        //   vscode.LanguageModelChatMessage.Assistant(codeGenerationResponse),
-        // );
-        console.info(`Received code for component ${component.name}`);
-      } catch (error) {
-        console.error(
-          'MobileBuilder: Error parsing code generation response for component',
-          component.name,
-          error,
-        );
-        this.logMessage(
-          `Error generating code for component ${component.name}`,
-        );
-        throw error;
-      }
-
-      this.logMessage(
-        `Successfully generated code for component ${component.name}`,
-      );
-      this.logProgress(`Writing code to for component ${component.name}`);
-
-      componentIndex++;
-
-      if (codeGenerationResponseObj.filePath !== component.path) {
-        console.error(
-          `Component path mismatch for component ${component.name}. Expected: ${component.path}, Received: ${codeGenerationResponseObj.filePath}`,
-        );
-      }
-
-      // Handle assets
-      this.handleAssets(codeGenerationResponseObj, component, appName);
-
-      const files = [
-        {
-          path: codeGenerationResponseObj.filePath,
-          content: codeGenerationResponseObj.content,
-        },
-      ];
-
-      // Create files
-      await FileUtil.parseAndCreateFiles(files, appName);
-
-      // Install npm dependencies
-      this.logProgress('Installing npm dependencies');
-      const npmDependencies = codeGenerationResponseObj.libraries || [];
-      installNPMDependencies(appName, npmDependencies, installedDependencies);
-
-      // TODO: Check if there are any errors
-    }
-    this.logMessage('Components created successfully');
-
-    return {
-      messages: codeGenerationMessages,
-      output: {
-        appName,
-        features,
-        design,
-        components,
-        generatedCode: Array.from(generatedCodeByComponent.values()),
-        error: error ? 'Error generating code for components' : undefined,
-        summary: 'Successfully generated code for all components',
-      },
-    };
+    return this.baseGenerateCode(
+      previousMessages,
+      previousOutput,
+      getLibsToInstallForStack(this.getTechStackOptions()),
+      (component, dependencies, architecture, design) =>
+        new GenerateCodeForMobileComponentPrompt({
+          name: component.name,
+          path: component.path,
+          type: component.type as ComponentType,
+          purpose: component.purpose,
+          dependencies,
+          design,
+          architecture,
+          techStack: this.getTechStackOptions(),
+        }),
+      () => this.getCommonDependenciesForCodeGeneration(), // no custom dependencies for mobile
+    );
   }
 
   getTechStackOptions(): IMobileTechStackOptions {
