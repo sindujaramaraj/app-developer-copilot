@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import { SupabaseManagementAPI } from 'supabase-management-js';
 
-import { getSupabaseClient } from './oauth';
+import {
+  connectToSupabase,
+  getSupabaseClient,
+  isConnectedToSupabase,
+} from './oauth';
 
 export class SupabaseService {
   private static instance: SupabaseService;
@@ -21,6 +25,22 @@ export class SupabaseService {
     context: vscode.ExtensionContext,
   ): Promise<SupabaseService | undefined> {
     if (!SupabaseService.instance) {
+      const isConnected = await isConnectedToSupabase(context);
+      if (!isConnected) {
+        console.log('Not connected to Supabase. Will try connecting first.');
+        const choice = await vscode.window.showInformationMessage(
+          'You need to log in to Supabase to use this feature.',
+          { modal: true },
+          'Log in to Supabase',
+        );
+        if (choice === 'Log in to Supabase') {
+          await connectToSupabase(context);
+        } else {
+          // User cancelled login
+          console.log('User cancelled login to Supabase');
+          return undefined;
+        }
+      }
       const client = await getSupabaseClient(context, true);
       if (!client) {
         throw new Error('Failed to get Supabase client');

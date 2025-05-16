@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "preview": false,
   "repository": {
     "type": "git",
@@ -153,6 +153,10 @@
       {
         "command": "app-developer.web.create",
         "title": "App Developer: Create a web app"
+      },
+      {
+        "command": "app-developer.common.clear",
+        "title": "App Developer: Clear app data"
       }
     ],
     "chatParticipants": [
