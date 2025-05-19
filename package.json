@@ -245,6 +245,33 @@
             "images"
           ]
         }
+      },
+      {
+        "name": "app_developer_pexelImageSearch",
+        "tags": [
+          "image",
+          "search",
+          "pexels"
+        ],
+        "displayName": "Pexels Image Search",
+        "modelDescription": "Searches for images on Pexels.com based on a query. Returns image URLs, alt text, and photographer details. Use this tool when you need to find stock photos.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The search term for finding images on Pexels."
+            },
+            "per_page": {
+              "type": "number",
+              "description": "The number of images to return per page. Defaults to 1.",
+              "default": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
       }
     ]
   },

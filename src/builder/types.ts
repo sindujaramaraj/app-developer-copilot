@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { IWebTechStackOptions } from './web/webTechStack';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
 import { IBackendConfig } from './backend/serviceStack';
-import { IImageSource } from '../register/tools';
+import { IImageSource } from './tools/imageAnalyzerTool';
 
 export interface IResponseBase {
   summary: string;

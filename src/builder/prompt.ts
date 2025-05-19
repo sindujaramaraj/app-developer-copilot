@@ -25,7 +25,7 @@ import {
   getPromptForExistingBackend,
   getPromptForNewDatabase,
 } from './backend/serviceStack';
-import { TOOL_IMAGE_ANALYZER } from './constants';
+import { TOOL_IMAGE_ANALYZER, TOOL_PEXEL_IMAGE_SEARCH } from './constants';
 
 export class PromptBase<TInput, TOutput> {
   protected input: TInput;
@@ -255,7 +255,8 @@ export class GenerateCodeForMobileComponentPrompt extends PromptBase<
     Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
+    If the code needs to use image, you can use the ${TOOL_PEXEL_IMAGE_SEARCH} tool to search for images and use the image in the code.
+    If the code needs any icon, use material icon library and use the icon in the code.
     If the code uses any external libraries, include the libraries in the response.
     Reuse code from dependencies if possible.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
@@ -277,7 +278,8 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
     Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image or sound, do not generate the media. Just use placeholder text and include the media as asset in the response.
+    If the code needs to use image, you can use the ${TOOL_PEXEL_IMAGE_SEARCH} tool to search for images and use the image in the code.
+    If the code needs any icon, use material icon library and use the icon in the code.
     If the code uses any external libraries, include the libraries in the response so they can be installed later.
     Specify "use client" directive in the code if the component is a client component.
     When using code from dependencies, make sure to import the dependencies correctly based on path.

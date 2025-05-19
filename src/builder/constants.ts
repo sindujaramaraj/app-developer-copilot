@@ -13,6 +13,7 @@ export const PROJECT_TREE_DIAGRAM_FILE = 'projectTreeDiagram.md';
 export const MAX_RETRY_COUNT = 1;
 
 export const TOOL_IMAGE_ANALYZER = 'app_developer_imageAnalyzer';
+export const TOOL_PEXEL_IMAGE_SEARCH = 'app_developer_pexelImageSearch';
 // Add more tools here as needed
 
 export const ISSUE_REPORT_URL =

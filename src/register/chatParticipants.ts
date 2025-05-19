@@ -4,6 +4,7 @@ import {
   ENABLE_DESIGN,
   ENABLE_WEB_APP,
   ENABLE_WEB_STACK_CONFIG,
+  TOOL_PEXEL_IMAGE_SEARCH,
 } from '../builder/constants';
 import { TelemetryService } from '../service/telemetry/telemetry';
 import {
@@ -28,15 +29,15 @@ import {
   IWebTechStackOptions,
 } from '../builder/web/webTechStack';
 import { Backend } from '../builder/backend/serviceStack';
-import { IGenericStack } from '../builder/types';
+import { IGenericStack, ZResponseBaseSchema } from '../builder/types';
 import { SupabaseService } from '../builder/backend/supabase/service';
 import { clearSupabaseTokens } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
-import { IImageSource } from './tools';
 import { isMimeTypeImage } from '../builder/utils/contentUtil';
 import { isConnectedToFigma } from '../service/figma/auth';
+import { IImageSource } from '../builder/tools/imageAnalyzerTool';
 
 enum ChatCommands {
   Create = 'create',
@@ -122,7 +123,6 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       stream.markdown(
         `Mobile App Developer agent is designed to create mobile apps. To create a mobile app, type \`@app-developer-mobile /create\` and follow the prompts. To run the app, type \`@app-developer-mobile /run.\``,
       );
-      // getImageRefsFromRequest(request);
       return {
         metadata: { command: 'help' },
       };
@@ -206,6 +206,20 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       stream.markdown(
         `Web App Developer agent is designed to create web apps. To create a web app, type \`@app-developer-web /create\` and follow the prompts. To run the app, type \`@app-developer-web /run.\``,
       );
+
+      const modelService = new LanguageModelService(
+        request.model,
+        token,
+        request.toolInvocationToken,
+      );
+      const response = await modelService.generateObject({
+        messages: [modelService.createUserMessage(request.prompt)],
+        schema: ZResponseBaseSchema,
+        responseFormatPrompt: '',
+        tools: [TOOL_PEXEL_IMAGE_SEARCH],
+      });
+      console.log('Response:', response);
+
       return {
         metadata: { command: 'help' },
       };

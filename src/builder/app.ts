@@ -17,6 +17,7 @@ import {
   ISSUE_REPORT_URL,
   SUPA_SQL_FILE_PATH,
   TOOL_IMAGE_ANALYZER,
+  TOOL_PEXEL_IMAGE_SEARCH,
 } from './constants';
 import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
@@ -754,6 +755,7 @@ export class App {
           messages,
           schema: codeGenerationPrompt.getResponseFormatSchema(),
           responseFormatPrompt: codeGenerationPrompt.getResponseFormatPrompt(),
+          tools: [TOOL_PEXEL_IMAGE_SEARCH],
         });
         codeGenerationResponseObj = object;
         generatedCodeByComponent.set(component.name, codeGenerationResponseObj);
