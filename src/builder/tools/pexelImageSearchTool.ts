@@ -45,13 +45,8 @@ export class PexelImageSearchTool
 {
   private pexelsApiKey: string;
 
-  constructor(pexelsApiKey?: string) {
-    this.pexelsApiKey =
-      'gC3XjmOfWFcFUYDbR6fEJX3H6QIFoGCufPnhVsj9xc4lWFK2Z0pGZb9E';
-    // // ||
-    // pexelsApiKey ||
-    // process.env.PEXELS_API_KEY ||
-    // '';
+  constructor(pexelsApiKey: string) {
+    this.pexelsApiKey = pexelsApiKey;
     if (!this.pexelsApiKey) {
       // In a real VS Code extension, you might prompt the user or read from settings
       console.warn(

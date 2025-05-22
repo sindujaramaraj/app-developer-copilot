@@ -29,7 +29,12 @@ import {
   IWebTechStackOptions,
 } from '../builder/web/webTechStack';
 import { Backend } from '../builder/backend/serviceStack';
-import { IGenericStack, ZResponseBaseSchema } from '../builder/types';
+import {
+  ICodeComponent,
+  IGenericStack,
+  ZGenerateCodeForComponentResponseType,
+  ZResponseBaseSchema,
+} from '../builder/types';
 import { SupabaseService } from '../builder/backend/supabase/service';
 import { clearSupabaseTokens } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
@@ -43,6 +48,7 @@ enum ChatCommands {
   Create = 'create',
   Run = 'run',
   Help = 'help',
+  Fix = 'fix',
 }
 
 interface IChatRequestImageReference {
@@ -72,6 +78,22 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       useChatStream: true,
       chatStream: stream,
     });
+    // Initialize model and stream services
+    // Check and set a supported model
+    const copilotModel = await LanguageModelService.getCopilotModel(
+      request.model,
+    );
+    if (request.model.id !== copilotModel.id) {
+      stream.markdown(
+        `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
+      );
+    }
+    // Initialize model service
+    const modelService = new LanguageModelService(
+      copilotModel,
+      token,
+      request.toolInvocationToken,
+    );
     // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
@@ -83,22 +105,6 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
           },
         };
       }
-      // Initialize model and stream services
-      // Check and set a supported model
-      const copilotModel = await LanguageModelService.getCopilotModel(
-        request.model,
-      );
-      if (request.model.id !== copilotModel.id) {
-        stream.markdown(
-          `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
-        );
-      }
-      // Initialize model service
-      const modelService = new LanguageModelService(
-        copilotModel,
-        token,
-        request.toolInvocationToken,
-      );
 
       // Handle create mobile app
       return await handleCreateMobileApp(
@@ -112,6 +118,14 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunMobileApp(streamService, telemetry);
+    } else if (request.command === ChatCommands.Fix) {
+      return await handleFixMobileApp(
+        context,
+        'chat',
+        modelService,
+        streamService,
+        telemetry,
+      );
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('mobile.help', {});
@@ -365,6 +379,82 @@ export async function handleCreateMobileApp(
   };
 }
 
+async function handleFixMobileApp(
+  context: vscode.ExtensionContext,
+  source: 'chat' | 'command',
+  modelService: LanguageModelService,
+  streamService: StreamHandlerService,
+  telemetry: TelemetryService,
+) {
+  telemetry.trackChatInteraction('mobile.fix');
+  const startTime = Date.now();
+  streamService.message('Fixing mobile app');
+  try {
+    const appConfig = await selectApp(AppType.MOBILE, streamService);
+    const mobileApp = new MobileApp(
+      modelService,
+      streamService,
+      '',
+      appConfig.techStack as IMobileTechStackOptions,
+      null,
+    );
+    const generatedCode: ZGenerateCodeForComponentResponseType[] = [];
+    // collect code for each component
+    const components = appConfig.components as ICodeComponent[];
+    const getFilePathUri = async (
+      relativePath: string,
+    ): Promise<vscode.Uri> => {
+      const workspaceFolder = await FileUtil.getWorkspaceFolder();
+      if (!workspaceFolder) {
+        throw new Error('No workspace folder selected');
+      }
+      return vscode.Uri.joinPath(
+        vscode.Uri.file(workspaceFolder),
+        appConfig.name,
+        relativePath,
+      );
+    };
+    for (const component of components) {
+      const filePath = await getFilePathUri(component.path);
+      const fileBytes = await vscode.workspace.fs.readFile(filePath);
+      const code = Buffer.from(fileBytes).toString('utf8');
+      generatedCode.push({
+        componentName: component.name,
+        filePath: component.path,
+        content: code,
+        libraries: [],
+        assets: [],
+        summary: component.purpose,
+      });
+    }
+    mobileApp.setAppName(appConfig.name);
+    await mobileApp.fix({
+      appName: appConfig.name,
+      features: appConfig.features,
+      design: '',
+      components: appConfig.components as any,
+      generatedCode,
+      summary: '',
+    });
+    telemetry.trackChatInteraction('mobile.fix', {
+      success: String(true),
+      duration: String(Date.now() - startTime),
+    });
+    streamService.message('Mobile app fixed successfully');
+    return {
+      metadata: { command: 'fix' },
+    };
+  } catch (error: any) {
+    telemetry.trackError('mobile.fix', 'mobile', source, error as Error);
+    return {
+      errorDetails: {
+        message: error.message ? error.message : 'Something went wrong',
+      },
+      metadata: { command: 'run' },
+    };
+  }
+}
+
 async function handleRunMobileApp(
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
@@ -374,7 +464,7 @@ async function handleRunMobileApp(
   let appConfig: AppConfig;
 
   try {
-    appConfig = await getAppToRun(AppType.MOBILE, streamService);
+    appConfig = await selectApp(AppType.MOBILE, streamService);
   } catch (error: any) {
     telemetry.trackError('mobile.run', 'mobile', 'chat', error as Error);
     return {
@@ -408,7 +498,7 @@ async function handleRunWebApp(
   let appConfig: AppConfig;
 
   try {
-    appConfig = await getAppToRun(AppType.WEB, streamService);
+    appConfig = await selectApp(AppType.WEB, streamService);
   } catch (error) {
     telemetry.trackError('web.run', 'web', 'chat', error as Error);
     return {
@@ -661,7 +751,7 @@ async function getBackend(
   return null;
 }
 
-async function getAppToRun(
+async function selectApp(
   appType: AppType,
   streamService: StreamHandlerService,
 ): Promise<AppConfig> {

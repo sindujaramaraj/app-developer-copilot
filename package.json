@@ -178,6 +178,10 @@
           {
             "name": "help",
             "description": "Get help with using the extension"
+          },
+          {
+            "name": "fix",
+            "description": "Fix issues in the app"
           }
         ]
       },
@@ -199,6 +203,10 @@
           {
             "name": "help",
             "description": "Get help with using the extension"
+          },
+          {
+            "name": "fix",
+            "description": "Fix issues in the app"
           }
         ]
       }

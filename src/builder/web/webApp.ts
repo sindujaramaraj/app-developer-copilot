@@ -133,4 +133,6 @@ export class WebApp extends App {
     `;
     return envLocalContent;
   }
+
+  // Optionally override fix() here if web-specific fix logic is needed
 }

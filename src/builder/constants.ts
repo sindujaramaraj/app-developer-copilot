@@ -33,6 +33,10 @@ export const AI_EDGE_FUNCTION_BASE_URL = isLocal
   ? 'http://localhost:54321/functions/v1/ai'
   : 'https://zrlkyaqpuvndlijmxedy.supabase.co/functions/v1/ai';
 
+export const CRED_HANDLER_EDGE_FUNCTION_BASE_URL = isLocal
+  ? 'http://localhost:54321/functions/v1/cred-handler'
+  : 'https://zrlkyaqpuvndlijmxedy.supabase.co/functions/v1/cred-handler';
+
 export const ENABLE_TELEMETRY = isLocal ? false : true; // Config to enable or disable telemetry collection
 export const ENABLE_WEB_APP = true; // Config to enable or disable web app creation
 export const ENABLE_WEB_STACK_CONFIG = true; // Config to enable or disable web stack configuration

@@ -213,3 +213,45 @@ export const ZFixIssueResponseSchema = ZResponseBaseSchema.extend({
 });
 
 export type ZFixIssueResponseType = z.infer<typeof ZFixIssueResponseSchema>;
+
+// Batch Fix Types
+export interface IFixBatchFile {
+  filePath: string;
+  content: string;
+  errorMessages: string[];
+  contentType: string;
+}
+
+export interface IFixBatchPromptInput {
+  files: IFixBatchFile[];
+}
+
+export const ZFixBatchFileSchema = z.object({
+  filePath: z.string().describe('File path of the file to fix'),
+  content: z.string().describe('Current content of the file'),
+  errorMessages: z
+    .array(z.string())
+    .describe('List of error messages for this file'),
+  contentType: z
+    .string()
+    .describe('Type of the file, e.g. typescript, javascript, etc.'),
+});
+
+export const ZFixBatchPromptInputSchema = z.object({
+  files: z.array(ZFixBatchFileSchema).describe('List of files to fix'),
+});
+
+export const ZFixBatchResponseSchema = z.object({
+  fixedFiles: z
+    .array(
+      z.object({
+        filePath: z.string().describe('File path of the fixed file'),
+        fixedContent: z.string().describe('Fixed content for the file'),
+      }),
+    )
+    .describe('List of fixed files'),
+  summary: z.string().describe('Summary of the fixes applied'),
+  error: z.string().optional().nullable().describe('Error message if any'),
+});
+
+export type ZFixBatchResponseType = z.infer<typeof ZFixBatchResponseSchema>;

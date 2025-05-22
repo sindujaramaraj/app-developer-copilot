@@ -3,17 +3,21 @@ import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
   IFixIssuePromptInput,
+  IFixBatchPromptInput,
   IGenerateCodeForComponentInput,
   IGenericStack,
   IInitializeAppInput,
   ZFixIssueResponseSchema,
   ZFixIssueResponseType,
+  ZFixBatchResponseSchema,
+  ZFixBatchResponseType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
   ZInitializeAppWithBackendResponseSchema,
   ZInitializeAppWithBackendResponseType,
+  IFixBatchFile,
 } from './types';
 import {
   getPromptForMobileStack,
@@ -289,6 +293,34 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
   }
 }
 
+export class FixIssuePrompt extends PromptBase<
+  IFixIssuePromptInput,
+  ZFixIssueResponseType
+> {
+  constructor(input: IFixIssuePromptInput) {
+    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with the code that has an issue and the error message.\
+    Your task is to identify the issue in the code and fix it.\
+    The code is written in ${input.contentType} and the error message is: ${input.errorMessage}.\
+    Here is the code: ${input.content}.\
+    Fix the issue in the code and provide the fixed code. Do not provide any explanation or additional information. Just provide the fixed code.`;
+    super(input, instructions, ZFixIssueResponseSchema);
+  }
+}
+
+export class FixBatchIssuePrompt extends PromptBase<
+  IFixBatchPromptInput,
+  ZFixBatchResponseType
+> {
+  constructor(input: IFixBatchPromptInput) {
+    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with a list of files, each with its current content and a list of error messages.\
+Your task is to identify and fix all issues in all files, taking into account cross-file dependencies.\
+For each file, apply all necessary fixes so that all error messages are resolved.\
+Return the fixed content for each file. Do not provide any explanation or additional information.\
+Respond strictly in the required JSON schema. Here are the files and their issues: ${JSON.stringify(input.files)}.`;
+    super(input, instructions, ZFixBatchResponseSchema);
+  }
+}
+
 function getPromptForDependentCode(
   dependencies: ZGenerateCodeForComponentResponseType[],
 ): string {
@@ -338,18 +370,4 @@ export function getPromptForTools(
     }
   }
   return '';
-}
-
-export class FixIssuePrompt extends PromptBase<
-  IFixIssuePromptInput,
-  ZFixIssueResponseType
-> {
-  constructor(input: IFixIssuePromptInput) {
-    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with the code that has an issue and the error message.\
-    Your task is to identify the issue in the code and fix it.\
-    The code is written in ${input.contentType} and the error message is: ${input.errorMessage}.\
-    Here is the code: ${input.content}.\
-    Fix the issue in the code and provide the fixed code. Do not provide any explanation or additional information. Just provide the fixed code.`;
-    super(input, instructions, ZFixIssueResponseSchema);
-  }
 }
