@@ -3,7 +3,7 @@
   "displayName": "App Developer Copilot",
   "description": "App developer agent for creating web and mobile apps",
   "icon": "media/icon.jpeg",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "preview": false,
   "repository": {
     "type": "git",
@@ -178,6 +178,10 @@
           {
             "name": "help",
             "description": "Get help with using the extension"
+          },
+          {
+            "name": "fix",
+            "description": "Fix issues in the app"
           }
         ]
       },
@@ -199,6 +203,10 @@
           {
             "name": "help",
             "description": "Get help with using the extension"
+          },
+          {
+            "name": "fix",
+            "description": "Fix issues in the app"
           }
         ]
       }
@@ -243,6 +251,33 @@
           },
           "required": [
             "images"
+          ]
+        }
+      },
+      {
+        "name": "app_developer_pexelImageSearch",
+        "tags": [
+          "image",
+          "search",
+          "pexels"
+        ],
+        "displayName": "Pexels Image Search",
+        "modelDescription": "Searches for images on Pexels.com based on a query. Returns image URLs, alt text, and photographer details. Use this tool when you need to find stock photos.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The search term for finding images on Pexels."
+            },
+            "per_page": {
+              "type": "number",
+              "description": "The number of images to return per page. Defaults to 1.",
+              "default": 1
+            }
+          },
+          "required": [
+            "query"
           ]
         }
       }

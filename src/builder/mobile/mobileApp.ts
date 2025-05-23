@@ -93,4 +93,6 @@ export class MobileApp extends App {
     `;
     return envLocalContent;
   }
+
+  // Optionally override fix() here if mobile-specific fix logic is needed
 }

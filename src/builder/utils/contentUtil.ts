@@ -1,5 +1,3 @@
-const MAX_RETRY_COUNT = 1;
-
 export function isMarkdown(response: string): boolean {
   const markdownPatterns = [
     /^#{1,6}\s+/m, // Headers (e.g., # Header, ## Header)
@@ -148,4 +146,26 @@ export function isBase64(content: string): boolean {
 
 export function isMimeTypeImage(mimeType: string): boolean {
   return mimeType.startsWith('image/');
+}
+
+// Helper function to get MIME type from file extension
+export function getMimeTypeFromUri(uriString: string): string {
+  const extension = uriString.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'bmp':
+      return 'image/bmp';
+    default:
+      return 'application/octet-stream'; // Default or unknown
+  }
 }

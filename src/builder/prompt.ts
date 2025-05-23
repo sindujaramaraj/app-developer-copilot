@@ -3,17 +3,21 @@ import { z } from 'zod';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import {
   IFixIssuePromptInput,
+  IFixBatchPromptInput,
   IGenerateCodeForComponentInput,
   IGenericStack,
   IInitializeAppInput,
   ZFixIssueResponseSchema,
   ZFixIssueResponseType,
+  ZFixBatchResponseSchema,
+  ZFixBatchResponseType,
   ZGenerateCodeForComponentResponseSchema,
   ZGenerateCodeForComponentResponseType,
   ZInitializeAppResponseSchema,
   ZInitializeAppResponseType,
   ZInitializeAppWithBackendResponseSchema,
   ZInitializeAppWithBackendResponseType,
+  IFixBatchFile,
 } from './types';
 import {
   getPromptForMobileStack,
@@ -25,7 +29,7 @@ import {
   getPromptForExistingBackend,
   getPromptForNewDatabase,
 } from './backend/serviceStack';
-import { TOOL_IMAGE_ANALYZER } from './constants';
+import { TOOL_IMAGE_ANALYZER, TOOL_PEXEL_IMAGE_SEARCH } from './constants';
 
 export class PromptBase<TInput, TOutput> {
   protected input: TInput;
@@ -255,7 +259,8 @@ export class GenerateCodeForMobileComponentPrompt extends PromptBase<
     Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image, sound etc.. don not gnerate the code for the media. Just use placeholder text and include the media in the response.
+    If the code needs to use image, you can use the ${TOOL_PEXEL_IMAGE_SEARCH} tool to search for images and use the image in the code.
+    If the code needs any icon, use material icon library and use the icon in the code.
     If the code uses any external libraries, include the libraries in the response.
     Reuse code from dependencies if possible.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
@@ -277,13 +282,42 @@ export class GenerateCodeForWebComponentPrompt extends PromptBase<
     Design used for the app: ${input.design}.
     Generate code in typescript and make sure the code is properly typed, functional and error free.
     Do not create placeholder code. Write the actual code that will be used in production.
-    If the code uses any media like image or sound, do not generate the media. Just use placeholder text and include the media as asset in the response.
+    If the code needs to use image, you can use the ${TOOL_PEXEL_IMAGE_SEARCH} tool to search for images and use the image in the code.
+    If the code needs any icon, use material icon library and use the icon in the code.
     If the code uses any external libraries, include the libraries in the response so they can be installed later.
     Specify "use client" directive in the code if the component is a client component.
     When using code from dependencies, make sure to import the dependencies correctly based on path.
     Code for dependent components:
     ${getPromptForDependentCode(input.dependencies)}.`;
     super(input, instructions, ZGenerateCodeForComponentResponseSchema);
+  }
+}
+
+export class FixIssuePrompt extends PromptBase<
+  IFixIssuePromptInput,
+  ZFixIssueResponseType
+> {
+  constructor(input: IFixIssuePromptInput) {
+    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with the code that has an issue and the error message.\
+    Your task is to identify the issue in the code and fix it.\
+    The code is written in ${input.contentType} and the error message is: ${input.errorMessage}.\
+    Here is the code: ${input.content}.\
+    Fix the issue in the code and provide the fixed code. Do not provide any explanation or additional information. Just provide the fixed code.`;
+    super(input, instructions, ZFixIssueResponseSchema);
+  }
+}
+
+export class FixBatchIssuePrompt extends PromptBase<
+  IFixBatchPromptInput,
+  ZFixBatchResponseType
+> {
+  constructor(input: IFixBatchPromptInput) {
+    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with a list of files, each with its current content and a list of error messages.\
+Your task is to identify and fix all issues in all files, taking into account cross-file dependencies.\
+For each file, apply all necessary fixes so that all error messages are resolved.\
+Return the fixed content for each file. Do not provide any explanation or additional information.\
+Respond strictly in the required JSON schema. Here are the files and their issues: ${JSON.stringify(input.files)}.`;
+    super(input, instructions, ZFixBatchResponseSchema);
   }
 }
 
@@ -336,18 +370,4 @@ export function getPromptForTools(
     }
   }
   return '';
-}
-
-export class FixIssuePrompt extends PromptBase<
-  IFixIssuePromptInput,
-  ZFixIssueResponseType
-> {
-  constructor(input: IFixIssuePromptInput) {
-    const instructions = `You are an expert at debugging and fixing issues in code. You will be provided with the code that has an issue and the error message.\
-    Your task is to identify the issue in the code and fix it.\
-    The code is written in ${input.contentType} and the error message is: ${input.errorMessage}.\
-    Here is the code: ${input.content}.\
-    Fix the issue in the code and provide the fixed code. Do not provide any explanation or additional information. Just provide the fixed code.`;
-    super(input, instructions, ZFixIssueResponseSchema);
-  }
 }

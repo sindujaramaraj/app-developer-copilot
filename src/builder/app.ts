@@ -17,12 +17,17 @@ import {
   ISSUE_REPORT_URL,
   SUPA_SQL_FILE_PATH,
   TOOL_IMAGE_ANALYZER,
+  TOOL_PEXEL_IMAGE_SEARCH,
 } from './constants';
 import { Backend, IBackendDetails } from './backend/serviceStack';
 import { SupabaseService } from './backend/supabase/service';
 import { checkNodeInstallation } from './utils/nodeUtil';
 import { createSupaFiles } from './backend/supabase/helper';
-import { FixIssuePrompt, getPromptForTools } from './prompt';
+import {
+  FixIssuePrompt,
+  FixBatchIssuePrompt,
+  getPromptForTools,
+} from './prompt';
 import { createAppConfig, AppType } from './utils/appconfigHelper';
 import { IMobileTechStackOptions } from './mobile/mobileTechStack';
 import { IWebTechStackOptions } from './web/webTechStack';
@@ -38,6 +43,7 @@ export enum AppStage {
   Initialize,
   Design,
   GenerateCode,
+  Fix, // Added Fix stage
   Build,
   Run,
   Deploy,
@@ -94,8 +100,13 @@ export class App {
   }
 
   getStages(): AppStage[] {
-    // TODO: Add more stages as we implement
-    return [AppStage.PreCheck, AppStage.Initialize, AppStage.GenerateCode];
+    // Add Fix stage after GenerateCode
+    return [
+      AppStage.PreCheck,
+      AppStage.Initialize,
+      AppStage.GenerateCode,
+      AppStage.Fix,
+    ];
   }
 
   async execute(): Promise<void> {
@@ -125,10 +136,10 @@ export class App {
         this.setStage(AppStage.Cancelled);
         return;
       }
-
-      let stageOutput: IAppStageOutput<ZResponseBaseType> | undefined =
-        undefined;
-
+      let stageOutput: IAppStageOutput<any> | undefined = undefined;
+      let generatedCodeOutput:
+        | IAppStageOutput<ZGenerateCodeResponseType>
+        | undefined = undefined;
       for (const stage of stages) {
         if (stage === this.stage) {
           continue;
@@ -152,6 +163,15 @@ export class App {
             this.generatedFilesCount =
               currentOutput.output.generatedCode.length;
             this.componentsCount = currentOutput.output.components.length;
+            generatedCodeOutput = currentOutput;
+            break;
+          case AppStage.Fix:
+            if (!generatedCodeOutput) {
+              this.setStage(AppStage.Cancelled);
+              this.isExecuting = false;
+              throw new Error('No generated code to fix');
+            }
+            await this.fix(generatedCodeOutput.output);
             break;
         }
         stageOutput = currentOutput;
@@ -754,6 +774,7 @@ export class App {
           messages,
           schema: codeGenerationPrompt.getResponseFormatSchema(),
           responseFormatPrompt: codeGenerationPrompt.getResponseFormatPrompt(),
+          tools: [TOOL_PEXEL_IMAGE_SEARCH],
         });
         codeGenerationResponseObj = object;
         generatedCodeByComponent.set(component.name, codeGenerationResponseObj);
@@ -1011,5 +1032,114 @@ export class App {
 
   getSupaEnvFile(_supaUrl: string, _supaAnonKey: string): string {
     throw new Error('Method not implemented.');
+  }
+
+  /**
+   * Fix stage: Identify and fix issues in generated code using Copilot's problems tool and fetch webpage.
+   * Retries until code is error-free or max retries reached.
+   */
+  async fix(generateCodeOutput: ZGenerateCodeResponseType): Promise<void> {
+    this.setStage(AppStage.Fix);
+    this.logProgress('Checking for issues in generated code...');
+    let retryCount = 0;
+    let hasErrors = true;
+    const MAX_FIX_RETRIES = 5;
+    const generatedFiles = (generateCodeOutput.generatedCode || [])
+      .map((c) => c.filePath)
+      .filter(Boolean);
+    if (generatedFiles.length === 0) {
+      this.logMessage('No generated files to check.');
+      return;
+    }
+    while (hasErrors && retryCount < MAX_FIX_RETRIES) {
+      let totalProblems = 0;
+      let fixedAny = false;
+      // Collect all problems for all files in this round
+      const fileProblems: {
+        filePath: string;
+        diagnostics: vscode.Diagnostic[];
+      }[] = [];
+      for (const filePath of generatedFiles) {
+        const uri = await this.getFilePathUri(filePath);
+        const diagnostics = vscode.languages.getDiagnostics(uri);
+        if (diagnostics && diagnostics.length > 0) {
+          fileProblems.push({ filePath, diagnostics });
+          totalProblems += diagnostics.length;
+        }
+      }
+      if (totalProblems === 0) {
+        this.logMessage('No issues found in generated code.');
+        hasErrors = false;
+        break;
+      }
+      // Batch input for all files with problems
+      const batchFiles = [];
+      for (const { filePath, diagnostics } of fileProblems) {
+        const uri = await this.getFilePathUri(filePath);
+        let fileContent = '';
+        try {
+          const fileBytes = await vscode.workspace.fs.readFile(uri);
+          fileContent = Buffer.from(fileBytes).toString('utf8');
+        } catch (e) {
+          this.logError(`Failed to read file for fixing: ${filePath}`);
+          continue;
+        }
+        const contentType =
+          filePath.endsWith('.ts') || filePath.endsWith('.tsx')
+            ? 'typescript'
+            : 'javascript';
+        batchFiles.push({
+          filePath,
+          content: fileContent,
+          errorMessages: diagnostics.map((d) => d.message),
+          contentType,
+        });
+      }
+      // Call the language model once for all files
+      const fixBatchPrompt = new FixBatchIssuePrompt({ files: batchFiles });
+      try {
+        const { object: batchResponse } =
+          await this.languageModelService.generateObject({
+            messages: [
+              this.createSystemMessage(fixBatchPrompt.getInstructionsPrompt()),
+            ],
+            schema: fixBatchPrompt.getResponseFormatSchema(),
+            responseFormatPrompt: fixBatchPrompt.getResponseFormatPrompt(),
+          });
+        if (
+          batchResponse &&
+          batchResponse.fixedFiles &&
+          batchResponse.fixedFiles.length > 0
+        ) {
+          for (const fixed of batchResponse.fixedFiles) {
+            const uri = await this.getFilePathUri(fixed.filePath);
+            await vscode.workspace.fs.writeFile(
+              uri,
+              Buffer.from(fixed.fixedContent, 'utf8'),
+            );
+            this.logMessage(`Applied batch fix to ${fixed.filePath}`);
+            fixedAny = true;
+          }
+        } else {
+          this.logError('No fixes returned for batch.');
+        }
+      } catch (e) {
+        this.logError(`Failed to apply batch fix: ${e}`);
+      }
+      if (!fixedAny) {
+        this.logError(
+          'Some issues could not be fixed automatically. Please review manually.',
+        );
+        break;
+      }
+      retryCount++;
+      this.logProgress(
+        `Fix attempt ${retryCount} complete. Re-checking for issues in all files...`,
+      );
+      // Loop will re-check all files for new/remaining issues
+    }
+    if (!hasErrors) {
+      this.logMessage('All issues fixed. Code is error-free.');
+    }
   }
 }
