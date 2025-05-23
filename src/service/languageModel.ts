@@ -14,6 +14,7 @@ const SUPPORTED_COPILOT_MODELS = [
   'gpt-4.1',
   'gpt-4o',
   'claude-3.5-sonnet',
+  'claude-sonnet-4',
   'gemini-2.5-pro',
 ];
 
