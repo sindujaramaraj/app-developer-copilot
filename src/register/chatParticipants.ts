@@ -40,7 +40,10 @@ import { clearSupabaseTokens } from '../builder/backend/supabase/oauth';
 import { ConnectionTarget } from '../service/telemetry/types';
 import { WebViewProvider, WebviewViewTypes } from '../webview/viewProvider';
 import { FigmaClient, parseFigmaUrl } from '../service/figma/client';
-import { isMimeTypeImage } from '../builder/utils/contentUtil';
+import {
+  getMimeTypeFromUri,
+  isMimeTypeImage,
+} from '../builder/utils/contentUtil';
 import { isConnectedToFigma } from '../service/figma/auth';
 import { IImageSource } from '../builder/tools/imageAnalyzerTool';
 
@@ -936,15 +939,25 @@ function getImageRefsFromRequest(request: vscode.ChatRequest): IImageSource[] {
         continue;
       }
       if (value instanceof vscode.Uri) {
-        images.push({
-          source: 'file',
-          uri: (ref.value as vscode.Uri).fsPath,
-        });
+        const uri = value as vscode.Uri;
+        const mimeType = getMimeTypeFromUri(uri.fsPath);
+        // Check if the mime type is an image
+        if (isMimeTypeImage(mimeType)) {
+          images.push({
+            source: 'file',
+            uri: uri.fsPath,
+          });
+        }
       } else if (value instanceof vscode.Location) {
-        images.push({
-          source: 'file',
-          uri: (value as vscode.Location).uri.fsPath,
-        });
+        const uri = (value as vscode.Location).uri;
+        const mimeType = getMimeTypeFromUri(uri.fsPath);
+        // Check if the mime type is an image
+        if (isMimeTypeImage(mimeType)) {
+          images.push({
+            source: 'file',
+            uri: uri.fsPath,
+          });
+        }
       } else if (
         isMimeTypeImage((value as IChatRequestImageReference).mimeType)
       ) {
