@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.0.9] - 2025-05-23
+
+### Added
+
+- Support for image using Pexels API
+- Added Fix command to fix issues in generated code
+- Support Claude Sonnet 4
+
 ## [2.0.8] - 2025-05-16
 
 ### Changed

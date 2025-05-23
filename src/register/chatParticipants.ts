@@ -119,8 +119,8 @@ function registerMobileChatParticipants(context: vscode.ExtensionContext) {
     } else if (request.command === ChatCommands.Run) {
       return await handleRunMobileApp(streamService, telemetry);
     } else if (request.command === ChatCommands.Fix) {
-      return await handleFixMobileApp(
-        context,
+      return await handleFixApp(
+        AppType.MOBILE,
         'chat',
         modelService,
         streamService,
@@ -169,6 +169,22 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       useChatStream: true,
       chatStream: stream,
     });
+    // Initialize model and stream services
+    // Check and set a supported model
+    const copilotModel = await LanguageModelService.getCopilotModel(
+      request.model,
+    );
+    if (request.model.id !== copilotModel.id) {
+      stream.markdown(
+        `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
+      );
+    }
+    // Initialize model service
+    const modelService = new LanguageModelService(
+      copilotModel,
+      token,
+      request.toolInvocationToken,
+    );
     // Check for commands
     if (request.command === ChatCommands.Create) {
       // Check for a valid prompt
@@ -180,23 +196,6 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
           },
         };
       }
-      // Initialize model and stream services
-      // Check and set a supported model
-      const copilotModel = await LanguageModelService.getCopilotModel(
-        request.model,
-      );
-      if (request.model.id !== copilotModel.id) {
-        stream.markdown(
-          `The model you selected is not supported. Switching to ${copilotModel.id} model.`,
-        );
-      }
-      // Initialize model service
-      const modelService = new LanguageModelService(
-        copilotModel,
-        token,
-        request.toolInvocationToken,
-      );
-
       // Handle create web app
       return await handleCreateWebApp(
         context,
@@ -209,6 +208,14 @@ function registerWebChatParticipants(context: vscode.ExtensionContext) {
       );
     } else if (request.command === ChatCommands.Run) {
       return await handleRunWebApp(streamService, telemetry);
+    } else if (request.command === ChatCommands.Fix) {
+      return await handleFixApp(
+        AppType.WEB,
+        'chat',
+        modelService,
+        streamService,
+        telemetry,
+      );
     } else {
       if (request.command === ChatCommands.Help) {
         telemetry.trackChatInteraction('web.help', {});
@@ -379,23 +386,24 @@ export async function handleCreateMobileApp(
   };
 }
 
-async function handleFixMobileApp(
-  context: vscode.ExtensionContext,
+async function handleFixApp(
+  appType: AppType,
   source: 'chat' | 'command',
   modelService: LanguageModelService,
   streamService: StreamHandlerService,
   telemetry: TelemetryService,
 ) {
-  telemetry.trackChatInteraction('mobile.fix');
+  telemetry.trackChatInteraction('app.fix');
   const startTime = Date.now();
-  streamService.message('Fixing mobile app');
+  streamService.message('Fixing app');
   try {
-    const appConfig = await selectApp(AppType.MOBILE, streamService);
-    const mobileApp = new MobileApp(
+    const appConfig = await selectApp(appType, streamService);
+    const appClass = appConfig.type === AppType.MOBILE ? MobileApp : WebApp;
+    const app = new appClass(
       modelService,
       streamService,
       '',
-      appConfig.techStack as IMobileTechStackOptions,
+      appConfig.techStack,
       null,
     );
     const generatedCode: ZGenerateCodeForComponentResponseType[] = [];
@@ -427,8 +435,8 @@ async function handleFixMobileApp(
         summary: component.purpose,
       });
     }
-    mobileApp.setAppName(appConfig.name);
-    await mobileApp.fix({
+    app.setAppName(appConfig.name);
+    await app.fix({
       appName: appConfig.name,
       features: appConfig.features,
       design: '',
@@ -436,16 +444,21 @@ async function handleFixMobileApp(
       generatedCode,
       summary: '',
     });
-    telemetry.trackChatInteraction('mobile.fix', {
+    telemetry.trackChatInteraction('app.fix', {
       success: String(true),
       duration: String(Date.now() - startTime),
     });
-    streamService.message('Mobile app fixed successfully');
+    streamService.message('App fixed successfully');
     return {
       metadata: { command: 'fix' },
     };
   } catch (error: any) {
-    telemetry.trackError('mobile.fix', 'mobile', source, error as Error);
+    telemetry.trackError(
+      'app.fix',
+      appType === AppType.MOBILE ? 'mobile' : 'web',
+      source,
+      error as Error,
+    );
     return {
       errorDetails: {
         message: error.message ? error.message : 'Something went wrong',

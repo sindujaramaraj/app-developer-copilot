@@ -1,6 +1,6 @@
 export const APP_NAME = 'appdeveloper';
 export const APP_DISPLAY_NAME = 'App Developer Copilot';
-export const APP_VERSION = '2.0.8';
+export const APP_VERSION = '2.0.9';
 export const APP_CONFIG_FILE = 'appdev.json';
 export const APP_CONVERSATION_FILE = 'conversation.json';
 export const APP_ARCHITECTURE_DIAGRAM_FILE = 'architecture.md';
